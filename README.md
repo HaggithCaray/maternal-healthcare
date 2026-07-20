@@ -75,7 +75,14 @@ Currently, the "Progressive Web App (PWA)" features are completely missing. Here
 
 Since you have limited development knowledge, follow these steps EXACTLY as written to get the app running on your computer.
 
-### Step 1: Install Requirements
+### Step 1: Get the Code
+First, you need to download this project to your computer. Open your terminal or command prompt and run:
+```bash
+git clone https://github.com/HaggithCaray/maternal-healthcare.git
+cd maternal-healthcare
+```
+
+### Step 2: Install Requirements
 You MUST install these programs on your computer first to start from scratch:
 1. **Docker Desktop** (v24 or higher) - REQUIRED to run the database and web server containers.
 2. **Node.js** (v20 or higher) - REQUIRED for building the frontend assets.
@@ -83,20 +90,20 @@ You MUST install these programs on your computer first to start from scratch:
 
 *NOTE: You do NOT need to install PHP or Composer on your local machine if you are using Docker, because the Docker container handles the PHP environment for you.*
 
-### Step 2: Start the Server
-Open your terminal or command prompt, go to this project folder, and run:
+### Step 3: Start the Server
+Open your terminal or command prompt, make sure you are inside the `maternal-healthcare` folder, and run:
 ```bash
 docker compose up -d
 ```
 *This starts your database and web server in the background.*
 
-### Step 3: Install PHP Dependencies
+### Step 4: Install PHP Dependencies
 Run this command to install the backend tools:
 ```bash
 docker exec -it healthcare-app composer install
 ```
 
-### Step 4: Setup Environment File (`.env`)
+### Step 5: Setup Environment File (`.env`)
 You MUST configure your database connection so the app can talk to the database.
 
 1. **Create the file:**
@@ -125,20 +132,20 @@ You MUST configure your database connection so the app can talk to the database.
    ```
    *Why these values? Because this matches the exact setup in your `docker-compose.yml` file!*
 
-### Step 5: Create the Database Tables
+### Step 6: Create the Database Tables
 Run this command to build the tables inside your database:
 ```bash
 docker exec -it healthcare-app php artisan migrate
 ```
 
-### Step 6: Install Frontend Dependencies & Build
+### Step 7: Install Frontend Dependencies & Build
 Run these commands to install Tailwind CSS and build the visual styling:
 ```bash
 npm install
 npm run build
 ```
 
-### Step 7: Open the App
+### Step 8: Open the App
 Go to your web browser and open:
 **http://localhost:8080**
 
