@@ -72,9 +72,12 @@ Currently, the "Progressive Web App (PWA)" features are completely missing. Here
 Since you have limited development knowledge, follow these steps EXACTLY as written to get the app running on your computer.
 
 ### Step 1: Install Requirements
-You MUST install these two programs on your computer first:
-1. **Docker Desktop** (Make sure it is running!)
-2. **Node.js** (Version 20 or higher)
+You MUST install these programs on your computer first to start from scratch:
+1. **Docker Desktop** (v24 or higher) - REQUIRED to run the database and web server containers.
+2. **Node.js** (v20 or higher) - REQUIRED for building the frontend assets.
+3. **NPM** (comes with Node.js) - REQUIRED to install Tailwind CSS and Vite dependencies.
+
+*NOTE: You do NOT need to install PHP or Composer on your local machine if you are using Docker, because the Docker container handles the PHP environment for you.*
 
 ### Step 2: Start the Server
 Open your terminal or command prompt, go to this project folder, and run:
