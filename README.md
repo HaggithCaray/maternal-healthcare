@@ -20,6 +20,32 @@ The system is built on a standard Model-View-Controller (MVC) architecture using
 * The **Backend** exposes standard web routes handled by controllers to interact with the database via Eloquent Models.
 * The **Database** and servers are run inside Docker containers using MySQL 8.0 and Nginx for consistency across environments.
 
+### Visual Representation of Planned Offline/Online Architecture
+```text
+┌─────────────────────────────────────────────────┐
+│                 Tablet / Browser                  │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │ Service   │  │IndexedDB │  │ Background    │  │
+│  │ Worker    │  │(Local    │  │ Sync          │  │
+│  │ (Cache)   │  │ Database)│  │               │  │
+│  └─────┬─────┘  └────┬─────┘  └──────┬────────┘  │
+│        │             │               │           │
+└────────┼─────────────┼───────────────┼───────────┘
+         │             │               │
+    ┌────┴─────────────┴───────────────┴────┐
+    │         Internet Connection            │
+    │    (Online ── syncs; Offline ── skips) │
+    └────────────────┬──────────────────────┘
+                     │
+┌────────────────────┴──────────────────────┐
+│              Laravel Server                 │
+│  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
+│  │ Auth API │  │ REST API │  │ MySQL   │ │
+│  │ (Sanctum)│  │Endpoints │  │Database │ │
+│  └──────────┘  └──────────┘  └─────────┘ │
+└────────────────────────────────────────────┘
+```
+
 ## THINGS THAT NEED TO BE DONE
 You want this app to work OFFLINE for health workers in areas with no internet, right? **THAT PART IS NOT BUILT YET!** 
 Currently, the "Progressive Web App (PWA)" features are completely missing. Here is the EXACT checklist of things that need to be done next to finish this system:
