@@ -1,0 +1,27 @@
+flowchart TD
+    subgraph Device["Tablet / Browser"]
+        SW[Service Worker - Cache]
+        IDB[IndexedDB - Local Database]
+        BS[Background Sync]
+    end
+    subgraph Internet["Internet Connection"]
+        CON{Online?}
+    end
+    subgraph Server["Laravel Server"]
+        AUTH[Auth API - Sanctum]
+        API[REST API Endpoints]
+        MYSQL[(MySQL Database)]
+    end
+
+    SW --> CON
+    IDB --> CON
+    BS --> CON
+    CON -->|Yes - Syncs| AUTH
+    CON -->|Yes - Syncs| API
+    CON -->|No - Queues locally| BS
+    AUTH --> MYSQL
+    API --> MYSQL
+
+    style Device fill:#e3f2fd,stroke:#1565c0
+    style Server fill:#e8f5e9,stroke:#2e7d32
+    style CON fill:#fff9c4,stroke:#f9a825

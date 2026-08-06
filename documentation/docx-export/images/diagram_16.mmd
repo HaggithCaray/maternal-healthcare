@@ -1,0 +1,14 @@
+flowchart TD
+    S([Start]) --> A["Select Maternal Patient (?id=X)"]
+    A --> B[Load Patient + Maternal Record + Checkup History]
+    B --> C[Enter Checkup: Weight, BP, Fetal Heart Rate, Notes]
+    C --> D{Validate Input?}
+    D -->|Invalid| E[Show Errors]
+    E --> C
+    D -->|Valid| F["Auto-calculate Visit Number, Gestational Age, Next Visit (+4 weeks)"]
+    F --> G[Save Checkup to Database]
+    G --> H[Refresh with Success Message]
+    H --> Z([End])
+
+    style S fill:#4CAF50,color:#fff
+    style Z fill:#f44336,color:#fff

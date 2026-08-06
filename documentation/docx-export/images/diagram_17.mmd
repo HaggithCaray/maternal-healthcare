@@ -1,0 +1,12 @@
+flowchart TD
+    S([Start]) --> A[Navigate to Immunization Page]
+    A --> B[Load Child Record + Immunization Schedule]
+    B --> C[Select Vaccine Dose to Mark as Administered]
+    C --> D[Submit with Optional Remarks]
+    D --> E["Update Status to 'Given'"]
+    E --> F[Record Date and Administrator Name]
+    F --> G["Refresh with Success: 'Dose Administered'"]
+    G --> Z([End])
+
+    style S fill:#4CAF50,color:#fff
+    style Z fill:#f44336,color:#fff

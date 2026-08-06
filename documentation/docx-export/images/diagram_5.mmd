@@ -1,0 +1,24 @@
+flowchart LR
+    Admin(("Admin (Midwife)"))
+    Patient(("User (Patient)"))
+    
+    subgraph System["Account Management System"]
+        UC1[Register New Account]
+        UC2[Disable Account]
+        UC3[Update Account Info]
+        UC4[Update Password]
+        UC5[View Own Profile]
+        UC6[Login with Role]
+        UC7[Logout]
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Admin --> UC6
+    Admin --> UC7
+    Patient --> UC5
+    Patient --> UC4
+    Patient --> UC6
+    Patient --> UC7

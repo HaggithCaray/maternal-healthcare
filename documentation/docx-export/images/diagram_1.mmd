@@ -1,0 +1,18 @@
+flowchart TD
+    A([Patient Arrives]) --> B[Walk-in to Health Center]
+    B --> C[Fill out paper registration form]
+    C --> D[Midwife manually records in logbook]
+    D --> E{Registration Type?}
+    E -->|Maternal| F[Prenatal Checkup - Manual logbook]
+    E -->|Child| G[Immunization Schedule - Paper card]
+    E -->|Child| H[Growth Monitoring - Paper chart]
+    F --> I[Manual follow-up via personal visit or word-of-mouth]
+    G --> I
+    H --> I
+    I --> J[Generate monthly reports manually by counting from logs]
+    J --> K([End])
+
+    style A fill:#f9f,stroke:#333
+    style K fill:#f9f,stroke:#333
+    style I fill:#fdd,stroke:#c00
+    style J fill:#fdd,stroke:#c00

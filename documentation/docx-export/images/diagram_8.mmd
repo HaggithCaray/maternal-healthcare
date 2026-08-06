@@ -1,0 +1,17 @@
+flowchart LR
+    Admin(("Admin (Midwife)"))
+    Patient(("User (Patient)"))
+    
+    subgraph System["Child Health Monitoring"]
+        UC1[Mark Vaccine as Administered]
+        UC2[Add Growth Measurement]
+        UC3[View Immunization Schedule]
+        UC4[View Growth Chart]
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Patient --> UC3
+    Patient --> UC4

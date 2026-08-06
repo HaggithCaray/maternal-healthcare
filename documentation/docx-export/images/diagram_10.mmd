@@ -1,0 +1,19 @@
+flowchart LR
+    Admin(("Admin (Midwife)"))
+    Patient(("User (Patient)"))
+    
+    subgraph System["Online Messaging System"]
+        UC1[View Patient User List]
+        UC2[Select Active Chat]
+        UC3[Send Message with Attachments]
+        UC4[View Read Receipts]
+        UC5[Chat with Midwife]
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Patient --> UC5
+    Patient --> UC3
+    Patient --> UC4

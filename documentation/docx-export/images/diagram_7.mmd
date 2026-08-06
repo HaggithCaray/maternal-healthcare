@@ -1,0 +1,16 @@
+flowchart LR
+    Admin(("Admin (Midwife)"))
+    Patient(("User (Patient)"))
+    
+    subgraph System["Maternal Health Monitoring"]
+        UC1[Add Checkup Visit Log]
+        UC2[View Checkup History]
+        UC3[Track EDD / LMP]
+        UC4[View Own Maternal Records]
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Patient --> UC4
+    Patient --> UC2

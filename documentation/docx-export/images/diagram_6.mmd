@@ -1,0 +1,22 @@
+flowchart LR
+    Admin(("Admin (Midwife)"))
+    
+    subgraph System["Patient Registration System"]
+        UC1[Register Maternal Patient]
+        UC2[Register Child Patient]
+        UC3[Search and Filter Patients]
+        UC4[View Patient Records]
+        UC5[Update Patient Status]
+        UC6["Auto-Create MaternalRecord (LMP to EDD)"]
+        UC7["Auto-Create ChildRecord + EPI Schedule (14 doses)"]
+        UC8[Auto-Create Initial Growth Measurement]
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Admin --> UC5
+    UC1 -.->|includes| UC6
+    UC2 -.->|includes| UC7
+    UC2 -.->|includes| UC8

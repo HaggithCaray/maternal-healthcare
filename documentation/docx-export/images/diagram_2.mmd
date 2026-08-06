@@ -1,0 +1,20 @@
+flowchart TD
+    A([Patient Arrives]) --> B[Digital Patient Registration via Web Form]
+    B --> C[System auto-generates health records and vaccine schedule]
+    C --> D{Registration Type?}
+    D -->|Maternal| E[Maternal Checkup - Digital logging]
+    D -->|Child| F[Immunization Tracking - Auto EPI Schedule]
+    D -->|Child| G[Growth Monitoring - Digital charts]
+    E --> H[Automated SMS Notifications and Reminders]
+    F --> H
+    G --> H
+    H --> I[Patient Portal - View Records and Schedules]
+    H --> J[Real-time Online Chat - Patient and Healthcare Worker]
+    I --> K[Auto-generated Reports and Analytics]
+    J --> K
+    K --> L([End])
+
+    style A fill:#9f9,stroke:#333
+    style L fill:#9f9,stroke:#333
+    style H fill:#dfd,stroke:#0a0
+    style K fill:#dfd,stroke:#0a0

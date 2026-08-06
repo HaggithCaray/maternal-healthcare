@@ -1,0 +1,14 @@
+flowchart TD
+    S([Start]) --> A[Admin navigates to Admin Panel]
+    A --> B["Click 'Register New User'"]
+    B --> C[Enter User Info: Name, Email, Password, Role]
+    C --> D{Validate Input Data?}
+    D -->|Valid| E[Create User Account]
+    D -->|Invalid| F[Show Error Messages]
+    F --> C
+    E --> G[Hash Password and Store in DB]
+    G --> H[Redirect with Success Message]
+    H --> Z([End])
+
+    style S fill:#4CAF50,color:#fff
+    style Z fill:#f44336,color:#fff

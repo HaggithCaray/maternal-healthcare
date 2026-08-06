@@ -1,0 +1,59 @@
+flowchart LR
+    subgraph Client
+        Browser[Browser / Client]
+    end
+    subgraph Controller
+        AC[AuthController]
+        PC[PageController]
+    end
+    subgraph Model
+        Patient
+        MaternalRecord
+        ChildRecord
+        Immunization
+        GrowthMeasurement
+        SmsMessage
+        ChatMessage
+        User
+    end
+    subgraph View["View (Blade Templates)"]
+        V1[dashboard]
+        V2[records]
+        V3[maternal]
+        V4[immunization]
+        V5[growth]
+        V6[sms]
+        V7[messaging]
+        V8[reports]
+        V9[patient portal]
+    end
+    subgraph Database
+        DB[(MySQL / SQLite)]
+    end
+
+    Browser -- HTTP Request --> AC
+    Browser -- HTTP Request --> PC
+    AC --> User
+    PC --> Patient
+    PC --> MaternalRecord
+    PC --> ChildRecord
+    PC --> Immunization
+    PC --> GrowthMeasurement
+    PC --> SmsMessage
+    PC --> ChatMessage
+    User --> DB
+    Patient --> DB
+    MaternalRecord --> DB
+    ChildRecord --> DB
+    Immunization --> DB
+    AC --> V1
+    PC --> V2
+    PC --> V3
+    PC --> V4
+    PC --> V5
+    PC --> V6
+    PC --> V7
+    PC --> V8
+    PC --> V9
+    V1 -- HTML Response --> Browser
+    V2 -- HTML Response --> Browser

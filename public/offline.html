@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta name="theme-color" content="#005eb8">
+    <title>You're Offline - Maternal Health Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f6f9ff;
+            color: #0d1d29;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .card {
+            max-width: 420px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(145, 158, 171, 0.15);
+            padding: 40px 32px;
+            text-align: center;
+        }
+        .icon {
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: #e0f0ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #00478d;
+            margin-bottom: 8px;
+        }
+        p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #424752;
+        }
+        .actions {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        button {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+        .primary {
+            background: #005eb8;
+            color: #ffffff;
+        }
+        .primary:hover { background: #00478d; }
+        .secondary {
+            background: transparent;
+            color: #006a6a;
+            border: 1px solid #006a6a;
+        }
+        .secondary:hover { background: rgba(0, 106, 106, 0.05); }
+        .badge {
+            display: inline-block;
+            margin-top: 20px;
+            background: #fff3cd;
+            color: #664d03;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 999px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">&#128522;</div>
+        <h1>You're Offline</h1>
+        <p>
+            No internet connection detected. Your previously visited pages are still
+            available. Any new registrations you make will be saved on this device and
+            synced automatically once the connection is restored.
+        </p>
+        <div class="actions">
+            <button class="primary" onclick="window.location.reload()">Try Again</button>
+            <button class="secondary" onclick="window.history.back()">Go Back</button>
+        </div>
+        <div class="badge">&#8635; Auto-sync is enabled</div>
+    </div>
+</body>
+</html>

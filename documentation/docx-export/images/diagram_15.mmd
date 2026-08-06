@@ -1,0 +1,21 @@
+flowchart TD
+    S([Start]) --> A[Navigate to /register]
+    A --> B[Fill Registration Form]
+    B --> C{Validate Required Fields?}
+    C -->|Invalid| D[Show Validation Errors]
+    D --> B
+    C -->|Valid| E{Email Provided?}
+    E -->|Yes| F[Create Patient User Account]
+    E -->|No| G[Skip User Creation]
+    F --> H[Save Patient Profile to DB]
+    G --> H
+    H --> I{Registration Type?}
+    I -->|Maternal| J["Create MaternalRecord (LMP → EDD)"]
+    I -->|Child| K[Create ChildRecord + Initial Growth]
+    K --> L[Generate 14-dose EPI Vaccine Schedule]
+    J --> M[Redirect to /records with Success]
+    L --> M
+    M --> Z([End])
+
+    style S fill:#4CAF50,color:#fff
+    style Z fill:#f44336,color:#fff

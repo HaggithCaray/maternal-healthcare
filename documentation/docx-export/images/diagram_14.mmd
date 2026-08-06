@@ -1,0 +1,21 @@
+flowchart TD
+    S([Start]) --> A["Navigate to Login Page (/)"]
+    A --> B[Enter Email, Password, Select Role]
+    B --> C{Validate Credentials + Role Match?}
+    C -->|Valid| D[Regenerate Session]
+    C -->|Invalid| E["Show Error: Credentials do not match"]
+    E --> B
+    D --> F{User Role?}
+    F -->|Admin| G[Redirect to /dashboard]
+    F -->|Patient| H[Redirect to /portal]
+    G --> I([Logged In])
+    H --> I
+
+    I --> J["Click 'Logout'"]
+    J --> K[Invalidate Session + Regenerate CSRF Token]
+    K --> L["Redirect to / (Login Page)"]
+    L --> Z([End])
+
+    style S fill:#4CAF50,color:#fff
+    style Z fill:#f44336,color:#fff
+    style I fill:#2196F3,color:#fff

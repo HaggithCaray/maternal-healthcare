@@ -1,0 +1,14 @@
+flowchart LR
+    Admin(("Admin (Midwife)"))
+    
+    subgraph System["SMS Management System"]
+        UC1[Configure SMS Gateway]
+        UC2[Test Gateway Connection]
+        UC3[Send Manual SMS to Patient]
+        UC4[View SMS History Log]
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
