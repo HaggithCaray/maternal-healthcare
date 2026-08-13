@@ -21,6 +21,14 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
+COPY . /var/www
+
+RUN if [ ! -d vendor ]; then composer install --no-scripts --no-interaction; fi
+
+RUN php -r '$f="/var/www/.env";$c=@file_get_contents($f);if($c===false||!preg_match("/^APP_KEY=.+/m",$c)){file_put_contents($f,$c.PHP_EOL."APP_KEY=base64:".base64_encode(random_bytes(32)).PHP_EOL);}'
+
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
 EXPOSE 9000
 
 CMD ["php-fpm"]

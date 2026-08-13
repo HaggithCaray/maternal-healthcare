@@ -71,6 +71,124 @@ Currently, the "Progressive Web App (PWA)" features are completely missing. Here
 
 ---
 
+## HOW TO SET UP AND RUN THIS PROJECT FROM SCRATCH WITH DOCKER (RECOMMENDED)
+
+This guide walks you through downloading the project, switching to the correct Git branch, and running the app inside Docker from a completely clean start. **You do NOT need to install PHP or Composer on your computer** — everything runs inside containers.
+
+> The older instructions further below describe the legacy "shared folder" setup. The steps in this section are the current, recommended way (the application code is built *into* the Docker images, which makes pages load much faster on Windows).
+
+### Step 1: Clone the repository
+Open your terminal (PowerShell or CMD on Windows, or Bash on macOS/Linux):
+```bash
+git clone https://github.com/HaggithCaray/maternal-healthcare.git
+cd maternal-healthcare
+```
+
+### Step 2: Switch to the branch you want to run
+The project has several branches, each representing a different milestone of the system:
+- `main` — the full (advanced) version of the app
+- `milestone/10-percent` — the stripped-down foundation version (environment, authentication, dashboard, records, patient registration)
+
+List all available branches:
+```bash
+git branch -a
+```
+
+Switch to the branch you want (e.g., the 10% foundation version):
+```bash
+git checkout milestone/10-percent
+```
+
+To create a new branch based on the current one:
+```bash
+git checkout -b my-new-branch
+```
+
+### Step 3: Create the `.env` file
+The app needs a configuration file. Copy the template:
+- **Windows:** `copy .env.example .env`
+- **macOS / Linux:** `cp .env.example .env`
+
+The template already ships with the correct database settings for Docker (MySQL, host `db`, database `healthcare_db`). You normally do NOT need to change anything, but double-check that these lines exist:
+```env
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=healthcare_db
+DB_USERNAME=healthcare_user
+DB_PASSWORD=healthcare123
+```
+
+### Step 4: Install frontend dependencies and build assets (requires Node.js)
+The compiled CSS and JavaScript must exist before the Docker images are built:
+```bash
+npm install
+npm run build
+```
+
+### Step 5: Build and start the containers
+```bash
+docker compose up -d --build
+```
+What happens during this step:
+- The application code is copied *into* the images (this is what makes it fast — no slow file sharing between Windows and the container).
+- If the `vendor/` folder does not exist yet, Composer dependencies are installed automatically during the build.
+- If your `.env` has an empty `APP_KEY`, a valid key is generated automatically.
+- The MySQL database and phpMyAdmin containers also start.
+
+The first build takes a few minutes; later rebuilds are much faster because Docker caches the layers.
+
+### Step 6: Create the database tables and seed sample data
+```bash
+docker exec healthcare-app php artisan migrate --seed --force
+```
+The `--seed` flag inserts demo data (sample mothers, children, and login accounts).
+
+### Step 7: Open the app
+Open your browser and go to **http://localhost:8080**.
+
+Additional addresses:
+- **phpMyAdmin** (visual database browser): http://localhost:8081 — user `healthcare_user`, password `healthcare123`
+- **MySQL** is exposed on host port `3307`
+
+Default accounts (created by the seeder):
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `health@example.com` | `password` |
+| Patient | `patient@example.com` | `password` |
+
+### Step 8: Run the automated tests (optional)
+```bash
+docker exec healthcare-app php artisan test
+```
+
+---
+
+### Everyday commands
+- **See your code changes after editing:** `docker compose up -d --build` (the images must be rebuilt because the code lives inside them)
+- **Stop the containers:** `docker compose down`
+- **Start them again later:** `docker compose up -d`
+- **Reset the database to a clean state:** `docker exec healthcare-app php artisan migrate:fresh --seed --force`
+- **View logs:** `docker logs healthcare-app` (or `healthcare-web`)
+
+### Switching to another branch later
+If the app is already running and you want to switch to a different branch:
+```bash
+git checkout <branch-name>     # e.g. git checkout main
+npm run build                  # only needed if frontend assets changed
+docker compose up -d --build   # rebuilds the images with the new code
+```
+The database keeps its existing data when you switch branches, so apply any new migrations with:
+```bash
+docker exec healthcare-app php artisan migrate --force
+```
+If the other branch changed the database structure significantly, reset it instead:
+```bash
+docker exec healthcare-app php artisan migrate:fresh --seed --force
+```
+
+---
+
 ## HOW TO SET UP AND RUN THIS PROJECT RIGHT NOW
 
 Since you have limited development knowledge, follow these steps EXACTLY as written to get the app running on your computer.

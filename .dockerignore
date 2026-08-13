@@ -1,0 +1,9 @@
+.git
+.gitignore
+.idea
+node_modules
+npm-debug.log
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
