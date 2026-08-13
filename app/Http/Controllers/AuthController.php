@@ -22,8 +22,7 @@ class AuthController extends Controller
 
         if (Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password'], 'role' => $credentials['role']], $request->boolean('remember'))) {
             $request->session()->regenerate();
-            $redirect = $credentials['role'] === 'user' ? '/portal' : '/dashboard';
-            return redirect()->intended($redirect);
+            return redirect()->intended('/dashboard');
         }
 
         return back()->withErrors([
@@ -43,22 +42,11 @@ class AuthController extends Controller
     {
         $totalMothers = \App\Models\Patient::where('registration_type', 'Maternal')->count();
         $totalChildren = \App\Models\Patient::where('registration_type', 'Child')->count();
-        
+
         $todayVaccinations = \App\Models\Immunization::where('status', 'Scheduled')
             ->whereDate('scheduled_date', \Carbon\Carbon::today())
             ->count();
-            
-        $unreadMessages = \App\Models\ChatMessage::where('receiver_id', auth()->user()->id)
-            ->where('is_read', false)
-            ->count();
 
-        // Get upcoming vaccinations for dashboard list
-        $upcomingVaccinations = \App\Models\Immunization::with('childRecord.patient')
-            ->where('status', 'Scheduled')
-            ->orderBy('scheduled_date', 'asc')
-            ->take(5)
-            ->get();
-
-        return view('dashboard', compact('totalMothers', 'totalChildren', 'todayVaccinations', 'unreadMessages', 'upcomingVaccinations'));
+        return view('dashboard', compact('totalMothers', 'totalChildren', 'todayVaccinations'));
     }
 }

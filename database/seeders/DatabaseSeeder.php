@@ -9,8 +9,6 @@ use App\Models\MaternalCheckup;
 use App\Models\ChildRecord;
 use App\Models\Immunization;
 use App\Models\GrowthMeasurement;
-use App\Models\SmsMessage;
-use App\Models\ChatMessage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
@@ -129,16 +127,6 @@ class DatabaseSeeder extends Seeder
             'status' => 'Healthy',
             'notes' => 'Third checkup. Fetal movement felt.',
             'next_visit_date' => '2026-07-15',
-        ]);
-
-        // Outgoing SMS for Elena
-        SmsMessage::create([
-            'patient_id' => $elena->id,
-            'phone_number' => '09171234567',
-            'message' => 'Good day Nanay Elena! This is a reminder for your upcoming prenatal checkup on July 15, 2026. Please bring your Nanay Book. Keep healthy!',
-            'status' => 'Sent',
-            'sent_at' => Carbon::now()->subDays(2),
-            'type' => 'Reminder',
         ]);
 
         // Children of Elena
@@ -439,31 +427,6 @@ class DatabaseSeeder extends Seeder
             'status' => 'At Risk',
             'notes' => 'Gestational hypertension. Prescribed Methyldopa. Scheduled for follow-up.',
             'next_visit_date' => '2026-05-25',
-        ]);
-
-        // 5. Seed chat messages for the patient portal communication
-        ChatMessage::create([
-            'sender_id' => $elenaUser->id,
-            'receiver_id' => $admin->id,
-            'message' => 'Good afternoon po. Itatanong ko lang po sana kung kailangan bang gutom sa laboratory exam bukas?',
-            'is_read' => true,
-            'created_at' => Carbon::now()->subHours(5),
-        ]);
-
-        ChatMessage::create([
-            'sender_id' => $admin->id,
-            'receiver_id' => $elenaUser->id,
-            'message' => 'Opo, Nanay Elena. Kailangan po na walang kain o inum (fasting) ng 8 oras bago kunan ng dugo para sa OGTT (glucose test).',
-            'is_read' => false,
-            'created_at' => Carbon::now()->subHours(4),
-        ]);
-
-        ChatMessage::create([
-            'sender_id' => $elenaUser->id,
-            'receiver_id' => $admin->id,
-            'message' => 'Sige po midwife. Maraming salamat po sa pagsagot!',
-            'is_read' => false,
-            'created_at' => Carbon::now()->subHours(3),
         ]);
     }
 }

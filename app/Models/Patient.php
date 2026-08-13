@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
@@ -44,10 +43,5 @@ class Patient extends Model
     public function childRecord(): HasOne
     {
         return $this->hasOne(ChildRecord::class);
-    }
-
-    public function smsMessages(): HasMany
-    {
-        return $this->hasMany(SmsMessage::class);
     }
 }

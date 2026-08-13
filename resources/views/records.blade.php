@@ -137,15 +137,6 @@
                 </td>
                 <td class="px-md py-md text-right">
                     <div class="flex items-center justify-end gap-xs">
-                        @if($patient->registration_type === 'Maternal')
-                        <a href="{{ route('maternal', ['id' => $patient->id]) }}" class="p-xs text-primary hover:bg-primary-container/30 rounded-lg transition-all" title="View Details">
-                            <span class="material-symbols-outlined">visibility</span>
-                        </a>
-                        @else
-                        <a href="{{ route('immunization', ['id' => $patient->id]) }}" class="p-xs text-primary hover:bg-primary-container/30 rounded-lg transition-all" title="View Details">
-                            <span class="material-symbols-outlined">visibility</span>
-                        </a>
-                        @endif
                         <button class="p-xs text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all">
                             <span class="material-symbols-outlined">more_vert</span>
                         </button>
@@ -203,7 +194,7 @@
             </li>
             <li class="flex items-start gap-xs">
                 <span class="mt-1 w-1 h-1 rounded-full bg-secondary"></span>
-                Generate CSV reports from the "Reports" tab.
+                Use the Register page to add new patients.
             </li>
         </ul>
     </div>

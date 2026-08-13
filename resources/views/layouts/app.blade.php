@@ -4,12 +4,6 @@
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<meta name="theme-color" content="#005eb8">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="{{ asset('manifest.json') }}">
-<link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
 <title>@yield('title', 'Maternal Health Hub') - Maternal Health Hub</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
@@ -115,7 +109,7 @@
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @stack('styles')
 </head>
-<body class="bg-background text-on-surface {{ request()->routeIs('messaging') ? 'overflow-hidden h-screen h-dvh' : '' }}">
+<body class="bg-background text-on-surface">
 
 {{-- Background Watermark Overlay --}}
 <div class="fixed inset-0 flex items-center justify-center pointer-events-none opacity-[0.08] z-0 select-none p-6">
@@ -131,14 +125,6 @@
         ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'roles' => ['admin']],
         ['route' => 'records', 'icon' => 'folder_shared', 'label' => 'Records', 'roles' => ['admin']],
         ['route' => 'register', 'icon' => 'person_add', 'label' => 'Register', 'roles' => ['admin']],
-        ['route' => 'immunization', 'icon' => 'vaccines', 'label' => 'Immunization', 'roles' => ['admin', 'user']],
-        ['route' => 'sms', 'icon' => 'sms', 'label' => 'SMS', 'roles' => ['admin']],
-        ['route' => 'messaging', 'icon' => 'forum', 'label' => 'Messaging', 'roles' => ['admin', 'user']],
-        ['route' => 'growth', 'icon' => 'monitoring', 'label' => 'Growth', 'roles' => ['admin', 'user']],
-        ['route' => 'maternal', 'icon' => 'pregnant_woman', 'label' => 'Maternal', 'roles' => ['admin', 'user']],
-        ['route' => 'reports', 'icon' => 'analytics', 'label' => 'Reports', 'roles' => ['admin']],
-        ['route' => 'patient.portal', 'icon' => 'home_health', 'label' => 'My Portal', 'roles' => ['user']],
-        ['route' => 'admin', 'icon' => 'settings', 'label' => 'Admin', 'roles' => ['admin']],
     ];
     $navItems = array_filter($allNavItems, fn($item) => $user && in_array($user->role, $item['roles']));
     $currentRoute = request()->route() ? request()->route()->getName() : '';
@@ -167,15 +153,12 @@
                href="{{ route($item['route']) }}" onclick="if(window.innerWidth < 1024) toggleSidebar()">
                 <span class="material-symbols-outlined" data-icon="{{ $item['icon'] }}">{{ $item['icon'] }}</span>
                 <span class="font-label-md text-label-md">{{ $item['label'] }}</span>
-                @if($item['route'] === 'messaging')
-                <span class="ml-auto bg-primary text-on-primary text-[10px] px-1.5 py-0.5 rounded-full">4</span>
-                @endif
             </a>
         @endforeach
     </nav>
 </aside>
 
-<main class="ml-0 lg:ml-64 flex flex-col {{ request()->routeIs('messaging') ? 'h-screen h-dvh overflow-hidden' : 'min-h-screen' }}">
+<main class="ml-0 lg:ml-64 flex flex-col min-h-screen">
 
     <header class="h-16 w-full sticky top-0 z-30 bg-surface border-b border-outline-variant/30 flex justify-between items-center px-margin-mobile md:px-margin-desktop">
         <div class="flex items-center gap-sm">
@@ -223,7 +206,6 @@
         @yield('content')
     </div>
 
-    @if(!request()->routeIs('messaging'))
     <footer class="mt-auto px-margin-mobile md:px-margin-desktop py-md border-t border-outline-variant/10 flex flex-col md:flex-row justify-between items-center gap-sm text-label-sm text-on-surface-variant">
         <p>&copy; {{ date('Y') }} Maternal Health Hub. All rights reserved.</p>
         <div class="flex gap-md">
@@ -231,10 +213,9 @@
             <a class="hover:text-primary" href="#">System Status</a>
         </div>
     </footer>
-    @endif
 </main>
 
-@if(auth()->user()?->role === 'admin' && !request()->routeIs('messaging'))
+@if(auth()->user()?->role === 'admin')
 <a href="{{ route('register') }}" class="fixed bottom-margin-mobile right-margin-mobile md:bottom-md md:right-md w-14 h-14 bg-primary text-on-primary rounded-full soft-drop-shadow flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-50 group">
     <span class="material-symbols-outlined text-[28px]" data-icon="add">add</span>
     <span class="absolute right-16 bg-inverse-surface text-inverse-on-surface px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Quick Patient Add</span>
@@ -269,15 +250,9 @@
             menu.classList.add('hidden');
         }
     });
-
-    const unreadCount = 4;
-    if (unreadCount > 0) {
-        const messageIcon = document.querySelector('[data-icon="forum"]');
-        if (messageIcon) {
-            messageIcon.parentElement.classList.add('animate-pulse');
-        }
-    }
 </script>
+
+@stack('scripts')
 
 </body>
 </html>

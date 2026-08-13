@@ -32,8 +32,5 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
-        <env name="SMS_GATEWAY_URL" value="http://localhost:8080"/>
-        <env name="SMS_GATEWAY_USER" value="testuser"/>
-        <env name="SMS_GATEWAY_PASSWORD" value="testpass"/>
     </php>
 </phpunit>

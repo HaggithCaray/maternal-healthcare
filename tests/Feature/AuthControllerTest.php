@@ -4,8 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Patient;
-use App\Models\Immunization;
-use App\Models\ChatMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -49,7 +47,7 @@ class AuthControllerTest extends TestCase
     }
 
     /**
-     * Test successful login as user redirecting to portal.
+     * Test successful login as user redirecting to dashboard.
      */
     public function test_user_can_login_successfully(): void
     {
@@ -67,7 +65,7 @@ class AuthControllerTest extends TestCase
             'role' => 'user',
         ]);
 
-        $response->assertRedirect('/portal');
+        $response->assertRedirect('/dashboard');
         $this->assertAuthenticatedAs($user);
     }
 
@@ -182,6 +180,5 @@ class AuthControllerTest extends TestCase
         $response->assertViewHas('totalMothers', 1);
         $response->assertViewHas('totalChildren', 1);
         $response->assertViewHas('todayVaccinations', 0);
-        $response->assertViewHas('unreadMessages', 0);
     }
 }

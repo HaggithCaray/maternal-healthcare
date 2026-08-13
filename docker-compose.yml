@@ -14,23 +14,6 @@ services:
       db:
         condition: service_healthy
 
-  reverb:
-    build:
-      context: ./docker/php
-      dockerfile: Dockerfile
-    container_name: healthcare-reverb
-    restart: unless-stopped
-    working_dir: /var/www
-    command: php artisan reverb:start --host="0.0.0.0" --port=8080 --debug
-    volumes:
-      - ./:/var/www
-    ports:
-      - "8082:8080"
-    networks:
-      - healthcare
-    depends_on:
-      - app
-
   web:
     image: nginx:alpine
     container_name: healthcare-web
