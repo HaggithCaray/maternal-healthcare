@@ -2,33 +2,49 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PageController;
+use App\Http\Controllers\PatientController;
+use App\Http\Controllers\MaternalRecordController;
+use App\Http\Controllers\ChildHealthController;
+use App\Http\Controllers\SmsGatewayController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SyncController;
 
+// Public Authentication Routes
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Authenticated Routes
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
+    // Offline Token & Synchronization Routes
     Route::get('/sync/token', [SyncController::class, 'token'])->name('sync.token');
 
-    Route::controller(PageController::class)->group(function () {
-        Route::get('/records', 'records')->name('records');
-        Route::match(['get', 'post'], '/register', 'register')->name('register');
-        Route::get('/patients/{patient}/edit', 'edit')->name('patients.edit');
-        Route::put('/patients/{patient}', 'update')->name('patients.update');
-        Route::match(['get', 'post'], '/immunization', 'immunization')->name('immunization');
-        Route::match(['get', 'post'], '/sms', 'sms')->name('sms');
-        Route::post('/sms/settings', 'updateSmsSettings')->name('sms.settings');
-        Route::get('/sms/status', 'testSmsGatewayConnection')->name('sms.status');
-        Route::match(['get', 'post'], '/messaging', 'messaging')->name('messaging');
-        Route::match(['get', 'post'], '/growth', 'growth')->name('growth');
-        Route::match(['get', 'post'], '/maternal', 'maternal')->name('maternal');
-        Route::get('/reports', 'reports')->name('reports');
+    // Patient & Clinical Directory Management
+    Route::get('/records', [PatientController::class, 'records'])->name('records');
+    Route::match(['get', 'post'], '/register', [PatientController::class, 'register'])->name('register');
+    Route::get('/patients/{patient}/edit', [PatientController::class, 'edit'])->name('patients.edit');
+    Route::put('/patients/{patient}', [PatientController::class, 'update'])->name('patients.update');
+    Route::get('/portal', [PatientController::class, 'patientPortal'])->name('patient.portal');
 
-        Route::get('/portal', 'patientPortal')->name('patient.portal');
-        Route::get('/admin', 'admin')->name('admin')->middleware('role:admin');
-    });
+    // Maternal Health Tracking
+    Route::match(['get', 'post'], '/maternal', [MaternalRecordController::class, 'maternal'])->name('maternal');
+
+    // Child Health & Immunization Tracking
+    Route::match(['get', 'post'], '/growth', [ChildHealthController::class, 'growth'])->name('growth');
+    Route::match(['get', 'post'], '/immunization', [ChildHealthController::class, 'immunization'])->name('immunization');
+
+    // SMS Gateway Center
+    Route::match(['get', 'post'], '/sms', [SmsGatewayController::class, 'sms'])->name('sms');
+    Route::post('/sms/settings', [SmsGatewayController::class, 'updateSmsSettings'])->name('sms.settings');
+    Route::get('/sms/status', [SmsGatewayController::class, 'testSmsGatewayConnection'])->name('sms.status');
+
+    // Real-Time Chat & Patient Communication
+    Route::match(['get', 'post'], '/messaging', [ChatController::class, 'messaging'])->name('messaging');
+
+    // Reporting & Administration
+    Route::get('/reports', [ReportController::class, 'reports'])->name('reports');
+    Route::get('/admin', [ReportController::class, 'admin'])->name('admin')->middleware('role:admin');
 });

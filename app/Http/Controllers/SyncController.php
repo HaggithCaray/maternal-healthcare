@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Patient;
-use App\Models\MaternalRecord;
+use App\Models\AuditLog;
 use App\Models\ChildRecord;
-use App\Models\Immunization;
 use App\Models\GrowthMeasurement;
+use App\Models\Immunization;
+use App\Models\MaternalCheckup;
+use App\Models\MaternalRecord;
+use App\Models\Patient;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class SyncController extends Controller
 {
@@ -24,7 +28,7 @@ class SyncController extends Controller
     }
 
     /**
-     * Accept queued offline items and apply them to the database.
+     * Accept queued offline items and apply them to the database atomically.
      *
      * Request body: { "items": [ { "id": 1, "type": "patient_registration", "data": { ... } } ] }
      */
@@ -47,18 +51,29 @@ class SyncController extends Controller
             $data = $item['data'] ?? [];
 
             try {
-                if ($type === 'patient_registration') {
-                    $this->createPatient($data);
-                    if ($clientId !== null) {
-                        $syncedIds[] = $clientId;
-                    }
-                } else {
-                    $errors[] = "Unknown item type: {$type}";
+                DB::transaction(function () use ($type, $data) {
+                    match ($type) {
+                        'patient_registration' => $this->createPatient($data),
+                        'maternal_checkup' => $this->createCheckup($data),
+                        'child_growth' => $this->createGrowth($data),
+                        'immunization_update' => $this->updateImmunization($data),
+                        default => throw new \RuntimeException("Unknown item type: {$type}"),
+                    };
+                });
+
+                if ($clientId !== null) {
+                    $syncedIds[] = $clientId;
                 }
             } catch (\Throwable $e) {
-                $errors[] = $e->getMessage();
+                $errors[] = "Item {$clientId} [{$type}]: " . $e->getMessage();
             }
         }
+
+        AuditLog::log('offline_batch_sync', null, [
+            'total_items' => count($request->input('items')),
+            'synced_count' => count($syncedIds),
+            'errors_count' => count($errors),
+        ]);
 
         return response()->json([
             'success' => empty($errors),
@@ -70,7 +85,6 @@ class SyncController extends Controller
 
     /**
      * Create a patient from offline registration data.
-     * Mirrors the logic in PageController::register.
      */
     private function createPatient(array $data): void
     {
@@ -101,7 +115,7 @@ class SyncController extends Controller
                 $user = User::create([
                     'name' => $data['first_name'] . ' ' . $data['last_name'],
                     'email' => $email,
-                    'password' => Hash::make('password'),
+                    'password' => Hash::make(Str::random(16)),
                     'role' => 'user',
                 ]);
             }
@@ -192,5 +206,62 @@ class SyncController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * Create a checkup entry from offline data.
+     */
+    private function createCheckup(array $data): void
+    {
+        $record = MaternalRecord::findOrFail($data['maternal_record_id']);
+        $visitNumber = $record->checkups()->count() + 1;
+        $weeks = 4 * $visitNumber;
+
+        MaternalCheckup::create([
+            'maternal_record_id' => $record->id,
+            'visit_number' => $visitNumber,
+            'date' => $data['date'] ?? Carbon::now()->format('Y-m-d'),
+            'weight_kg' => $data['weight_kg'],
+            'bp' => $data['bp'],
+            'age_of_gestation' => $data['age_of_gestation'] ?? "{$weeks}w 0d",
+            'fetal_heart_rate' => $data['fetal_heart_rate'],
+            'attendant' => auth()->user()->name,
+            'status' => $data['status'] ?? 'Healthy',
+            'notes' => $data['notes'] ?? null,
+            'next_visit_date' => $data['next_visit_date'] ?? Carbon::now()->addWeeks(4)->format('Y-m-d'),
+        ]);
+    }
+
+    /**
+     * Create a growth measurement from offline data.
+     */
+    private function createGrowth(array $data): void
+    {
+        $childRecord = ChildRecord::findOrFail($data['child_record_id']);
+        $dob = $childRecord->patient ? Carbon::parse($childRecord->patient->dob) : Carbon::now();
+        $ageMonths = $data['age_months'] ?? $dob->diffInMonths(Carbon::now());
+
+        GrowthMeasurement::create([
+            'child_record_id' => $childRecord->id,
+            'date' => $data['date'] ?? Carbon::now()->format('Y-m-d'),
+            'age_months' => $ageMonths,
+            'weight_kg' => $data['weight_kg'],
+            'height_cm' => $data['height_cm'],
+            'status' => $data['status'] ?? 'Normal',
+        ]);
+    }
+
+    /**
+     * Update an immunization record from offline data.
+     */
+    private function updateImmunization(array $data): void
+    {
+        $immunization = Immunization::findOrFail($data['immunization_id']);
+        $immunization->update([
+            'status' => 'Given',
+            'given_date' => $data['given_date'] ?? Carbon::now()->format('Y-m-d'),
+            'administered_by' => auth()->user()->name,
+            'remarks' => $data['remarks'] ?? 'Administered offline during field visit',
+        ]);
     }
 }

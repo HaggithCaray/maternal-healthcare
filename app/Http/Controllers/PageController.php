@@ -87,7 +87,7 @@ class PageController extends Controller
                     $user = User::create([
                         'name' => $request->first_name . ' ' . $request->last_name,
                         'email' => $request->email,
-                        'password' => Hash::make('password'),
+                        'password' => Hash::make(\Illuminate\Support\Str::random(16)),
                         'role' => 'user',
                     ]);
                 }
