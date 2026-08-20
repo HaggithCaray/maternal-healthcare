@@ -61,7 +61,7 @@ The objective of this project is to develop a web-based Maternal and Child Healt
 
 This project also involved the different stakeholders for the Barangay Health Center which includes the **Health Center Administrator (Admin)**, **Midwives and Healthcare Workers (Staff)**, **Pregnant Women**, **Mothers and Guardians**, and **Barangay Health Staff**.
 
-The project was developed using a local development environment with Docker Compose for containerized services. After the development, testing was done to ensure that the system meets the user's expectations. To determine the respondents for the testing, the researchers used non-probability sampling methods, specifically: purposive sampling and convenience sampling. In purposive sampling, respondents are selected since they already have the characteristics the researchers need for a sample. The identified respondent are the Health Center Administrators, Midwives, and Patient Representatives (Mothers/Guardians), which possess the necessary knowledge and can provide insights relevant to the system. In convenience sampling, respondents were selected because they were the easiest for the researchers to access.
+The project was developed using a local development environment with XAMPP/Laragon for Apache, MySQL, and PHP services. After the development, testing was done to ensure that the system meets the user's expectations. To determine the respondents for the testing, the researchers used non-probability sampling methods, specifically: purposive sampling and convenience sampling. In purposive sampling, respondents are selected since they already have the characteristics the researchers need for a sample. The identified respondent are the Health Center Administrators, Midwives, and Patient Representatives (Mothers/Guardians), which possess the necessary knowledge and can provide insights relevant to the system. In convenience sampling, respondents were selected because they were the easiest for the researchers to access.
 
 For the healthcare workers, the researchers chose to test the faculty and staff of the health center. For the patient users, the researchers sent an invitation to test the system through orientation sessions prior to the testing. The respondents that responded through the orientation were prioritized.
 
@@ -400,9 +400,9 @@ The admin user management page allows administrators to manage system user accou
 | **CSS Framework** | Tailwind CSS | v4 |
 | **Build Tool** | Vite | Latest |
 | **Database (Production)** | MySQL | 8.0 |
-| **Database (Development)** | SQLite | 3.x |
+| **Database (Development)** | MySQL via XAMPP/Laragon | 8.0 |
 | **WebSocket Server** | Laravel Reverb | (Laravel built-in) |
-| **Containerization** | Docker Compose | (Nginx + PHP-FPM + MySQL + phpMyAdmin) |
+| **Local Server** | XAMPP or Laragon | Apache + MySQL + PHP |
 | **PWA** | Service Worker + IndexedDB | HTML5 Standard |
 | **SMS Gateway** | Capcom6 Android SMS Gateway | Open Source |
 | **Authentication** | Laravel Sanctum | (Laravel built-in) |
@@ -413,13 +413,14 @@ The admin user management page allows administrators to manage system user accou
 
 ## 9. Deployment and Infrastructure
 
-### Docker Services
+### Local Development Server
 
 | Service | Port | Description |
 |---|---|---|
-| **App (Nginx + PHP-FPM)** | `localhost:8080` | Main web application |
-| **phpMyAdmin** | `localhost:8081` | Database management interface |
-| **MySQL** | `3306` (internal) | Database server |
+| **Laravel App** | `localhost:8000` | Main web application (`php artisan serve`) |
+| **Reverb WebSocket** | `localhost:8080` | Real-time messaging server (`php artisan reverb:start`) |
+| **MySQL** | `3306` | Database server (via XAMPP/Laragon) |
+| **phpMyAdmin** | `localhost/phpmyadmin` | Database management interface (via XAMPP) |
 
 ### Environment Configuration
 
@@ -428,15 +429,15 @@ Key environment variables required for deployment:
 ```env
 # Application
 APP_NAME="Maternal Health Hub"
-APP_URL=http://localhost:8080
+APP_URL=http://localhost:8000
 
 # Database
 DB_CONNECTION=mysql
-DB_HOST=mysql
+DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=healthcare
+DB_DATABASE=healthcare_db
 DB_USERNAME=root
-DB_PASSWORD=secret
+DB_PASSWORD=
 
 # SMS Gateway
 SMS_GATEWAY_URL=http://<device-ip>:<port>
@@ -447,6 +448,9 @@ SMS_GATEWAY_PASSWORD=your_generated_password
 REVERB_APP_ID=...
 REVERB_APP_KEY=...
 REVERB_APP_SECRET=...
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
+BROADCAST_CONNECTION=reverb
 ```
 
 ### Branch Strategy
@@ -462,7 +466,7 @@ REVERB_APP_SECRET=...
 For exposing the local development environment to the public internet securely (for testing on mobile devices or sharing with stakeholders), Cloudflare Quick Tunnel is used:
 
 ```bash
-cloudflared tunnel --url http://localhost:8080
+cloudflared tunnel --url http://localhost:8000
 ```
 
 This generates a temporary `*.trycloudflare.com` URL that points to the local application.

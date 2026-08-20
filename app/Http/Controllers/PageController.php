@@ -12,6 +12,7 @@ use App\Models\GrowthMeasurement;
 use App\Models\SmsMessage;
 use App\Models\ChatMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Services\SmsService;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
@@ -185,6 +186,84 @@ class PageController extends Controller
         }
 
         return view('register');
+    }
+
+    public function edit(Patient $patient)
+    {
+        $patient->load(['maternalRecord', 'childRecord']);
+        return view('patient.edit', compact('patient'));
+    }
+
+    public function update(Request $request, Patient $patient)
+    {
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'dob' => 'required|date',
+            'gender' => 'required|string',
+            'phone' => 'required|string',
+            'email' => 'nullable|email',
+            'address' => 'required|string',
+            'emergency_contact_name' => 'required|string',
+            'emergency_contact_phone' => 'required|string',
+            'status' => 'required|string|in:Active,Due for Visit,High Risk,Completed',
+        ]);
+
+        DB::transaction(function () use ($request, $patient) {
+            $patient->update([
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'dob' => $request->dob,
+                'gender' => $request->gender,
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'address' => $request->address,
+                'occupation' => $request->occupation,
+                'emergency_contact_name' => $request->emergency_contact_name,
+                'emergency_contact_phone' => $request->emergency_contact_phone,
+                'status' => $request->status,
+            ]);
+
+            if ($patient->registration_type === 'Maternal' && $patient->maternalRecord) {
+                $lmp = $request->lmp ? Carbon::parse($request->lmp) : null;
+                $edd = $lmp ? $lmp->copy()->addDays(280) : null;
+
+                $medicalHistory = [];
+                foreach (['Hypertension', 'Diabetes', 'Asthma', 'Heart Disease', 'Anemia', 'Multiple Births'] as $condition) {
+                    if ($request->boolean("medical_history.{$condition}")) {
+                        $medicalHistory[] = $condition;
+                    }
+                }
+
+                $patient->maternalRecord->update([
+                    'lmp' => $lmp,
+                    'edd' => $edd,
+                    'gravida' => $request->gravida,
+                    'para' => $request->para,
+                    'philhealth_number' => $request->philhealth_number,
+                    'allergies' => $request->allergies,
+                    'medical_history' => $medicalHistory,
+                ]);
+            }
+
+            if ($patient->registration_type === 'Child' && $patient->childRecord) {
+                $patient->childRecord->update([
+                    'birth_weight_kg' => $request->birth_weight_kg,
+                    'birth_height_cm' => $request->birth_height_cm,
+                    'head_circumference_cm' => $request->head_circumference_cm,
+                    'birth_type' => $request->birth_type,
+                    'delivery_type' => $request->delivery_type,
+                    'has_newborn_screening' => $request->boolean('has_newborn_screening'),
+                    'has_hearing_screening' => $request->boolean('has_hearing_screening'),
+                    'has_eye_prophylaxis' => $request->boolean('has_eye_prophylaxis'),
+                    'has_vitamin_k' => $request->boolean('has_vitamin_k'),
+                    'has_bcg_at_birth' => $request->boolean('has_bcg_at_birth'),
+                    'has_hepb_at_birth' => $request->boolean('has_hepb_at_birth'),
+                ]);
+            }
+        });
+
+        return redirect()->route('records')->with('success', 'Patient information updated successfully!');
     }
 
     public function maternal(Request $request)

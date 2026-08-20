@@ -17,6 +17,8 @@ Route::middleware('auth')->group(function () {
     Route::controller(PageController::class)->group(function () {
         Route::get('/records', 'records')->name('records');
         Route::match(['get', 'post'], '/register', 'register')->name('register');
+        Route::get('/patients/{patient}/edit', 'edit')->name('patients.edit');
+        Route::put('/patients/{patient}', 'update')->name('patients.update');
         Route::match(['get', 'post'], '/immunization', 'immunization')->name('immunization');
         Route::match(['get', 'post'], '/sms', 'sms')->name('sms');
         Route::post('/sms/settings', 'updateSmsSettings')->name('sms.settings');

@@ -71,6 +71,25 @@ class PageControllerTest extends TestCase
     }
 
     /**
+     * Test guests cannot access edit patient route.
+     */
+    public function test_guest_cannot_access_edit_patient(): void
+    {
+        $patient = Patient::create([
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'dob' => '1995-05-15',
+            'gender' => 'Female',
+            'phone' => '1234567890',
+            'address' => '123 Street',
+            'registration_type' => 'Maternal',
+        ]);
+
+        $response = $this->get('/patients/' . $patient->id . '/edit');
+        $response->assertRedirect(route('login'));
+    }
+
+    /**
      * Test admin can access records page.
      */
     public function test_admin_can_access_records_page(): void
@@ -276,6 +295,212 @@ class PageControllerTest extends TestCase
             'vaccine_name' => 'Pentavalent (DPT-HepB-Hib)',
             'dose_number' => 1,
             'status' => 'Scheduled',
+        ]);
+    }
+
+    /**
+     * Test admin can view edit form for maternal patient.
+     */
+    public function test_admin_can_view_edit_form_for_maternal_patient(): void
+    {
+        $patient = Patient::create([
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
+            'dob' => '1998-08-10',
+            'gender' => 'Female',
+            'phone' => '09123456789',
+            'email' => 'maria@example.com',
+            'address' => 'Brgy. Bicao, Carmen, Bohol',
+            'emergency_contact_name' => 'Juan Santos',
+            'emergency_contact_phone' => '09987654321',
+            'registration_type' => 'Maternal',
+        ]);
+
+        $maternalRecord = MaternalRecord::create([
+            'patient_id' => $patient->id,
+            'lmp' => '2026-01-01',
+            'edd' => '2026-10-08',
+            'gravida' => 2,
+            'para' => 1,
+            'philhealth_number' => '12-345678901-2',
+            'medical_history' => ['Hypertension'],
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get('/patients/' . $patient->id . '/edit');
+
+        $response->assertStatus(200);
+        $response->assertViewIs('patient.edit');
+        $response->assertViewHas('patient');
+    }
+
+    /**
+     * Test admin can view edit form for child patient.
+     */
+    public function test_admin_can_view_edit_form_for_child_patient(): void
+    {
+        $patient = Patient::create([
+            'first_name' => 'Baby',
+            'last_name' => 'Doe',
+            'dob' => '2026-01-01',
+            'gender' => 'Male',
+            'phone' => '1234567890',
+            'address' => '123 Street',
+            'registration_type' => 'Child',
+        ]);
+
+        $childRecord = ChildRecord::create([
+            'patient_id' => $patient->id,
+            'birth_weight_kg' => 3.0,
+            'birth_height_cm' => 50.0,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get('/patients/' . $patient->id . '/edit');
+
+        $response->assertStatus(200);
+        $response->assertViewIs('patient.edit');
+        $response->assertViewHas('patient');
+    }
+
+    /**
+     * Test admin can update maternal patient.
+     */
+    public function test_admin_can_update_maternal_patient(): void
+    {
+        $patient = Patient::create([
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
+            'dob' => '1998-08-10',
+            'gender' => 'Female',
+            'phone' => '09123456789',
+            'email' => 'maria@example.com',
+            'address' => 'Brgy. Bicao, Carmen, Bohol',
+            'emergency_contact_name' => 'Juan Santos',
+            'emergency_contact_phone' => '09987654321',
+            'registration_type' => 'Maternal',
+            'status' => 'Active',
+        ]);
+
+        $maternalRecord = MaternalRecord::create([
+            'patient_id' => $patient->id,
+            'lmp' => '2026-01-01',
+            'edd' => '2026-10-08',
+            'gravida' => 1,
+            'para' => 0,
+        ]);
+
+        $updateData = [
+            'first_name' => 'Maria Clara',
+            'last_name' => 'Santos-Dizon',
+            'dob' => '1998-08-10',
+            'gender' => 'Female',
+            'phone' => '09123456789',
+            'email' => 'maria.clara@example.com',
+            'address' => 'Updated Address, Brgy. Bicao',
+            'emergency_contact_name' => 'Juan Dizon',
+            'emergency_contact_phone' => '09987654321',
+            'status' => 'High Risk',
+            'occupation' => 'Teacher',
+            'lmp' => '2026-02-01',
+            'gravida' => 3,
+            'para' => 2,
+            'philhealth_number' => '99-887766554-3',
+            'medical_history' => ['Diabetes' => '1', 'Anemia' => '1'],
+            'allergies' => 'Penicillin',
+        ];
+
+        $response = $this->actingAs($this->adminUser)->put('/patients/' . $patient->id, $updateData);
+
+        $response->assertRedirect(route('records'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('patients', [
+            'id' => $patient->id,
+            'first_name' => 'Maria Clara',
+            'last_name' => 'Santos-Dizon',
+            'email' => 'maria.clara@example.com',
+            'status' => 'High Risk',
+            'occupation' => 'Teacher',
+        ]);
+
+        $this->assertDatabaseHas('maternal_records', [
+            'patient_id' => $patient->id,
+            'lmp' => '2026-02-01 00:00:00',
+            'edd' => '2026-11-08 00:00:00',
+            'gravida' => 3,
+            'para' => 2,
+            'philhealth_number' => '99-887766554-3',
+            'allergies' => 'Penicillin',
+        ]);
+
+        $maternalRecord->refresh();
+        $this->assertContains('Diabetes', $maternalRecord->medical_history);
+        $this->assertContains('Anemia', $maternalRecord->medical_history);
+        $this->assertNotContains('Hypertension', $maternalRecord->medical_history);
+    }
+
+    /**
+     * Test admin can update child patient.
+     */
+    public function test_admin_can_update_child_patient(): void
+    {
+        $patient = Patient::create([
+            'first_name' => 'Baby',
+            'last_name' => 'Doe',
+            'dob' => '2026-01-01',
+            'gender' => 'Male',
+            'phone' => '09123456789',
+            'address' => '123 Street',
+            'registration_type' => 'Child',
+            'status' => 'Active',
+        ]);
+
+        $childRecord = ChildRecord::create([
+            'patient_id' => $patient->id,
+            'birth_weight_kg' => 3.0,
+            'birth_height_cm' => 50.0,
+            'has_newborn_screening' => false,
+            'has_bcg_at_birth' => true,
+        ]);
+
+        $updateData = [
+            'first_name' => 'Baby Jane',
+            'last_name' => 'Doe',
+            'dob' => '2026-01-01',
+            'gender' => 'Male',
+            'phone' => '09123456789',
+            'address' => 'Updated Address',
+            'emergency_contact_name' => 'Jane Doe',
+            'emergency_contact_phone' => '09987654321',
+            'status' => 'Completed',
+            'birth_weight_kg' => 3.25,
+            'birth_height_cm' => 51.0,
+            'head_circumference_cm' => 34.5,
+            'birth_type' => 'Single',
+            'delivery_type' => 'Normal',
+            'has_newborn_screening' => '1',
+            'has_hearing_screening' => '1',
+            'has_bcg_at_birth' => '1',
+        ];
+
+        $response = $this->actingAs($this->adminUser)->put('/patients/' . $patient->id, $updateData);
+
+        $response->assertRedirect(route('records'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('patients', [
+            'id' => $patient->id,
+            'first_name' => 'Baby Jane',
+            'status' => 'Completed',
+        ]);
+
+        $this->assertDatabaseHas('child_records', [
+            'patient_id' => $patient->id,
+            'birth_weight_kg' => 3.25,
+            'birth_height_cm' => 51.0,
+            'head_circumference_cm' => 34.5,
+            'has_newborn_screening' => true,
+            'has_hearing_screening' => true,
+            'has_bcg_at_birth' => true,
         ]);
     }
 

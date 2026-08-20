@@ -72,7 +72,7 @@ If it spits out a version number, CONGRATULATIONS, you didn't mess it up! If it 
 
 ## STEP 2: START YOUR LARAVEL APP
 
-Your app needs to be running locally before you can share it. Do I really need to explain this?!
+Your app needs to be running locally before you can share it.
 
 1. Open your terminal and navigate to your project directory:
    ```bash
@@ -111,3 +111,10 @@ Now for the part you actually asked for.
 3. Keep BOTH terminal windows open. The second you press `Ctrl+C` in the `cloudflared` window, the tunnel is DESTROYED and the URL is DEAD!
 
 **THAT IS IT! NOW STOP SLACKING AND GET TESTING!**
+
+> [!NOTE]
+> For real-time chat to work through the tunnel, you also need the Reverb WebSocket server running:
+> ```bash
+> php artisan reverb:start
+> ```
+> The WebSocket connection will use the same `localhost:8080` port that Reverb listens on.

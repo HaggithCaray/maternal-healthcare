@@ -14,15 +14,16 @@ We have successfully built the core web application, which is highly advanced an
 ## TECH STACK
 - **Backend:** Laravel 13.x (PHP 8.4)
 - **Frontend:** Blade + Tailwind CSS v4 + Vite
-- **Database:** MySQL 8.0 (Docker)
-- **Infrastructure:** Docker Compose (Nginx + PHP-FPM + MySQL + phpMyAdmin)
+- **Database:** MySQL 8.0
+- **WebSocket Server:** Laravel Reverb
+- **Local Server:** XAMPP or Laragon (Apache + MySQL + PHP)
 - **Planned Offline/Online Architecture:** Progressive Web App (PWA) with Service Worker + IndexedDB + Background Sync
 
 ## SYSTEM ARCHITECTURE
 The system is built on a standard Model-View-Controller (MVC) architecture using Laravel, combined with a Progressive Web App (PWA) approach for offline capabilities (which is the part you still need to finish).
 * The **Frontend** relies on Blade templates styled with Tailwind CSS, processed by Vite for hot-reloading and building assets.
 * The **Backend** exposes standard web routes handled by controllers to interact with the database via Eloquent Models.
-* The **Database** and servers are run inside Docker containers using MySQL 8.0 and Nginx for consistency across environments.
+* The **Database** runs via MySQL through XAMPP or Laragon.
 
 ### Visual Representation of Planned Offline/Online Architecture
 ```text
@@ -73,81 +74,80 @@ Currently, the "Progressive Web App (PWA)" features are completely missing. Here
 
 ## HOW TO SET UP AND RUN THIS PROJECT RIGHT NOW
 
-Since you have limited development knowledge, follow these steps EXACTLY as written to get the app running on your computer.
-
 ### Step 1: Get the Code
-First, you need to download this project to your computer. Open your terminal or command prompt and run:
 ```bash
 git clone https://github.com/HaggithCaray/maternal-healthcare.git
 cd maternal-healthcare
 ```
 
 ### Step 2: Install Requirements
-You MUST install these programs on your computer first to start from scratch:
-1. **Docker Desktop** (v24 or higher) - REQUIRED to run the database and web server containers.
-2. **Node.js** (v20 or higher) - REQUIRED for building the frontend assets.
-3. **NPM** (comes with Node.js) - REQUIRED to install Tailwind CSS and Vite dependencies.
+Install these programs on your computer first:
+1. **XAMPP** or **Laragon** — Local server with Apache + MySQL + PHP 8.4
+2. **Node.js** (v20+) and **NPM** — For building frontend assets (Tailwind CSS, Vite)
 
-*NOTE: You do NOT need to install PHP or Composer on your local machine if you are using Docker, because the Docker container handles the PHP environment for you.*
+### Step 3: Start MySQL
+- **XAMPP:** Open XAMPP Control Panel → Start **MySQL** (and **Apache** if using XAMPP's web server)
+- **Laragon:** Open Laragon → Start All
 
-### Step 3: Start the Server
-Open your terminal or command prompt, make sure you are inside the `maternal-healthcare` folder, and run:
-```bash
-docker compose up -d
-```
-*This starts your database and web server in the background.*
+MySQL will run on `127.0.0.1:3306` by default.
 
-### Step 4: Install PHP Dependencies
-Run this command to install the backend tools:
-```bash
-docker exec -it healthcare-app composer install
+### Step 4: Create the Database
+Open phpMyAdmin (XAMPP: `http://localhost/phpmyadmin`, Laragon: click "phpMyAdmin" in the menu) and create a database:
+```sql
+CREATE DATABASE healthcare_db;
 ```
 
-### Step 5: Setup Environment File (`.env`)
-You MUST configure your database connection so the app can talk to the database.
-
-1. **Create the file:**
-   Run this command in your terminal to copy the template:
-   ```bash
-   cp .env.example .env
-   ```
-   *(If on Windows CMD, do `copy .env.example .env` instead)*
-
-2. **Open the `.env` file** in your code editor.
-3. **Generate an App Key:**
-   Run this command in your terminal:
-   ```bash
-   docker exec -it healthcare-app php artisan key:generate
-   ```
-4. **Change the Database Settings:**
-   Find the lines that start with `DB_` (around line 23) and change them to look EXACTLY like this (make sure you remove the `#` symbols at the start of the lines!):
-
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=db
-   DB_PORT=3306
-   DB_DATABASE=healthcare_db
-   DB_USERNAME=healthcare_user
-   DB_PASSWORD=healthcare123
-   ```
-   *Why these values? Because this matches the exact setup in your `docker-compose.yml` file!*
-
-### Step 6: Create the Database Tables
-Run this command to build the tables inside your database:
+### Step 5: Install PHP Dependencies
 ```bash
-docker exec -it healthcare-app php artisan migrate
+composer install
 ```
 
-### Step 7: Install Frontend Dependencies & Build
-Run these commands to install Tailwind CSS and build the visual styling:
+### Step 6: Setup Environment File
+```bash
+cp .env.example .env
+```
+*(Windows CMD: `copy .env.example .env`)*
+
+Then update `.env` database settings:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=healthcare_db
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### Step 7: Generate App Key & Migrate
+```bash
+php artisan key:generate
+php artisan migrate --seed
+```
+
+### Step 8: Install Frontend Dependencies & Build
 ```bash
 npm install
 npm run build
 ```
 
-### Step 8: Open the App
-Go to your web browser and open:
-**http://localhost:8080**
+### Step 9: Start the Servers
+You need **two terminal windows** open:
 
----
+**Terminal 1 — Laravel app:**
+```bash
+php artisan serve
+```
 
+**Terminal 2 — Reverb WebSocket server (for real-time chat):**
+```bash
+php artisan reverb:start
+```
+
+### Step 10: Open the App
+Go to: **http://127.0.0.1:8000**
+
+### Default Login
+| Role | Email | Password |
+|------|-------|----------|
+| Healthcare Worker (Admin) | health@example.com | password |
+| Patient | patient@example.com | password |
