@@ -25,7 +25,7 @@ php artisan cache:clear
 
 ### MySQL Connection Refused
 **Check:**
-1. MySQL is running in XAMPP/Laragon
+1. MySQL is running in XAMPP Control Panel
 2. `.env` has `DB_HOST=127.0.0.1` (not `db`)
 3. Port is `3306`
 4. Database `healthcare_db` exists
@@ -67,6 +67,51 @@ netstat -ano | findstr :8080
 php artisan reverb:start --port=8081
 ```
 If using a different Reverb port, update `REVERB_PORT` and `VITE_REVERB_PORT` in `.env`.
+
+### Apache Shows PHP 8.2 Instead of 8.4
+**Symptom:** Apache log says `PHP/8.2.12` instead of `PHP/8.4.24`
+**Cause:** You downloaded the NTS (Non Thread Safe) version of PHP 8.4. Apache requires the TS (Thread Safe) version.
+**Note:** The TS version filename does NOT have `nts-` prefix. e.g. `php-8.4.24-Win32-vs17-x64.zip` is TS, `php-8.4.24-nts-Win32-vs17-x64.zip` is NTS.
+**Fix:**
+1. Stop Apache
+2. Delete `C:\xampp\php`
+3. Download the TS version: `https://downloads.php.net/~windows/releases/php-8.4.24-Win32-vs17-x64.zip`
+4. Extract to `C:\xampp\php`
+5. Copy `php.ini` from `C:\xampp\php8.2_backup`
+6. Comment out browscap in `php.ini`
+7. Restart Apache
+
+### Apache Shutdown Unexpectedly
+**Cause:** Port 80 blocked by another service (e.g. Windows IIS).
+**Fix:**
+1. Stop the conflicting service: `net stop W3SVC` (run as Administrator)
+2. Or change Apache to port 8080 in `httpd.conf`: `Listen 80` → `Listen 8080` and `ServerName localhost:80` → `ServerName localhost:8080`
+
+### phpMyAdmin 404 Not Found
+**Cause:** Apache not running or wrong port.
+**Fix:**
+1. Start Apache in XAMPP Control Panel
+2. Access `http://localhost/phpmyadmin`
+
+### curl Extension: "libssh2_crypto_engine" Not Found
+**Symptom:** `The procedure entry point libssh2_crypto_engine could not be located in the dynamic link library php_curl.dll`
+**Cause:** Apache's `bin\` folder has an older `libssh2.dll` (v1.10.0 from 2023) but PHP 8.4's `php_curl.dll` requires v1.11.1+. Apache loads DLLs from its own `bin\` first before PHP's folder.
+**Fix:** Copy these DLLs from `C:\xampp\php` to `C:\xampp\apache\bin\`:
+```powershell
+Copy-Item "C:\xampp\php\libssh2.dll" "C:\xampp\apache\bin\libssh2.dll" -Force
+Copy-Item "C:\xampp\php\brotlidec.dll" "C:\xampp\apache\bin\brotlidec.dll" -Force
+Copy-Item "C:\xampp\php\brotlicommon.dll" "C:\xampp\apache\bin\brotlicommon.dll" -Force
+```
+Then restart Apache.
+
+### Apache: "Speaking plain HTTP to an SSL-enabled server port"
+**Symptom:** Browser shows `Bad Request — You're speaking plain HTTP to an SSL-enabled server port`
+**Cause:** `httpd-ssl.conf` is loaded and forces HTTPS on port 443, which conflicts with plain HTTP on port 80.
+**Fix:** Comment out the SSL include in `C:\xampp\apache\conf\httpd.conf`:
+```
+#Include conf/extra/httpd-ssl.conf
+```
+Then restart Apache.
 
 ## Related Pages
 - [[Setup Guide]]

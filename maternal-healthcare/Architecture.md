@@ -4,7 +4,7 @@
 ```
 Browser → Laravel App (php artisan serve :8000)
               ↓
-         MySQL (XAMPP/Laragon :3306)
+         MySQL (XAMPP :3306)
               
 Browser ← WebSocket ← Reverb (php artisan reverb:start :8080)
 ```

@@ -8,11 +8,11 @@ A **maternal and child health monitoring system** for Barangay Bicao Health Stat
 |-------|-----------|
 | Backend | Laravel 13.8, PHP 8.4 |
 | Frontend | Tailwind CSS 4, Blade templates, Material Symbols |
-| Database | MySQL 8.0 (via XAMPP/Laragon) |
+| Database | MySQL 8.4 (via XAMPP) |
 | Realtime | Laravel Reverb (WebSockets) |
 | Offline | Service Worker + IndexedDB (PWA) |
 | SMS | HTTP gateway integration |
-| Server | XAMPP/Laragon (Apache + MySQL + PHP) |
+| Server | XAMPP (Apache + MySQL + PHP 8.4) |
 
 ## Key Features
 - **Patient Registration** — Multi-step wizard for maternal and child patients

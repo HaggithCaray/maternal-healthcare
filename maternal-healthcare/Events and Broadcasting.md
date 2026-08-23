@@ -2,7 +2,7 @@
 
 ## Broadcasting Driver
 - **Driver:** Laravel Reverb (WebSocket server)
-- **Port:** 8082 (mapped from 8080)
+- **Port:** 8080
 - **Config:** `config/reverb.php`
 - **Client:** Laravel Echo + pusher-js
 

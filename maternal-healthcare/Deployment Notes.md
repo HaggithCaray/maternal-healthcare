@@ -1,7 +1,7 @@
 # Deployment Notes
 
 ## Local Development
-See [[Local Development Setup]] for running locally with XAMPP/Laragon.
+See [[Local Development Setup]] for running locally with XAMPP.
 
 ## Cloudflare Tunnel
 - Guide: `cloudflare_tunnel_setup.md`

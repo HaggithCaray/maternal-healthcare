@@ -63,7 +63,7 @@
 ## Completed Phases
 - [x] **Phase 1**: Core Registration & Records
 - [x] **Phase 2**: Edit Patient Functionality
-- [x] **Phase 3**: Architecture Update (Docker → XAMPP/Laragon)
+- [x] **Phase 3**: Architecture Update (Docker → XAMPP)
 - [x] **Phase 4**: Security Hardening, Policies & Pentest Remediation
 - [x] **Phase 5**: Domain Controller & Form Request Architectural Refactoring
 - [x] **Phase 6**: PHI Compliance & Audit Logging Engine

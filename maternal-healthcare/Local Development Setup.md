@@ -1,15 +1,15 @@
 # Local Development Setup
 
 ## Overview
-The app runs locally using XAMPP or Laragon for MySQL, with Laravel's built-in server and Reverb WebSocket server.
+The app runs locally using XAMPP for MySQL and Apache, with Laravel's built-in server and Reverb WebSocket server.
 
 ## Services
 | Service | Command | Port | Purpose |
 |---------|---------|------|---------|
 | Laravel App | `php artisan serve` | 8000 | Main web application |
 | Reverb WebSocket | `php artisan reverb:start` | 8080 | Real-time messaging |
-| MySQL | XAMPP/Laragon | 3306 | Database |
-| phpMyAdmin | XAMPP/Laragon | — | Database admin UI |
+| MySQL | XAMPP | 3306 | Database |
+| phpMyAdmin | XAMPP | 80 | Database admin UI |
 
 ## Two-Terminal Setup
 ```bash
@@ -26,7 +26,7 @@ php artisan reverb:start
 | root | (empty) | healthcare_db |
 
 ## MySQL Setup
-1. Start MySQL in XAMPP Control Panel or Laragon
+1. Start MySQL in XAMPP Control Panel
 2. Open phpMyAdmin: `http://localhost/phpmyadmin`
 3. Create database: `CREATE DATABASE healthcare_db;`
 

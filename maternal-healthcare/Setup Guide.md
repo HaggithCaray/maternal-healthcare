@@ -8,20 +8,38 @@
 
 ## Quick Start
 ```bash
-git clone <repo-url>
+# 1. Clone the repo
+git clone https://github.com/your-username/maternal-health-care.git
 cd maternal-health-care
+
+# 2. Install PHP dependencies
 composer install
+
+# 3. Set up environment file
 cp .env.example .env
 php artisan key:generate
+
+# 4. Configure database in .env (see Database Setup below)
+
+# 5. Run migrations and seed data
+php artisan migrate --seed
+
+# 6. Install frontend dependencies and build CSS/JS
+npm install
+npm run build
+
+# 7. Start the app (two terminals)
+php artisan serve          # Terminal 1 — http://127.0.0.1:8000
+php artisan reverb:start   # Terminal 2 — WebSocket
 ```
 
 ## Database Setup
-1. Start MySQL via XAMPP
+1. Start MySQL via XAMPP Control Panel
 2. Create database:
 ```sql
 CREATE DATABASE healthcare_db;
 ```
-3. Update `.env`:
+3. Update `.env` — make sure these values are set:
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -30,7 +48,7 @@ DB_DATABASE=healthcare_db
 DB_USERNAME=root
 DB_PASSWORD=
 ```
-4. Run migrations:
+4. Run migrations and seed data:
 ```bash
 php artisan migrate --seed
 ```
@@ -58,8 +76,8 @@ php artisan reverb:start
 | Service | URL |
 |---------|-----|
 | Laravel App | http://127.0.0.1:8000 |
-| Reverb WebSocket | ws://localhost:8080 |
 | phpMyAdmin | http://localhost/phpmyadmin |
+| Reverb WebSocket | ws://localhost:8080 |
 
 ## Default Credentials
 ### Admin Login
@@ -75,43 +93,46 @@ php artisan reverb:start
 
 ## XAMPP Setup (Specific)
 
-### Install XAMPP
+### Step 1: Install XAMPP
 1. Download from https://www.apachefriends.org
-2. Install to `C:\xampp` with **PHP 8.2** (default available)
+2. Install to `C:\xampp`
 3. Open XAMPP Control Panel
 
-### Upgrade PHP to 8.4
-XAMPP ships with PHP 8.2. To upgrade to 8.4:
+### Step 2: Upgrade PHP 8.2 → 8.4
+XAMPP ships with PHP 8.2. The project requires PHP ^8.3. Upgrade to 8.4:
 
-1. Download PHP 8.4 NTS (Non Thread Safe) for Windows:
-   ```
-   https://windows.php.net/downloads/releases/php-8.4.24-nts-Win32-vs16-x64.zip
-   ```
+1. Stop Apache and MySQL in XAMPP Control Panel
 
-2. Rename existing PHP folder:
+2. Download PHP 8.4 TS (Thread Safe) — required for Apache:
+   ```
+   https://downloads.php.net/~windows/releases/php-8.4.24-Win32-vs17-x64.zip
+   ```
+   **Important:** The filename WITHOUT `nts-` prefix is the TS (Thread Safe) version. Do NOT download the `nts-` version — it will not work with Apache.
+
+3. Rename existing PHP folder:
    ```
    C:\xampp\php  →  C:\xampp\php-8.2-backup
    ```
 
-3. Extract the downloaded PHP 8.4 zip to:
+4. Extract the downloaded PHP 8.4 zip to:
    ```
    C:\xampp\php
    ```
 
-4. Copy `php.ini` from backup:
+5. Copy `php.ini` from backup:
    ```
    Copy C:\xampp\php-8.2-backup\php.ini  →  C:\xampp\php\php.ini
    ```
 
-5. Update `php.ini` — find and change these:
+6. Fix `php.ini` — open in Notepad, find and **comment out** this line:
+   ```
+   ;browscap="C:\xampp\php\extras\browscap.ini"
+   ```
+   Add a `;` at the start. Without this fix, PHP will crash on startup.
+
+7. Verify extensions are enabled in `php.ini` — find each line and make sure it does NOT start with `;`:
    ```ini
    extension_dir = "C:\xampp\php\ext"
-   error_reporting = E_ALL
-   display_errors = On
-   ```
-
-6. Enable required extensions in `php.ini` (uncomment these lines):
-   ```
    extension=curl
    extension=gd
    extension=mbstring
@@ -120,70 +141,78 @@ XAMPP ships with PHP 8.2. To upgrade to 8.4:
    extension=pdo_sqlite
    extension=sqlite3
    extension=fileinfo
-   extension=openssl
    extension=bz2
    extension=intl
    extension=sockets
-   extension=pcntl
    extension=sodium
    extension=zip
    ```
+   If any line starts with `;` (e.g. `;extension=mysqli`), remove the `;` to enable it.
 
-7. Copy these files from `C:\xampp\php-8.2-backup` to `C:\xampp\php`:
-   ```
-   libeay32.dll
-   ssleay32.dll
-   libssl.dll
-   ```
-
-8. Add PHP to system PATH:
+8. Add PHP to system PATH (run in PowerShell as Administrator):
    ```powershell
-   [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\xampp\php", "Machine")
+   [System.Environment]::SetEnvironmentVariable("Path", [System.Environment]::GetEnvironmentVariable("Path", "User") + ";C:\xampp\php", "User")
    ```
 
-9. Verify in a **new terminal**:
-   ```bash
+9. Open a **NEW terminal**, verify:
+   ```powershell
    php -v
    ```
-   Should show `PHP 8.4.24`.
+   Should show `PHP 8.4.24 (cli)`.
 
-### Start Services
+### Step 3: Fix Apache Port Conflict
+If port 80 is blocked by another service (e.g. Windows IIS), change Apache to port 8080:
+
+1. Open `C:\xampp\apache\conf\httpd.conf` in Notepad
+2. Find and change:
+   ```
+   Listen 80  →  Listen 8080
+   ```
+3. Find and change:
+   ```
+   ServerName localhost:80  →  ServerName localhost:8080
+   ```
+4. Save, restart Apache
+5. Access phpMyAdmin at `http://localhost:8080/phpmyadmin`
+
+If port 80 is free (IIS disabled), keep default settings — no changes needed.
+
+### Step 4: Fix curl/libssh2 DLL Conflict
+Apache has an older `libssh2.dll` that conflicts with PHP 8.4's curl extension. Copy the newer DLLs:
+
+```powershell
+Copy-Item "C:\xampp\php\libssh2.dll" "C:\xampp\apache\bin\libssh2.dll" -Force
+Copy-Item "C:\xampp\php\brotlidec.dll" "C:\xampp\apache\bin\brotlidec.dll" -Force
+Copy-Item "C:\xampp\php\brotlicommon.dll" "C:\xampp\apache\bin\brotlicommon.dll" -Force
+```
+
+Without this, you'll get: `The procedure entry point libssh2_crypto_engine could not be located`
+
+### Step 5: Disable SSL Config
+Comment out the SSL include in `C:\xampp\apache\conf\httpd.conf`:
+```
+#Include conf/extra/httpd-ssl.conf
+```
+This prevents the `Bad Request — speaking plain HTTP to an SSL-enabled server port` error.
+
+### Step 6: Start MySQL
 1. Open XAMPP Control Panel
 2. Click **Start** next to **MySQL**
-3. Click **Start** next to **Apache** (optional — can use `php artisan serve` instead)
 
-### PHP Path (XAMPP)
-XAMPP PHP is at:
-```
-C:\xampp\php\php.exe
-```
-
-If `php` is not recognized, run this first:
+### Step 7: Create Database
 ```powershell
-$env:Path += ";C:\xampp\php"
+mysql -u root -e "CREATE DATABASE healthcare_db;"
 ```
 
-### phpMyAdmin (XAMPP)
+### Step 8: phpMyAdmin
 phpMyAdmin is included in XAMPP:
 - Go to `http://localhost/phpmyadmin`
 - Login: **root** / **(blank password)**
 
-### Database Management
-
-#### Option 1: phpMyAdmin (GUI)
-1. Open http://localhost/phpmyadmin
-2. Login: **root** / **(blank)**
-3. Click **Databases** → Create `healthcare_db`
-
-#### Option 2: Terminal (Fastest)
-```bash
-mysql -u root -e "CREATE DATABASE healthcare_db;"
-```
-
 ---
 
 ## Common Commands
-```bash
+```powershell
 # Run tests
 php artisan test
 
@@ -200,6 +229,9 @@ php artisan db:seed
 
 # Tinker
 php artisan tinker
+
+# If PHP is not recognized, run this first:
+$env:Path += ";C:\xampp\php"
 ```
 
 ## Related Pages

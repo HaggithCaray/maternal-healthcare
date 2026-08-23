@@ -25,7 +25,7 @@ Start with [[Project Overview]] for a high-level summary.
 - [[PWA Offline Features]] — Service Worker, IndexedDB, background sync
 
 ### Operations
-- [[Local Development Setup]] — XAMPP/Laragon, MySQL, commands
+- [[Local Development Setup]] — XAMPP, MySQL, commands
 - [[Configuration]] — Environment variables, config files
 - [[Database Seeder]] — Sample data
 - [[Deployment Notes]] — Production considerations
