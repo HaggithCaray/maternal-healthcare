@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\File;
 
 class SmsService
 {
@@ -23,29 +24,35 @@ class SmsService
     public function getSettings(): array
     {
         if (File::exists($this->settingsPath)) {
+            $encrypted = File::get($this->settingsPath);
+
             try {
-                $settings = json_decode(File::get($this->settingsPath), true);
+                $settings = json_decode(Crypt::decryptString($encrypted), true);
                 if (is_array($settings)) {
-                    return [
-                        'url' => $settings['url'] ?? env('SMS_GATEWAY_URL', ''),
-                        'username' => $settings['username'] ?? env('SMS_GATEWAY_USER', ''),
-                        'password' => $settings['password'] ?? env('SMS_GATEWAY_PASSWORD', ''),
-                    ];
+                    return $this->normalizeSettings($settings);
                 }
             } catch (\Exception $e) {
-                Log::error('Failed to parse SMS gateway settings: ' . $e->getMessage());
+                Log::error('Failed to decrypt SMS gateway settings: ' . $e->getMessage());
+            }
+
+            // Backward compatibility: a pre-encryption plaintext file may still exist.
+            $legacy = json_decode($encrypted, true);
+            if (is_array($legacy)) {
+                Log::warning('Migrating legacy plaintext SMS gateway settings to encrypted storage.');
+                $this->saveSettings(
+                    $legacy['url'] ?? '',
+                    $legacy['username'] ?? '',
+                    $legacy['password'] ?? ''
+                );
+                return $this->normalizeSettings($legacy);
             }
         }
 
-        return [
-            'url' => env('SMS_GATEWAY_URL', ''),
-            'username' => env('SMS_GATEWAY_USER', ''),
-            'password' => env('SMS_GATEWAY_PASSWORD', ''),
-        ];
+        return $this->normalizeSettings([]);
     }
 
     /**
-     * Save the SMS gateway settings.
+     * Save the SMS gateway settings (encrypted at rest).
      *
      * @param string $url
      * @param string $username
@@ -70,12 +77,27 @@ class SmsService
                 File::makeDirectory($dir, 0755, true);
             }
 
-            File::put($this->settingsPath, json_encode($settings, JSON_PRETTY_PRINT));
+            File::put($this->settingsPath, Crypt::encryptString(json_encode($settings)));
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to save SMS gateway settings: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Merge stored settings with environment fallbacks.
+     *
+     * @param array $stored
+     * @return array
+     */
+    protected function normalizeSettings(array $stored): array
+    {
+        return [
+            'url' => $stored['url'] ?? env('SMS_GATEWAY_URL', ''),
+            'username' => $stored['username'] ?? env('SMS_GATEWAY_USER', ''),
+            'password' => $stored['password'] ?? env('SMS_GATEWAY_PASSWORD', ''),
+        ];
     }
 
     /**

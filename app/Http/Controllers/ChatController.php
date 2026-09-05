@@ -64,7 +64,7 @@ class ChatController extends Controller
 
             if ($request->hasFile('file')) {
                 $file = $request->file('file');
-                $safeName = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $safeName = Str::uuid() . '.' . $this->safeExtension($file);
                 $attachmentPath = $file->storeAs('attachments', $safeName, 'public');
                 $attachmentName = $file->getClientOriginalName();
                 $attachmentType = $file->getMimeType();
@@ -136,7 +136,7 @@ class ChatController extends Controller
 
                 if ($request->hasFile('file')) {
                     $file = $request->file('file');
-                    $safeName = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                    $safeName = Str::uuid() . '.' . $this->safeExtension($file);
                     $attachmentPath = $file->storeAs('attachments', $safeName, 'public');
                     $attachmentName = $file->getClientOriginalName();
                     $attachmentType = $file->getMimeType();
@@ -171,5 +171,28 @@ class ChatController extends Controller
         }
 
         return view('patient.messaging', compact('midwife', 'messages'));
+    }
+
+    /**
+     * Derive a safe, non-executable extension from the file's content-derived MIME type
+     * rather than from the client-supplied filename, preventing RCE via polyglot uploads.
+     */
+    protected function safeExtension($file): string
+    {
+        $map = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'image/gif' => 'gif',
+            'application/pdf' => 'pdf',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'video/mp4' => 'mp4',
+            'video/quicktime' => 'mov',
+        ];
+
+        return $map[$file->getMimeType()] ?? 'bin';
     }
 }

@@ -12,7 +12,7 @@ use App\Http\Controllers\SyncController;
 
 // Public Authentication Routes
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/', [AuthController::class, 'login']);
+Route::post('/', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Authenticated Routes
@@ -45,6 +45,6 @@ Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/messaging', [ChatController::class, 'messaging'])->name('messaging');
 
     // Reporting & Administration
-    Route::get('/reports', [ReportController::class, 'reports'])->name('reports');
+    Route::get('/reports', [ReportController::class, 'reports'])->name('reports')->middleware('role:admin');
     Route::get('/admin', [ReportController::class, 'admin'])->name('admin')->middleware('role:admin');
 });

@@ -19,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->trustProxies(
-            at: '*',
+            at: ['127.0.0.1', '::1'],
             headers: Request::HEADER_X_FORWARDED_FOR |
                      Request::HEADER_X_FORWARDED_PROTO |
                      Request::HEADER_X_FORWARDED_HOST |

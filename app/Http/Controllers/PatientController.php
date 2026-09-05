@@ -26,6 +26,8 @@ class PatientController extends Controller
      */
     public function records(Request $request)
     {
+        $this->authorize('viewAny', Patient::class);
+
         $search = $request->query('search');
         $type = $request->query('type');
         $status = $request->query('status');
@@ -84,6 +86,8 @@ class PatientController extends Controller
             return $this->store($request);
         }
 
+        $this->authorize('create', Patient::class);
+
         return view('register');
     }
 
@@ -92,6 +96,8 @@ class PatientController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Patient::class);
+
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',

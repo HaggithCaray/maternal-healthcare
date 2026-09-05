@@ -26,6 +26,33 @@ class AuthControllerTest extends TestCase
     }
 
     /**
+     * Test login endpoint throttles repeated attempts for the same email+IP.
+     */
+    public function test_login_is_rate_limited_after_repeated_attempts(): void
+    {
+        $user = User::create([
+            'name' => 'Regular User',
+            'email' => 'throttle@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'user',
+        ]);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->post('/', [
+                'email' => 'throttle@example.com',
+                'password' => 'wrong-password',
+                'role' => 'user',
+            ])->assertSessionHasErrors('email');
+        }
+
+        $this->post('/', [
+            'email' => 'throttle@example.com',
+            'password' => 'wrong-password',
+            'role' => 'user',
+        ])->assertStatus(429);
+    }
+
+    /**
      * Test successful login as admin redirecting to dashboard.
      */
     public function test_admin_can_login_successfully(): void
