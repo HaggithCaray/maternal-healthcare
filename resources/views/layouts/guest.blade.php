@@ -47,5 +47,10 @@
     <div class="fixed bottom-20 right-20 w-48 h-48 bg-secondary/5 rounded-full blur-3xl -z-10 animate-float" style="animation-duration: 10s"></div>
 
     @stack('scripts')
+    <script>
+        // Nobody is signed in here (logged out or session expired): drop any offline copies of pages.
+        // The name matches PAGES_CACHE in public/sw.js.
+        if ('caches' in window) caches.delete('maternal-health-pages');
+    </script>
 </body>
 </html>

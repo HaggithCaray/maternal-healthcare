@@ -3,6 +3,8 @@
 @section('title', 'Growth')
 
 @section('content')
+@include('partials.child-switcher', ['route' => 'growth'])
+
 <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow flex flex-col md:flex-row items-start md:items-center justify-between gap-md">
     <div class="flex items-center gap-md w-full md:w-auto">
         <div class="w-20 h-20 rounded-xl bg-primary-container/20 flex items-center justify-center overflow-hidden border-2 border-primary/10 font-bold text-primary text-xl">

@@ -18,6 +18,8 @@
 @endpush
 
 @section('content')
+@include('partials.child-switcher', ['route' => 'immunization'])
+
 <section class="bg-surface-container-lowest p-md rounded-2xl soft-shadow flex flex-col md:flex-row gap-md items-start">
     <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-primary-container flex items-center justify-center font-bold text-3xl text-primary border border-primary-container shrink-0">
         {{ strtoupper(substr($patient->first_name, 0, 2)) }}

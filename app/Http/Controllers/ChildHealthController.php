@@ -14,25 +14,42 @@ use Illuminate\Http\Request;
 class ChildHealthController extends Controller
 {
     /**
+     * The child whose record is shown. Staff pick any patient with ?id=; a mother sees her own
+     * children only (?id= picks one of them, defaulting to the first).
+     *
+     * @return array{0: ?Patient, 1: \Illuminate\Support\Collection<int, Patient>} [child, the mother's children for the switcher]
+     */
+    protected function selectChild(Request $request): array
+    {
+        $id = $request->query('id');
+
+        if (auth()->user()->isAdmin()) {
+            $patient = $id ? Patient::find($id) : Patient::where('registration_type', 'Child')->first();
+
+            return [$patient, collect()];
+        }
+
+        $mother = Patient::where('user_id', auth()->id())->first();
+        $children = $mother
+            ? Patient::whereHas('childRecord', fn ($q) => $q->where('mother_id', $mother->id))->orderBy('dob')->get()
+            : collect();
+
+        if ($id !== null) {
+            $patient = $children->firstWhere('id', (int) $id);
+            abort_unless($patient, 404);
+
+            return [$patient, $children];
+        }
+
+        return [$children->first(), $children];
+    }
+
+    /**
      * Display child growth records or record new growth measurement.
      */
     public function growth(Request $request)
     {
-        $patient = null;
-        if (auth()->user()->role === 'user') {
-            $mother = Patient::where('user_id', auth()->user()->id)->first();
-            if ($mother) {
-                $childRecord = ChildRecord::where('mother_id', $mother->id)->first();
-                $patient = $childRecord ? $childRecord->patient : null;
-            }
-        } else {
-            $id = $request->query('id');
-            if ($id) {
-                $patient = Patient::find($id);
-            } else {
-                $patient = Patient::where('registration_type', 'Child')->first();
-            }
-        }
+        [$patient, $siblings] = $this->selectChild($request);
 
         if (!$patient) {
             return redirect()->route($this->homeRoute())->with('error', 'Child record not found.');
@@ -53,7 +70,7 @@ class ChildHealthController extends Controller
         AuditLog::log('view_growth_record', $patient);
 
         $view = auth()->user()->role === 'user' ? 'patient.growth' : 'growth';
-        return view($view, compact('patient', 'childRecord', 'growthMeasurements', 'latestGrowth'));
+        return view($view, compact('patient', 'childRecord', 'growthMeasurements', 'latestGrowth', 'siblings'));
     }
 
     /**
@@ -102,21 +119,7 @@ class ChildHealthController extends Controller
      */
     public function immunization(Request $request)
     {
-        $patient = null;
-        if (auth()->user()->role === 'user') {
-            $mother = Patient::where('user_id', auth()->user()->id)->first();
-            if ($mother) {
-                $childRecord = ChildRecord::where('mother_id', $mother->id)->first();
-                $patient = $childRecord ? $childRecord->patient : null;
-            }
-        } else {
-            $id = $request->query('id');
-            if ($id) {
-                $patient = Patient::find($id);
-            } else {
-                $patient = Patient::where('registration_type', 'Child')->first();
-            }
-        }
+        [$patient, $siblings] = $this->selectChild($request);
 
         if (!$patient) {
             return redirect()->route($this->homeRoute())->with('error', 'Child immunization record not found.');
@@ -135,7 +138,7 @@ class ChildHealthController extends Controller
         AuditLog::log('view_immunization_record', $patient);
 
         $view = auth()->user()->role === 'user' ? 'patient.immunization' : 'immunization';
-        return view($view, compact('patient', 'childRecord', 'immunizations'));
+        return view($view, compact('patient', 'childRecord', 'immunizations', 'siblings'));
     }
 
     /**

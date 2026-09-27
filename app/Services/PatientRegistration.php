@@ -39,14 +39,6 @@ class PatientRegistration
         ['MMR', 2, 52],
     ];
 
-    /**
-     * Birth doses and the registration field saying they were given.
-     */
-    public const BIRTH_DOSES = [
-        'BCG' => 'has_bcg_at_birth',
-        'Hepatitis B' => 'has_hepb_at_birth',
-    ];
-
     public const BIRTH_TYPES = ['Single', 'Twin', 'Triplet', 'Multiple'];
 
     public const DELIVERY_TYPES = ['Normal', 'C-Section', 'Assisted'];
@@ -187,7 +179,6 @@ class PatientRegistration
         $dob = Carbon::parse($data['dob']);
         $weight = $data['birth_weight_kg'] ?? null;
         $height = $data['birth_height_cm'] ?? null;
-        $givenAtBirth = array_map(fn (string $field) => filter_var($data[$field] ?? false, FILTER_VALIDATE_BOOLEAN), self::BIRTH_DOSES);
 
         $child = ChildRecord::create([
             'patient_id' => $patient->id,
@@ -196,8 +187,8 @@ class PatientRegistration
             'birth_height_cm' => $height,
             'birth_type' => $data['birth_type'] ?? 'Single',
             'delivery_type' => $data['delivery_type'] ?? 'Normal',
-            'has_bcg_at_birth' => $givenAtBirth['BCG'],
-            'has_hepb_at_birth' => $givenAtBirth['Hepatitis B'],
+            'has_bcg_at_birth' => filter_var($data['has_bcg_at_birth'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'has_hepb_at_birth' => filter_var($data['has_hepb_at_birth'] ?? false, FILTER_VALIDATE_BOOLEAN),
         ]);
 
         // A birth measurement only when both values were actually recorded.
@@ -212,18 +203,16 @@ class PatientRegistration
         }
 
         foreach (self::SCHEDULE as [$vaccine, $dose, $weeks]) {
-            // Birth doses count as given only when the form says so; otherwise they stay due.
-            $given = $weeks === 0 && ($givenAtBirth[$vaccine] ?? false);
-
             Immunization::create([
                 'child_record_id' => $child->id,
                 'vaccine_name' => $vaccine,
                 'dose_number' => $dose,
                 'scheduled_date' => $dob->copy()->addWeeks($weeks)->format('Y-m-d'),
-                'status' => $given ? 'Given' : 'Scheduled',
-                'given_date' => $given ? $dob->format('Y-m-d') : null,
-                'remarks' => $given ? 'Given at birth (recorded at registration)' : null,
+                'status' => 'Scheduled',
             ]);
         }
+
+        // Birth doses count as given only when the form says so; otherwise they stay due.
+        $child->syncBirthDoses();
     }
 }

@@ -138,6 +138,12 @@
                     <div class="flex items-start justify-between gap-sm">
                         <div>
                             <p class="font-label-md text-on-surface">{{ $child?->first_name }} {{ $child?->last_name }} @if($ageMonths !== null)({{ $ageMonths }}mo)@endif</p>
+                            @if($child)
+                            <p class="text-label-sm mt-xs flex gap-sm">
+                                <a href="{{ route('immunization', ['id' => $child->id]) }}" class="text-primary hover:underline">Vaccines</a>
+                                <a href="{{ route('growth', ['id' => $child->id]) }}" class="text-primary hover:underline">Growth</a>
+                            </p>
+                            @endif
                             <p class="text-body-sm text-on-surface-variant">
                                 {{ $next ? $next->vaccine_name . ' — dose ' . $next->dose_number : 'All scheduled vaccines given' }}
                             </p>

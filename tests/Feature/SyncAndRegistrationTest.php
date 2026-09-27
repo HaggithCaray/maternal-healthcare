@@ -160,7 +160,7 @@ class SyncAndRegistrationTest extends TestCase
         $bcg = Immunization::where('vaccine_name', 'BCG')->sole();
         $this->assertSame('Given', $bcg->status);
         $this->assertNull($bcg->administered_by);
-        $this->assertSame('Given at birth (recorded at registration)', $bcg->remarks);
+        $this->assertSame('Given at birth', $bcg->remarks);
 
         $hepB = Immunization::where('vaccine_name', 'Hepatitis B')->sole();
         $this->assertSame('Scheduled', $hepB->status);

@@ -1,11 +1,23 @@
 /*
  * Maternal Health Hub - Service Worker
  * Provides offline caching and background sync support.
+ *
+ * Privacy: patient pages are never cached. Only the registration form (needed offline) is kept,
+ * in its own cache that is deleted at logout and whenever the login page opens.
  */
 
-// Bump when cached pages or assets change shape (v2: styles, fonts and icons are served from /build).
-const CACHE_NAME = 'maternal-health-v2';
+// Bump when cached pages or assets change shape.
+// v3: stop caching patient pages and attachments; activating v3 deletes the older caches that held them.
+const CACHE_NAME = 'maternal-health-v3';
+// Must match the name cleared in layouts/app.blade.php (logout) and layouts/guest.blade.php (login page).
+const PAGES_CACHE = 'maternal-health-pages';
 const OFFLINE_URL = '/offline.html';
+
+// Pages that work offline. Everything else shows the offline page when there is no connection.
+const OFFLINE_PAGES = ['/register'];
+
+const STATIC_PREFIXES = ['/build/', '/icons/', '/images/'];
+const STATIC_FILES = ['/favicon.ico', '/manifest.json', OFFLINE_URL];
 
 const PRECACHE_URLS = [
     OFFLINE_URL,
@@ -27,46 +39,48 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys()
             .then((keys) => Promise.all(
-                keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+                keys.filter((key) => key !== CACHE_NAME && key !== PAGES_CACHE).map((key) => caches.delete(key))
             ))
             .then(() => self.clients.claim())
     );
 });
 
-const isApiRequest = (url) => {
-    const path = new URL(url).pathname;
-    return path.startsWith('/api/') || path.startsWith('/sync/') || path.startsWith('/broadcasting/');
-};
+const isStaticAsset = (url) =>
+    STATIC_FILES.includes(url.pathname) || STATIC_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
 
 self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
 
-    // Only handle same-origin requests. Skip API/sync/broadcast requests entirely.
-    if (url.origin !== self.location.origin || isApiRequest(url)) {
+    // Only same-origin requests; the browser handles everything else.
+    if (url.origin !== self.location.origin) {
         return;
     }
 
-    // Navigation requests: network first, fall back to cache, then offline page.
+    // Navigation: network first. Only offline-capable pages are kept, and only real (non-redirected) pages.
     if (request.mode === 'navigate') {
+        const cacheable = OFFLINE_PAGES.includes(url.pathname);
+
         event.respondWith(
             fetch(request)
                 .then((response) => {
-                    const copy = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+                    if (cacheable && response.ok && !response.redirected) {
+                        const copy = response.clone();
+                        caches.open(PAGES_CACHE).then((cache) => cache.put(request, copy));
+                    }
                     return response;
                 })
-                .catch(() =>
-                    caches.match(request).then((cached) =>
-                        cached || caches.match(OFFLINE_URL)
-                    )
-                )
+                .catch(async () => {
+                    const cached = cacheable ? await caches.match(request, { cacheName: PAGES_CACHE }) : null;
+                    return cached || caches.match(OFFLINE_URL);
+                })
         );
         return;
     }
 
-    // Static assets (same origin): stale-while-revalidate.
-    if (request.method === 'GET') {
+    // Built assets, icons and images: stale-while-revalidate. Anything else (chat attachments,
+    // JSON endpoints, sync) goes straight to the network and is never stored.
+    if (request.method === 'GET' && isStaticAsset(url)) {
         event.respondWith(
             caches.match(request).then((cached) => {
                 const networkFetch = fetch(request)

@@ -137,7 +137,7 @@
                             <span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="lock_reset">lock_reset</span>
                             <span class="font-label-md text-label-md">Change Password</span>
                         </a>
-                        <form method="POST" action="{{ route('logout') }}">
+                        <form method="POST" action="{{ route('logout') }}" id="logout-form">
                             @csrf
                             <button type="submit" class="w-full flex items-center gap-sm px-4 py-2 text-on-surface hover:bg-surface-variant/50 transition-colors">
                                 <span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="logout">logout</span>
@@ -172,6 +172,15 @@
 @stack('scripts')
 
 <script>
+    // Remove offline copies of pages before signing out, so the next person on a shared tablet
+    // can't open them without a connection. The name matches PAGES_CACHE in public/sw.js.
+    document.getElementById('logout-form')?.addEventListener('submit', (event) => {
+        if (!('caches' in window)) return;
+        event.preventDefault();
+        const form = event.currentTarget;
+        caches.delete('maternal-health-pages').finally(() => form.submit());
+    });
+
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');

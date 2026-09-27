@@ -220,6 +220,9 @@ class PatientController extends Controller
                     'has_bcg_at_birth' => $request->boolean('has_bcg_at_birth'),
                     'has_hepb_at_birth' => $request->boolean('has_hepb_at_birth'),
                 ]);
+
+                // Keep the BCG / Hepatitis B birth doses in line with the "at birth" checkboxes.
+                $patient->childRecord->syncBirthDoses();
             }
 
             // Keep the portal login in step with the patient record — only when this patient owns

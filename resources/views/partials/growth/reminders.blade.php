@@ -47,7 +47,7 @@
         </div>
     </div>
     <div class="flex flex-wrap justify-center gap-md mt-md">
-        <a href="{{ route('immunization', auth()->user()->isAdmin() ? ['id' => $patient->id] : []) }}" class="py-sm text-primary font-label-md text-label-md hover:underline">View immunization record</a>
+        <a href="{{ route('immunization', ['id' => $patient->id]) }}" class="py-sm text-primary font-label-md text-label-md hover:underline">View immunization record</a>
         @unless(auth()->user()->isAdmin())
         <a href="{{ route('messaging') }}" class="py-sm text-primary font-label-md text-label-md hover:underline">Message my midwife</a>
         @endunless

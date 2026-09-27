@@ -192,7 +192,6 @@ class ChatController extends Controller
                 $response = response()->file(Storage::disk($disk)->path($message->attachment_path), [
                     'Content-Type' => $message->attachment_type ?: 'application/octet-stream',
                     'X-Content-Type-Options' => 'nosniff',
-                    'Cache-Control' => 'private, max-age=3600',
                 ]);
                 $response->setContentDisposition('inline', $name, $fallback);
 

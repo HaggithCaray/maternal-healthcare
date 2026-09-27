@@ -23,7 +23,7 @@ message patients. Mothers get their own portal to follow their pregnancy and the
 | **Reports** | Per-year registrations by month, immunization coverage, prenatal visits and high-risk counts, and a child nutrition summary. Printable. |
 | **Offline (PWA)** | Installable web app with a service worker. New patient registrations made offline are queued on the device and synced when the connection returns; a retried sync never creates the same record twice. |
 | **Admin** | Add healthcare worker accounts, reset passwords, deactivate or reactivate any login, and browse the activity log of every record viewed or changed. |
-| **Security** | Role-based access (healthcare worker / patient), authorization policies, login throttling, deactivated accounts signed out immediately, and other devices signed out after a password change. |
+| **Security** | Role-based access (healthcare worker / patient), authorization policies, login throttling, deactivated accounts signed out immediately, and other devices signed out after a password change. Patient pages and attachments are never stored on the device, so a shared tablet shows nothing after logout. |
 
 ## Tech stack
 
@@ -200,6 +200,6 @@ tunnel. It is meant for demos, not production.
 ## Known limitations
 
 - Only patient registration works offline; prenatal visits, growth and vaccine updates need a connection.
-  Pages must be opened once while online before they are available offline.
+  The registration form must be opened once while signed in and online; its offline copy is deleted at logout.
 - There is no email-based password reset; staff reset passwords from the Admin page or *Edit Patient*.
 - Developmental milestones are shown as WHO age windows, not recorded per child.
