@@ -216,6 +216,14 @@
                         <label class="font-label-md text-label-md text-on-surface-variant">PhilHealth Number</label>
                         <input name="philhealth_number" value="{{ old('philhealth_number', $patient->maternalRecord->philhealth_number) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="XX-XXXXXXXXX-X" type="text">
                     </div>
+                    <div class="flex flex-col gap-xs">
+                        <label class="font-label-md text-label-md text-on-surface-variant">Planned Place of Delivery</label>
+                        <input name="birth_plan_facility" value="{{ old('birth_plan_facility', $patient->maternalRecord->birth_plan['facility'] ?? '') }}" maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Carmen District Hospital" type="text">
+                    </div>
+                    <div class="flex flex-col gap-xs">
+                        <label class="font-label-md text-label-md text-on-surface-variant">Planned Birth Attendant</label>
+                        <input name="birth_plan_attendant" value="{{ old('birth_plan_attendant', $patient->maternalRecord->birth_plan['attendant'] ?? '') }}" maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Midwife, doctor" type="text">
+                    </div>
                 </div>
                 <div class="mt-md">
                     <label class="font-label-md text-label-md text-on-surface-variant mb-xs block">Medical History</label>

@@ -250,6 +250,9 @@ class PageControllerTest extends TestCase
             'registration_type' => 'Child',
             'birth_weight_kg' => 3.25,
             'birth_height_cm' => 51.0,
+            // The form ticks both birth doses by default
+            'has_bcg_at_birth' => '1',
+            'has_hepb_at_birth' => '1',
         ];
 
         $response = $this->actingAs($this->adminUser)->post('/register', $data);

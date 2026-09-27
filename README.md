@@ -21,7 +21,7 @@ message patients. Mothers get their own portal to follow their pregnancy and the
 | **Messaging** | Real-time chat between midwife and patients (Laravel Reverb). Attachments are private and only served to the two people in the conversation. |
 | **SMS** | Send SMS through a Capcom6 Android SMS Gateway; gateway settings are stored encrypted. |
 | **Reports** | Per-year registrations by month, immunization coverage, prenatal visits and high-risk counts, and a child nutrition summary. Printable. |
-| **Offline (PWA)** | Installable web app with a service worker. New patient registrations made offline are queued on the device and synced when the connection returns. |
+| **Offline (PWA)** | Installable web app with a service worker. New patient registrations made offline are queued on the device and synced when the connection returns; a retried sync never creates the same record twice. |
 | **Admin** | Add healthcare worker accounts, reset passwords, deactivate or reactivate any login, and browse the activity log of every record viewed or changed. |
 | **Security** | Role-based access (healthcare worker / patient), authorization policies, login throttling, deactivated accounts signed out immediately, and other devices signed out after a password change. |
 

@@ -170,6 +170,14 @@
                             <label class="font-label-md text-label-md text-on-surface-variant">PhilHealth Number</label>
                             <input name="philhealth_number" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="XX-XXXXXXXXX-X" type="text">
                         </div>
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-md text-label-md text-on-surface-variant">Planned Place of Delivery</label>
+                            <input name="birth_plan_facility" value="{{ old('birth_plan_facility') }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Carmen District Hospital" type="text">
+                        </div>
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-md text-label-md text-on-surface-variant">Planned Birth Attendant</label>
+                            <input name="birth_plan_attendant" value="{{ old('birth_plan_attendant') }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Midwife, doctor" type="text">
+                        </div>
                     </div>
 
                     <!-- Child Specific Fields (Hidden by default) -->
@@ -191,6 +199,35 @@
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Birth Height (cm)</label>
                             <input name="birth_height_cm" step="0.1" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 50.0" type="number">
+                        </div>
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-md text-label-md text-on-surface-variant">Birth Type</label>
+                            <select name="birth_type" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base cursor-pointer">
+                                @foreach(\App\Services\PatientRegistration::BIRTH_TYPES as $type)
+                                <option value="{{ $type }}" @selected(old('birth_type', 'Single') === $type)>{{ $type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-md text-label-md text-on-surface-variant">Delivery Type</label>
+                            <select name="delivery_type" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base cursor-pointer">
+                                @foreach(\App\Services\PatientRegistration::DELIVERY_TYPES as $type)
+                                <option value="{{ $type }}" @selected(old('delivery_type', 'Normal') === $type)>{{ $type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="md:col-span-2 flex flex-col gap-xs">
+                            <p class="font-label-md text-label-md text-on-surface-variant">Birth Doses</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+                                @foreach(['has_bcg_at_birth' => 'BCG given at birth', 'has_hepb_at_birth' => 'Hepatitis B given at birth'] as $field => $label)
+                                <label class="flex items-center gap-sm p-sm rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container">
+                                    <input type="hidden" name="{{ $field }}" value="0">
+                                    <input type="checkbox" name="{{ $field }}" value="1" @checked(old($field, '1') === '1') class="w-5 h-5 rounded text-primary focus:ring-primary">
+                                    <span class="text-sm text-on-surface-variant">{{ $label }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                            <p class="text-xs text-on-surface-variant">Uncheck a dose the baby did not receive; it will stay on the schedule as due.</p>
                         </div>
                     </div>
                 </div>

@@ -8,15 +8,13 @@ use App\Models\GrowthMeasurement;
 use App\Models\Immunization;
 use App\Models\MaternalCheckup;
 use App\Models\MaternalRecord;
-use App\Models\Patient;
-use App\Models\User;
+use App\Models\SyncReceipt;
+use App\Services\PatientRegistration;
 use Carbon\Carbon;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class SyncController extends Controller
 {
@@ -29,9 +27,11 @@ class SyncController extends Controller
     }
 
     /**
-     * Accept queued offline items and apply them to the database atomically.
+     * Accept queued offline items and apply each one atomically, at most once.
      *
-     * Request body: { "items": [ { "id": 1, "type": "patient_registration", "data": { ... } } ] }
+     * Request body: { "items": [ { "id": 1, "uuid": "…", "type": "patient_registration", "data": { ... } } ] }
+     * Items already applied (a retry after a lost response, or two syncs running at once) are
+     * skipped but still reported in synced_ids, so the device removes them from its outbox.
      */
     public function registrations(Request $request)
     {
@@ -40,19 +40,33 @@ class SyncController extends Controller
         }
 
         $request->validate([
-            'items' => 'required|array',
+            'items' => 'required|array|max:500',
         ]);
 
         $syncedIds = [];
+        $duplicates = 0;
         $errors = [];
 
         foreach ($request->input('items') as $item) {
+            $item = is_array($item) ? $item : [];
             $clientId = $item['id'] ?? null;
             $type = $item['type'] ?? null;
-            $data = $item['data'] ?? [];
+            $data = is_array($item['data'] ?? null) ? $item['data'] : [];
+            $key = SyncReceipt::keyFor($item);
+
+            if (SyncReceipt::where('key', $key)->exists()) {
+                $duplicates++;
+                if ($clientId !== null) {
+                    $syncedIds[] = $clientId;
+                }
+                continue;
+            }
 
             try {
-                DB::transaction(function () use ($type, $data) {
+                DB::transaction(function () use ($type, $data, $key) {
+                    // Claim the item first: a concurrent sync of the same item fails here on the unique key.
+                    SyncReceipt::create(['key' => $key, 'type' => (string) $type, 'user_id' => auth()->id()]);
+
                     match ($type) {
                         'patient_registration' => $this->createPatient($data),
                         'maternal_checkup' => $this->createCheckup($data),
@@ -65,6 +79,16 @@ class SyncController extends Controller
                 if ($clientId !== null) {
                     $syncedIds[] = $clientId;
                 }
+            } catch (UniqueConstraintViolationException $e) {
+                // Another request applied this item while we were working on it.
+                if (SyncReceipt::where('key', $key)->exists()) {
+                    $duplicates++;
+                    if ($clientId !== null) {
+                        $syncedIds[] = $clientId;
+                    }
+                } else {
+                    $errors[] = "Item {$clientId} [{$type}]: " . $e->getMessage();
+                }
             } catch (\Throwable $e) {
                 $errors[] = "Item {$clientId} [{$type}]: " . $e->getMessage();
             }
@@ -73,6 +97,7 @@ class SyncController extends Controller
         AuditLog::log('offline_batch_sync', null, [
             'total_items' => count($request->input('items')),
             'synced_count' => count($syncedIds),
+            'duplicates_skipped' => $duplicates,
             'errors_count' => count($errors),
         ]);
 
@@ -80,6 +105,7 @@ class SyncController extends Controller
             'success' => empty($errors),
             'synced' => count($syncedIds),
             'synced_ids' => $syncedIds,
+            'duplicates' => $duplicates,
             'errors' => $errors,
         ]);
     }
@@ -99,126 +125,13 @@ class SyncController extends Controller
     }
 
     /**
-     * Create a patient from offline registration data.
+     * Create a patient from offline registration data (same rules and records as the web form).
      */
     private function createPatient(array $data): void
     {
-        $this->validateItem($data, [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'dob' => 'required|date',
-            'gender' => 'required|string',
-            'phone' => 'required|string',
-            'email' => 'nullable|email',
-            'address' => 'required|string',
-            'emergency_contact_name' => 'required|string',
-            'emergency_contact_phone' => 'required|string',
-            'registration_type' => 'required|in:Maternal,Child',
-            'mother_id' => ['nullable', Rule::exists('patients', 'id')->where('registration_type', 'Maternal')],
-        ]);
+        $this->validateItem($data, PatientRegistration::rules());
 
-        $userId = null;
-        $email = $data['email'] ?? null;
-        if ($email) {
-            $user = User::where('email', $email)->first();
-            if ($user && ! $user->isUser()) {
-                throw new \RuntimeException('This email belongs to a staff account and cannot be used for a patient.');
-            }
-            if (!$user) {
-                $user = User::create([
-                    'name' => $data['first_name'] . ' ' . $data['last_name'],
-                    'email' => $email,
-                    'password' => Hash::make(Str::random(16)),
-                    'role' => 'user',
-                ]);
-            }
-            $userId = $user->id;
-        }
-
-        $patient = Patient::create([
-            'user_id' => $userId,
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'dob' => $data['dob'],
-            'gender' => $data['gender'],
-            'phone' => $data['phone'],
-            'email' => $email,
-            'address' => $data['address'],
-            'barangay' => $data['barangay'] ?? 'Bicao',
-            'occupation' => $data['occupation'] ?? null,
-            'emergency_contact_name' => $data['emergency_contact_name'],
-            'emergency_contact_phone' => $data['emergency_contact_phone'],
-            'registration_type' => $data['registration_type'],
-            'status' => 'Active',
-        ]);
-
-        $dob = Carbon::parse($data['dob']);
-
-        if ($data['registration_type'] === 'Maternal') {
-            $lmp = !empty($data['lmp']) ? Carbon::parse($data['lmp']) : null;
-            $edd = $lmp ? $lmp->copy()->addDays(280) : null;
-
-            MaternalRecord::create([
-                'patient_id' => $patient->id,
-                'lmp' => $lmp,
-                'edd' => $edd,
-                'gravida' => $data['gravida'] ?? 1,
-                'para' => $data['para'] ?? 0,
-                'philhealth_number' => $data['philhealth_number'] ?? null,
-                'medical_history' => MaternalRecord::normalizeConditions($data['medical_history'] ?? []),
-                'allergies' => $data['allergies'] ?? null,
-                'birth_plan' => [
-                    'facility' => 'Barangay Bicao Health Station',
-                    'attendant' => 'Midwife Elena',
-                ],
-            ]);
-        } else {
-            $child = ChildRecord::create([
-                'patient_id' => $patient->id,
-                'mother_id' => $data['mother_id'] ?? null,
-                'birth_weight_kg' => $data['birth_weight_kg'] ?? 3.0,
-                'birth_height_cm' => $data['birth_height_cm'] ?? 50.0,
-                'birth_type' => 'Single',
-                'delivery_type' => 'Normal',
-            ]);
-
-            GrowthMeasurement::create([
-                'child_record_id' => $child->id,
-                'date' => $dob->format('Y-m-d'),
-                'age_months' => 0,
-                'weight_kg' => $data['birth_weight_kg'] ?? 3.0,
-                'height_cm' => $data['birth_height_cm'] ?? 50.0,
-            ]);
-
-            $schedule = [
-                ['BCG', 1, 0],
-                ['Hepatitis B', 1, 0],
-                ['Pentavalent (DPT-HepB-Hib)', 1, 6],
-                ['Pentavalent (DPT-HepB-Hib)', 2, 10],
-                ['Pentavalent (DPT-HepB-Hib)', 3, 14],
-                ['OPV', 1, 6],
-                ['OPV', 2, 10],
-                ['OPV', 3, 14],
-                ['IPV', 1, 14],
-                ['PCV', 1, 6],
-                ['PCV', 2, 10],
-                ['PCV', 3, 14],
-                ['MMR', 1, 39],
-                ['MMR', 2, 52],
-            ];
-
-            foreach ($schedule as $vaccine) {
-                Immunization::create([
-                    'child_record_id' => $child->id,
-                    'vaccine_name' => $vaccine[0],
-                    'dose_number' => $vaccine[1],
-                    'scheduled_date' => $dob->copy()->addWeeks($vaccine[2])->format('Y-m-d'),
-                    'status' => $vaccine[2] === 0 ? 'Given' : 'Scheduled',
-                    'given_date' => $vaccine[2] === 0 ? $dob->format('Y-m-d') : null,
-                    'administered_by' => $vaccine[2] === 0 ? 'Midwife Elena' : null,
-                ]);
-            }
-        }
+        app(PatientRegistration::class)->register($data);
     }
 
     /**

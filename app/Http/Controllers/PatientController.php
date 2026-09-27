@@ -12,6 +12,7 @@ use App\Models\MaternalRecord;
 use App\Models\Patient;
 use App\Models\User;
 use App\Models\ChatMessage;
+use App\Services\PatientRegistration;
 use App\Services\PrenatalAssessment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -85,7 +86,7 @@ class PatientController extends Controller
     public function register(Request $request)
     {
         if ($request->isMethod('post')) {
-            return $this->store($request);
+            return $this->store($request, app(PatientRegistration::class));
         }
 
         $this->authorize('create', Patient::class);
@@ -98,144 +99,29 @@ class PatientController extends Controller
     /**
      * Store newly created patient record with secure user provisioning.
      */
-    public function store(Request $request)
+    public function store(Request $request, PatientRegistration $registration)
     {
         $this->authorize('create', Patient::class);
 
-        $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'dob' => 'required|date',
-            'gender' => 'required|string',
-            'phone' => 'required|string',
-            'email' => ['nullable', 'email', $this->notStaffEmail()],
-            'address' => 'required|string',
-            'emergency_contact_name' => 'required|string',
-            'emergency_contact_phone' => 'required|string',
-            'registration_type' => 'required|in:Maternal,Child',
-            'mother_id' => ['nullable', $this->maternalPatientRule()],
+        $data = $request->validate(PatientRegistration::rules());
+        ['patient' => $patient, 'temporaryPassword' => $temporaryPassword] = $registration->register($data);
+
+        AuditLog::log('create_patient', $patient, [
+            'registration_type' => $patient->registration_type,
+            'name' => $patient->full_name,
         ]);
 
-        return DB::transaction(function () use ($request) {
-            $userId = null;
-            $temporaryPassword = null;
-            if ($request->email) {
-                $user = User::where('email', $request->email)->first();
-                if (!$user) {
-                    // Random initial password, shown once to the midwife so the patient can log in
-                    $temporaryPassword = User::temporaryPassword();
-                    $user = User::create([
-                        'name' => $request->first_name . ' ' . $request->last_name,
-                        'email' => $request->email,
-                        'password' => Hash::make($temporaryPassword),
-                        'role' => 'user',
-                    ]);
-                }
-                $userId = $user->id;
-            }
+        $redirect = redirect()->route('records')->with('success', 'Patient registered successfully!');
 
-            $patient = Patient::create([
-                'user_id' => $userId,
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'dob' => $request->dob,
-                'gender' => $request->gender,
-                'phone' => $request->phone,
-                'email' => $request->email,
-                'address' => $request->address,
-                'barangay' => 'Bicao',
-                'occupation' => $request->occupation,
-                'emergency_contact_name' => $request->emergency_contact_name,
-                'emergency_contact_phone' => $request->emergency_contact_phone,
-                'registration_type' => $request->registration_type,
-                'status' => 'Active',
+        if ($temporaryPassword) {
+            $redirect->with('portal_credentials', [
+                'name' => $patient->full_name,
+                'email' => $patient->email,
+                'password' => $temporaryPassword,
             ]);
+        }
 
-            $dob = Carbon::parse($request->dob);
-
-            if ($request->registration_type === 'Maternal') {
-                $lmp = $request->lmp ? Carbon::parse($request->lmp) : null;
-                $edd = $lmp ? $lmp->copy()->addDays(280) : null;
-
-                MaternalRecord::create([
-                    'patient_id' => $patient->id,
-                    'lmp' => $lmp,
-                    'edd' => $edd,
-                    'gravida' => $request->gravida ?? 1,
-                    'para' => $request->para ?? 0,
-                    'philhealth_number' => $request->philhealth_number,
-                    'medical_history' => MaternalRecord::normalizeConditions($request->input('medical_history', [])),
-                    'allergies' => $request->allergies,
-                    'birth_plan' => [
-                        'facility' => 'Barangay Bicao Health Station',
-                        'attendant' => 'Midwife Elena',
-                    ],
-                ]);
-            } else {
-                $child = ChildRecord::create([
-                    'patient_id' => $patient->id,
-                    'mother_id' => $request->mother_id,
-                    'birth_weight_kg' => $request->birth_weight_kg ?? 3.0,
-                    'birth_height_cm' => $request->birth_height_cm ?? 50.0,
-                    'birth_type' => 'Single',
-                    'delivery_type' => 'Normal',
-                ]);
-
-                GrowthMeasurement::create([
-                    'child_record_id' => $child->id,
-                    'date' => $dob->format('Y-m-d'),
-                    'age_months' => 0,
-                    'weight_kg' => $request->birth_weight_kg ?? 3.0,
-                    'height_cm' => $request->birth_height_cm ?? 50.0,
-                ]);
-
-                $schedule = [
-                    ['BCG', 1, 0],
-                    ['Hepatitis B', 1, 0],
-                    ['Pentavalent (DPT-HepB-Hib)', 1, 6],
-                    ['Pentavalent (DPT-HepB-Hib)', 2, 10],
-                    ['Pentavalent (DPT-HepB-Hib)', 3, 14],
-                    ['OPV', 1, 6],
-                    ['OPV', 2, 10],
-                    ['OPV', 3, 14],
-                    ['IPV', 1, 14],
-                    ['PCV', 1, 6],
-                    ['PCV', 2, 10],
-                    ['PCV', 3, 14],
-                    ['MMR', 1, 39],
-                    ['MMR', 2, 52],
-                ];
-
-                foreach ($schedule as $vaccine) {
-                    Immunization::create([
-                        'child_record_id' => $child->id,
-                        'vaccine_name' => $vaccine[0],
-                        'dose_number' => $vaccine[1],
-                        'scheduled_date' => $dob->copy()->addWeeks($vaccine[2])->format('Y-m-d'),
-                        'status' => $vaccine[2] === 0 ? 'Given' : 'Scheduled',
-                        'given_date' => $vaccine[2] === 0 ? $dob->format('Y-m-d') : null,
-                        'administered_by' => $vaccine[2] === 0 ? 'Midwife Elena' : null,
-                    ]);
-                }
-            }
-
-            AuditLog::log('create_patient', $patient, [
-                'registration_type' => $patient->registration_type,
-                'name' => $patient->first_name . ' ' . $patient->last_name,
-            ]);
-
-            $redirect = redirect()->route('records')->with('success', 'Patient registered successfully!');
-
-            if ($temporaryPassword) {
-                $redirect->with('portal_credentials', [
-                    'name' => $patient->first_name . ' ' . $patient->last_name,
-                    'email' => $request->email,
-                    'password' => $temporaryPassword,
-                ]);
-            }
-
-            return $redirect;
-        });
+        return $redirect;
     }
 
     /**
@@ -273,6 +159,13 @@ class PatientController extends Controller
             'emergency_contact_phone' => 'required|string',
             'status' => 'required|string|in:Active,Due for Visit,High Risk,Completed',
             'mother_id' => ['nullable', $this->maternalPatientRule()],
+            'birth_plan_facility' => 'nullable|string|max:255',
+            'birth_plan_attendant' => 'nullable|string|max:255',
+            'lmp' => 'nullable|date|before_or_equal:today',
+            'gravida' => 'nullable|integer|min:0|max:30',
+            'para' => 'nullable|integer|min:0|max:30',
+            'birth_type' => ['nullable', Rule::in(PatientRegistration::BIRTH_TYPES)],
+            'delivery_type' => ['nullable', Rule::in(PatientRegistration::DELIVERY_TYPES)],
         ]);
 
         DB::transaction(function () use ($request, $patient) {
@@ -297,11 +190,15 @@ class PatientController extends Controller
                 $patient->maternalRecord->update([
                     'lmp' => $lmp,
                     'edd' => $edd,
-                    'gravida' => $request->gravida,
-                    'para' => $request->para,
+                    'gravida' => $request->gravida ?? $patient->maternalRecord->gravida,
+                    'para' => $request->para ?? $patient->maternalRecord->para,
                     'philhealth_number' => $request->philhealth_number,
                     'allergies' => $request->allergies,
                     'medical_history' => MaternalRecord::normalizeConditions($request->input('medical_history', [])),
+                    'birth_plan' => array_filter([
+                        'facility' => $request->birth_plan_facility,
+                        'attendant' => $request->birth_plan_attendant,
+                    ]) ?: null,
                 ]);
             }
 
@@ -314,8 +211,8 @@ class PatientController extends Controller
                     'birth_weight_kg' => $request->birth_weight_kg,
                     'birth_height_cm' => $request->birth_height_cm,
                     'head_circumference_cm' => $request->head_circumference_cm,
-                    'birth_type' => $request->birth_type,
-                    'delivery_type' => $request->delivery_type,
+                    'birth_type' => $request->birth_type ?? $patient->childRecord->birth_type,
+                    'delivery_type' => $request->delivery_type ?? $patient->childRecord->delivery_type,
                     'has_newborn_screening' => $request->boolean('has_newborn_screening'),
                     'has_hearing_screening' => $request->boolean('has_hearing_screening'),
                     'has_eye_prophylaxis' => $request->boolean('has_eye_prophylaxis'),
@@ -401,19 +298,6 @@ class PatientController extends Controller
     protected function maternalPatientRule()
     {
         return Rule::exists('patients', 'id')->where('registration_type', 'Maternal');
-    }
-
-    /**
-     * Validation rule: a patient's email must not belong to a staff account,
-     * otherwise the patient record would be linked to (and log in as) that staff user.
-     */
-    protected function notStaffEmail(): \Closure
-    {
-        return function (string $attribute, mixed $value, \Closure $fail) {
-            if (User::where('email', $value)->where('role', '!=', 'user')->exists()) {
-                $fail('This email belongs to a staff account and cannot be used for a patient.');
-            }
-        };
     }
 
     /**

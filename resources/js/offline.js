@@ -155,10 +155,26 @@ function formDataToObject(formData) {
     return result;
 }
 
+/*
+ * Random v4 UUID. The server keeps the UUIDs it has applied, so retrying an item never creates it twice.
+ */
+function generateUuid() {
+    if (window.crypto?.randomUUID) {
+        return window.crypto.randomUUID();
+    }
+
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 function queuePatientRegistration(formData) {
     const data = formDataToObject(formData);
 
     return addOutboxItem({
+        uuid: generateUuid(),
         type: 'patient_registration',
         status: 'pending',
         created_at: new Date().toISOString(),
@@ -203,7 +219,23 @@ async function postToServer(items, token) {
     });
 }
 
-async function syncPending() {
+let syncInFlight = null;
+
+/*
+ * The "online" event, background sync and a fresh registration can all ask to sync at once;
+ * run one sync at a time and let the others wait for it.
+ */
+function syncPending() {
+    if (!syncInFlight) {
+        syncInFlight = runSync().finally(() => {
+            syncInFlight = null;
+        });
+    }
+
+    return syncInFlight;
+}
+
+async function runSync() {
     let items;
     try {
         items = await getPendingItems();
