@@ -14,7 +14,7 @@ message patients. Mothers get their own portal to follow their pregnancy and the
 | Area | What it does |
 |------|--------------|
 | **Patient records** | Register maternal and child patients, search and filter records, edit details, link each child to the mother's record. |
-| **Patient portal** | Mothers sign in to see their prenatal visits and their children's growth and vaccines. The midwife sees a temporary password once after registration and can reset it from *Edit Patient*. |
+| **Patient portal** | Mothers sign in to see their prenatal visits and their children's growth, vaccines and reminders. The midwife sees a temporary password once after registration; patients then set their own under **Change Password**. |
 | **Prenatal care** | Gestational age and due date from the LMP; every visit is flagged for high blood pressure, abnormal fetal heart rate and post-term pregnancy; risk profile from age, parity, height and medical history; next visit date follows the prenatal schedule. |
 | **Child growth** | WHO Child Growth Standards z-scores (weight-for-age, length/height-for-age, weight-for-length/height) with nutritional status: underweight, stunted, wasted, overweight. |
 | **Immunization** | Philippine EPI schedule generated at registration (BCG, Hepatitis B, Pentavalent, OPV, IPV, PCV, MMR); midwives mark doses as given. |
@@ -22,7 +22,8 @@ message patients. Mothers get their own portal to follow their pregnancy and the
 | **SMS** | Send SMS through a Capcom6 Android SMS Gateway; gateway settings are stored encrypted. |
 | **Reports** | Per-year registrations by month, immunization coverage, prenatal visits and high-risk counts, and a child nutrition summary. Printable. |
 | **Offline (PWA)** | Installable web app with a service worker. New patient registrations made offline are queued on the device and synced when the connection returns. |
-| **Security** | Role-based access (healthcare worker / patient), authorization policies, login throttling and an audit log of record access and changes. |
+| **Admin** | Add healthcare worker accounts, reset passwords, deactivate or reactivate any login, and browse the activity log of every record viewed or changed. |
+| **Security** | Role-based access (healthcare worker / patient), authorization policies, login throttling, deactivated accounts signed out immediately, and other devices signed out after a password change. |
 
 ## Tech stack
 
@@ -62,7 +63,8 @@ php artisan key:generate
 ```
 
 (`cp .env.example .env` on Git Bash.) The example file is already set up for XAMPP's MySQL
-(`root`, no password, database `healthcare_db`) and a local Reverb server.
+(`root`, no password, database `healthcare_db`) and a local Reverb server. Optionally set
+`CLINIC_PHONE` to show the health station's number to patients.
 
 ### 4. Create the database
 
@@ -193,13 +195,14 @@ tunnel. It is meant for demos, not production.
 | Sending a chat message fails, or messages only appear after a refresh | Start `php artisan reverb:start`. If you changed any `REVERB_*` value, run `npm run build` again. To run without real-time chat, set `BROADCAST_CONNECTION=log`. |
 | Pages look unstyled | Run `npm run build`. |
 | A newly registered patient cannot sign in | Open *Edit Patient* → **Reset Password** and give the patient the temporary password shown. |
+| Someone cannot sign in although the password is right | Their account may be deactivated — check **Admin** → the user → **Reactivate**. |
 
 ## Known limitations
 
 - Only patient registration works offline; prenatal visits, growth and vaccine updates need a connection.
-- Patients cannot change their own password yet.
-- Some widgets are still static sample content: *Dev. Milestones* and *Reminders* on the growth page,
-  *To-Do This Week* on the maternal page.
+  Pages must be opened once while online before they are available offline.
+- There is no email-based password reset; staff reset passwords from the Admin page or *Edit Patient*.
+- Developmental milestones are shown as WHO age windows, not recorded per child.
 
 ## Repositories
 

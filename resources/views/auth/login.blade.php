@@ -201,8 +201,9 @@
                         <input class="w-5 h-5 border-2 border-outline rounded focus:ring-2 focus:ring-primary checked:bg-primary checked:border-primary transition-all" type="checkbox" name="remember" id="remember">
                         <span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface">Remember me</span>
                     </label>
-                    <a class="font-label-md text-label-md text-secondary hover:underline transition-all" href="#">Forgot password?</a>
+                    <button type="button" class="font-label-md text-label-md text-secondary hover:underline transition-all" onclick="document.getElementById('forgot-help').classList.toggle('hidden')" aria-controls="forgot-help">Forgot password?</button>
                 </div>
+                <p id="forgot-help" class="hidden font-body-sm text-body-sm text-on-surface-variant bg-surface-container-low rounded-lg p-sm">Ask the staff at Barangay Bicao Health Station to reset it. They will give you a temporary password that you can change after signing in.</p>
 
                 <button class="w-full h-12 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-sm" type="submit">
                     Sign In to Portal
@@ -212,12 +213,12 @@
 
             <footer class="mt-xl text-center space-y-md">
                 <p class="font-body-sm text-body-sm text-on-surface-variant">
-                    Need access? <a class="text-primary font-bold hover:underline" href="#">Contact Health Center Admin</a>
+                    Need an account? Ask the staff at <span class="text-primary font-bold">Barangay Bicao Health Station</span>.
                 </p>
                 <div class="pt-lg border-t border-outline-variant/30">
                     <p class="font-label-sm text-label-sm text-outline flex items-center justify-center gap-xs">
                         <span class="material-symbols-outlined text-[14px]">copyright</span>
-                        2026 Maternal Health Hub. All rights reserved.
+                        {{ date('Y') }} Maternal Health Hub. All rights reserved.
                     </p>
                 </div>
             </footer>

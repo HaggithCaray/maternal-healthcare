@@ -27,35 +27,7 @@
         @include('partials.growth.weight-chart')
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-            <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow">
-                <h4 class="font-headline-sm text-headline-sm mb-md flex items-center gap-sm">
-                    <span class="material-symbols-outlined text-secondary">verified</span>
-                    Dev. Milestones
-                </h4>
-                <div class="space-y-sm">
-                    <div class="flex items-center gap-sm p-sm bg-secondary-container/10 rounded-lg">
-                        <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                        <div>
-                            <p class="text-label-md font-label-md">Walking independently</p>
-                            <p class="text-label-sm text-on-surface-variant">Achieved at 14 months</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-sm p-sm bg-secondary-container/10 rounded-lg">
-                        <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                        <div>
-                            <p class="text-label-md font-label-md">Speaking 5-10 words</p>
-                            <p class="text-label-sm text-on-surface-variant">Achieved at 17 months</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-sm p-sm border border-outline-variant border-dashed rounded-lg opacity-60">
-                        <span class="material-symbols-outlined text-outline">pending</span>
-                        <div>
-                            <p class="text-label-md font-label-md">Points to body parts</p>
-                            <p class="text-label-sm text-on-surface-variant">Expected next milestone</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            @include('partials.growth.milestones')
             @include('partials.growth.nutrition')
         </div>
     </div>
@@ -97,34 +69,7 @@
             </div>
         </div>
 
-        <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow">
-            <h4 class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant mb-md">Reminders</h4>
-            <div class="space-y-sm">
-                <div class="p-sm bg-error-container/20 border border-error/10 rounded-lg flex gap-sm">
-                    <span class="material-symbols-outlined text-error">priority_high</span>
-                    <div>
-                        <p class="text-label-md font-label-md text-on-error-container">Immunization Overdue</p>
-                        <p class="text-label-sm text-on-error-container/70">MMR 2nd Dose - Oct 12, 2023</p>
-                    </div>
-                </div>
-                <div class="p-sm bg-primary-container/10 border border-primary/10 rounded-lg flex gap-sm">
-                    <span class="material-symbols-outlined text-primary">calendar_today</span>
-                    <div>
-                        <p class="text-label-md font-label-md text-on-primary-fixed-variant">Next Checkup Due</p>
-                        <p class="text-label-sm text-on-primary-fixed-variant/70">Scheduled for Jan 15, 2024</p>
-                    </div>
-                </div>
-            </div>
-            <button class="w-full mt-lg py-sm text-primary font-label-md text-label-md hover:underline">Contact My Midwife</button>
-        </div>
-
-        <div class="rounded-xl overflow-hidden relative h-40 md:h-48 soft-drop-shadow bg-gradient-to-br from-tertiary/10 to-tertiary/20 flex flex-col justify-between p-md border border-tertiary/10">
-            <span class="material-symbols-outlined text-tertiary text-[48px]" style="font-variation-settings: 'FILL' 1;">restaurant</span>
-            <div>
-                <p class="text-tertiary font-bold text-label-md">Professional Nutrition Advice</p>
-                <p class="text-xs text-on-surface-variant mt-xs">Curated advice for toddler developmental milestones.</p>
-            </div>
-        </div>
+        @include('partials.growth.reminders')
     </div>
 </div>
 @endsection

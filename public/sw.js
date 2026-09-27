@@ -3,7 +3,8 @@
  * Provides offline caching and background sync support.
  */
 
-const CACHE_NAME = 'maternal-health-v1';
+// Bump when cached pages or assets change shape (v2: styles, fonts and icons are served from /build).
+const CACHE_NAME = 'maternal-health-v2';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [

@@ -7,7 +7,6 @@ use App\Models\GrowthMeasurement;
 use App\Models\Immunization;
 use App\Models\MaternalCheckup;
 use App\Models\Patient;
-use App\Models\User;
 use App\Services\PrenatalAssessment;
 use App\Services\WhoGrowthStandards;
 use Carbon\Carbon;
@@ -112,15 +111,5 @@ class ReportController extends Controller
             'nutritionSummary',
             'childrenMeasured'
         ));
-    }
-
-    /**
-     * Display admin users management view.
-     */
-    public function admin()
-    {
-        $users = User::all();
-        AuditLog::log('view_admin_panel');
-        return view('admin', compact('users'));
     }
 }

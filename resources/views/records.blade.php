@@ -10,7 +10,7 @@
         <h3 class="font-headline-lg text-headline-lg text-primary">Patient Records</h3>
         <p class="text-on-surface-variant font-body-md">Centralized database for Maternal Health Hub community health tracking.</p>
     </div>
-    <a href="{{ route('register') }}" class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap">
+    <a href="{{ route('register') }}" class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-xs whitespace-nowrap">
         <span class="material-symbols-outlined">person_add</span>
         Register New Patient
     </a>
@@ -187,16 +187,16 @@
 <div class="mt-lg grid grid-cols-1 lg:grid-cols-3 gap-lg">
     <div class="lg:col-span-2 bg-surface-container-lowest p-lg rounded-xl soft-drop-shadow border border-outline-variant/10 relative overflow-hidden">
         <div class="relative z-10">
-            <h4 class="font-headline-sm text-primary mb-sm">Record Integrity Report</h4>
-            <p class="text-body-sm text-on-surface-variant max-w-lg mb-md">All records are encrypted and compliant with local data privacy laws. Last system backup completed successfully 2 hours ago.</p>
+            <h4 class="font-headline-sm text-primary mb-sm">Record Privacy</h4>
+            <p class="text-body-sm text-on-surface-variant max-w-lg mb-md">Only healthcare workers can see every record; patients see only their own family's. Each time a record is opened or changed it is written to the <a href="{{ route('admin.activity') }}" class="text-primary font-bold hover:underline">activity log</a>.</p>
             <div class="flex gap-md">
                 <div class="flex items-center gap-xs">
-                    <span class="material-symbols-outlined text-tertiary text-sm">check_circle</span>
-                    <span class="text-xs font-bold">Verified Data</span>
+                    <span class="material-symbols-outlined text-tertiary text-sm">receipt_long</span>
+                    <span class="text-xs font-bold">Audit Logged</span>
                 </div>
                 <div class="flex items-center gap-xs">
                     <span class="material-symbols-outlined text-tertiary text-sm">shield</span>
-                    <span class="text-xs font-bold">SSL Secure</span>
+                    <span class="text-xs font-bold">Role-Based Access</span>
                 </div>
             </div>
         </div>
@@ -212,15 +212,15 @@
         <ul class="space-y-sm text-body-sm text-on-secondary-container opacity-90">
             <li class="flex items-start gap-xs">
                 <span class="mt-1 w-1 h-1 rounded-full bg-secondary"></span>
-                Use "High Risk" filters to prioritize visits.
+                Filter by status "High Risk" or "Due for Visit" to prioritize visits.
             </li>
             <li class="flex items-start gap-xs">
                 <span class="mt-1 w-1 h-1 rounded-full bg-secondary"></span>
-                Click on patient IDs to view full medical history.
+                Use the eye icon to open a patient's maternal or immunization record, and the menu to edit details.
             </li>
             <li class="flex items-start gap-xs">
                 <span class="mt-1 w-1 h-1 rounded-full bg-secondary"></span>
-                Generate CSV reports from the "Reports" tab.
+                Print a yearly summary from the "Reports" page.
             </li>
         </ul>
     </div>

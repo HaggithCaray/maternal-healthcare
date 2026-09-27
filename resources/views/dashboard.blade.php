@@ -21,7 +21,7 @@
         <p class="font-body-md text-body-md text-on-surface-variant">Welcome back, {{ auth()->user()?->name ?? 'User' }}. Here is what's happening at the health center today.</p>
     </div>
     <div class="flex gap-sm w-full sm:w-auto">
-        <a href="{{ route('register') }}" class="flex-grow sm:flex-initial flex items-center justify-center gap-xs px-md py-sm bg-secondary text-on-secondary rounded-lg font-label-md hover:bg-opacity-90 transition-all soft-drop-shadow active:scale-95">
+        <a href="{{ route('register') }}" class="grow sm:flex-initial flex items-center justify-center gap-xs px-md py-sm bg-secondary text-on-secondary rounded-lg font-label-md hover:bg-secondary/90 transition-all soft-drop-shadow active:scale-95">
             <span class="material-symbols-outlined text-[20px]">person_add</span>
             Add Patient
         </a>
@@ -78,39 +78,11 @@
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-gutter">
     <div class="xl:col-span-2 space-y-gutter">
         <div class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/10">
-            <div class="flex justify-between items-center mb-md">
+            <div class="mb-md">
                 <h4 class="font-headline-sm text-on-surface">Registration Trends</h4>
-                <select class="bg-surface text-label-md border-outline-variant rounded-lg py-1 px-3">
-                    <option>Last 6 Months</option>
-                    <option>Last Year</option>
-                </select>
+                <p class="text-body-sm text-on-surface-variant">New patients in the last six months</p>
             </div>
-            <div class="h-64 flex items-end justify-between gap-2 px-4">
-                <div class="w-full flex flex-col items-center gap-2">
-                    <div class="w-full bg-surface-container rounded-t-lg" style="height: 60%"></div>
-                    <span class="text-label-sm text-on-surface-variant">Jan</span>
-                </div>
-                <div class="w-full flex flex-col items-center gap-2">
-                    <div class="w-full bg-surface-container rounded-t-lg" style="height: 45%"></div>
-                    <span class="text-label-sm text-on-surface-variant">Feb</span>
-                </div>
-                <div class="w-full flex flex-col items-center gap-2">
-                    <div class="w-full bg-primary/80 rounded-t-lg" style="height: 85%"></div>
-                    <span class="text-label-sm text-on-surface-variant">Mar</span>
-                </div>
-                <div class="w-full flex flex-col items-center gap-2">
-                    <div class="w-full bg-surface-container rounded-t-lg" style="height: 55%"></div>
-                    <span class="text-label-sm text-on-surface-variant">Apr</span>
-                </div>
-                <div class="w-full flex flex-col items-center gap-2">
-                    <div class="w-full bg-surface-container rounded-t-lg" style="height: 70%"></div>
-                    <span class="text-label-sm text-on-surface-variant">May</span>
-                </div>
-                <div class="w-full flex flex-col items-center gap-2">
-                    <div class="w-full bg-secondary/80 rounded-t-lg" style="height: 95%"></div>
-                    <span class="text-label-sm text-on-surface-variant">Jun</span>
-                </div>
-            </div>
+            @include('partials.registration-chart', ['emptyMessage' => 'No patients were registered in the last six months.'])
         </div>
 
         <div class="bg-surface-container-lowest rounded-xl soft-drop-shadow border border-outline-variant/10 overflow-hidden">
@@ -130,9 +102,10 @@
                             <p class="text-body-sm text-on-surface-variant">{{ $imm->vaccine_name }} (Dose {{ $imm->dose_number }})</p>
                         </div>
                     </div>
+                    @php $isOverdue = \Carbon\Carbon::parse($imm->scheduled_date)->lt(\Carbon\Carbon::today()); @endphp
                     <div class="text-right">
-                        <p class="font-label-md text-primary">{{ \Carbon\Carbon::parse($imm->scheduled_date)->format('M d, Y') }}</p>
-                        <p class="text-label-sm text-on-surface-variant">Scheduled</p>
+                        <p class="font-label-md {{ $isOverdue ? 'text-error' : 'text-primary' }}">{{ \Carbon\Carbon::parse($imm->scheduled_date)->format('M d, Y') }}</p>
+                        <p class="text-label-sm {{ $isOverdue ? 'text-error font-bold' : 'text-on-surface-variant' }}">{{ $isOverdue ? 'Overdue' : 'Scheduled' }}</p>
                     </div>
                 </div>
                 @empty
@@ -167,8 +140,8 @@
         <div class="bg-secondary text-on-secondary rounded-xl soft-drop-shadow overflow-hidden p-md relative">
             <div class="relative z-10 pr-12">
                 <h5 class="font-headline-sm mb-2">Community Health Tip</h5>
-                <p class="text-body-sm opacity-90">Remind mothers to bring their yellow cards for the upcoming immunization drive this weekend.</p>
-                <button class="mt-4 px-4 py-2 bg-on-secondary text-secondary rounded-lg font-label-md text-xs uppercase font-bold tracking-tight">Broadcast SMS</button>
+                <p class="text-body-sm opacity-90">Remind mothers to bring their child's yellow immunization card to every visit.</p>
+                <a href="{{ route('sms') }}" class="inline-block mt-4 px-4 py-2 bg-on-secondary text-secondary rounded-lg font-label-md text-xs uppercase font-bold tracking-tight">Send SMS</a>
             </div>
             <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-9xl opacity-20 text-on-secondary">health_and_safety</span>
         </div>
@@ -176,27 +149,17 @@
         <div class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/10">
             <h4 class="font-label-md text-on-surface-variant mb-md uppercase tracking-widest text-[10px]">Recent Activity</h4>
             <div class="space-y-md">
+                @forelse($recentActivity as $event)
                 <div class="flex gap-sm">
-                    <div class="w-2 h-2 rounded-full bg-tertiary mt-1.5"></div>
+                    <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 {{ $event['level'] === 'alert' ? 'bg-error' : ($event['level'] === 'good' ? 'bg-tertiary' : 'bg-primary') }}"></div>
                     <div>
-                        <p class="text-body-sm text-on-surface">New child record added for <span class="font-bold">Ethan Gomez</span></p>
-                        <p class="text-[10px] text-outline">10 mins ago</p>
+                        <p class="text-body-sm text-on-surface">{{ $event['text'] }} <span class="font-bold">{{ $event['name'] }}</span></p>
+                        <p class="text-[10px] text-outline" title="{{ $event['at']->format('M d, Y g:i A') }}">{{ $event['at']->diffForHumans() }}</p>
                     </div>
                 </div>
-                <div class="flex gap-sm">
-                    <div class="w-2 h-2 rounded-full bg-primary mt-1.5"></div>
-                    <div>
-                        <p class="text-body-sm text-on-surface">Vaccination completed for <span class="font-bold">Ana Dela Cruz</span></p>
-                        <p class="text-[10px] text-outline">2 hours ago</p>
-                    </div>
-                </div>
-                <div class="flex gap-sm">
-                    <div class="w-2 h-2 rounded-full bg-error mt-1.5"></div>
-                    <div>
-                        <p class="text-body-sm text-on-surface">Critical alert: Missed polio vaccine for <span class="font-bold">John Tan</span></p>
-                        <p class="text-[10px] text-outline">4 hours ago</p>
-                    </div>
-                </div>
+                @empty
+                <p class="text-body-sm text-on-surface-variant">No activity yet.</p>
+                @endforelse
             </div>
         </div>
     </div>

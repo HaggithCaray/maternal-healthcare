@@ -26,7 +26,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="font-headline-sm text-headline-sm text-primary">{{ $patient->first_name }} {{ $patient->last_name }}</h3>
-                <p class="text-outline font-label-md">ID: BCHC-{{ $patient->created_at->format('Y') }}-{{ sprintf('%03d', $patient->id) }} &bull; {{ \Carbon\Carbon::parse($patient->dob)->diffInMonths(\Carbon\Carbon::now()) }} Months Old</p>
+                <p class="text-outline font-label-md">ID: BCHC-{{ $patient->created_at->format('Y') }}-{{ sprintf('%03d', $patient->id) }} &bull; {{ (int) \Carbon\Carbon::parse($patient->dob)->diffInMonths(\Carbon\Carbon::now()) }} Months Old</p>
             </div>
             <div class="flex gap-2 flex-wrap">
                 @php
@@ -76,10 +76,6 @@
                     <span class="material-symbols-outlined text-primary">timeline</span>
                     Visual Vaccine Timeline
                 </h4>
-                <div class="flex gap-2">
-                    <button class="px-3 py-1 bg-surface-container rounded-lg text-xs font-bold text-outline">List View</button>
-                    <button class="px-3 py-1 bg-primary text-on-primary rounded-lg text-xs font-bold">Chart View</button>
-                </div>
             </div>
             <div class="relative py-4 flex justify-between px-2 mb-10 overflow-x-auto hide-scrollbar min-w-0">
                 <div class="absolute top-1/2 left-0 w-full h-[2px] bg-surface-variant -translate-y-1/2 z-0"></div>
@@ -103,7 +99,7 @@
                 @endphp
                 @foreach($milestones as $ms)
                 <div class="relative z-10 flex flex-col items-center gap-2">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ring-4 ring-surface-container-lowest shadow-sm
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ring-4 ring-surface-container-lowest shadow-xs
                         @if($ms['done']) bg-tertiary text-white
                         @else bg-surface-variant text-outline @endif">
                         @if($ms['done'])
@@ -145,7 +141,7 @@
                                     <form method="POST" action="{{ route('immunization', ['id' => $patient->id]) }}" class="inline">
                                         @csrf
                                         <input type="hidden" name="immunization_id" value="{{ $v->id }}">
-                                        <button type="submit" class="px-2 py-1 bg-primary text-on-primary text-[10px] font-bold rounded-md uppercase hover:bg-opacity-95 transition-all">Mark Given</button>
+                                        <button type="submit" class="px-2 py-1 bg-primary text-on-primary text-[10px] font-bold rounded-md uppercase hover:bg-primary/95 transition-all">Mark Given</button>
                                     </form>
                                     @else
                                     <span class="px-2 py-1 bg-error-container text-error text-[10px] font-bold rounded-md uppercase">SCHEDULED</span>
@@ -170,18 +166,19 @@
             <div class="bg-secondary-container/10 border border-secondary-container rounded-2xl p-md relative overflow-hidden">
                 <div class="relative z-10">
                     <h5 class="font-headline-sm text-headline-sm text-on-secondary-container mb-2">Vaccine Tip</h5>
-                    <p class="text-sm text-on-secondary-container/80 leading-relaxed">Ensure Maria stays hydrated and gets plenty of rest after her next MCV2 shot. Mild fever is a normal sign of building immunity.</p>
+                    <p class="text-sm text-on-secondary-container/80 leading-relaxed">@php $nextDose = $immunizations->where('status', 'Scheduled')->sortBy('scheduled_date')->first(); @endphp @if($nextDose)After {{ $patient->first_name }}'s next vaccine ({{ $nextDose->vaccine_name }}, {{ \Carbon\Carbon::parse($nextDose->scheduled_date)->format('M d') }}), keep the child comfortable and give plenty of fluids or breast milk. Mild fever and soreness are common and pass in a day or two.@else All scheduled vaccines are complete. Keep the immunization card for school and future check-ups.@endif</p>
                 </div>
                 <span class="material-symbols-outlined absolute -right-4 -bottom-4 text-8xl opacity-10 text-secondary">lightbulb</span>
             </div>
-            <div class="bg-surface-container p-md rounded-2xl border border-outline-variant/30 flex items-center justify-between">
-                <div>
-                    <h5 class="font-headline-sm text-headline-sm text-primary mb-1">Health Journal</h5>
-                    <p class="text-xs text-outline">Last entry: No symptoms reported after PCV13.</p>
-                </div>
-                <button class="w-12 h-12 bg-surface-container-lowest rounded-full soft-shadow flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all">
-                    <span class="material-symbols-outlined">edit_note</span>
-                </button>
+            @php $lastGiven = $immunizations->where('status', 'Given')->sortByDesc('given_date')->first(); @endphp
+            <div class="bg-surface-container p-md rounded-2xl border border-outline-variant/30">
+                <h5 class="font-headline-sm text-headline-sm text-primary mb-1">Last Vaccine Given</h5>
+                @if($lastGiven)
+                <p class="text-xs text-outline">{{ $lastGiven->vaccine_name }} (dose {{ $lastGiven->dose_number }}) on {{ \Carbon\Carbon::parse($lastGiven->given_date)->format('M d, Y') }}{{ $lastGiven->administered_by ? ' by ' . $lastGiven->administered_by : '' }}.</p>
+                @if($lastGiven->remarks)<p class="text-xs text-outline mt-1">Remarks: {{ $lastGiven->remarks }}</p>@endif
+                @else
+                <p class="text-xs text-outline">No doses recorded yet.</p>
+                @endif
             </div>
         </div>
     </div>
@@ -264,11 +261,12 @@
             <p class="text-sm">Official WHO/DOH Immunization Schedule Applied</p>
         </div>
         <div class="hidden sm:block h-4 w-px bg-white/20"></div>
-        <p class="text-sm text-white/60">Last updated: Today, 10:45 AM</p>
+        @php $lastUpdate = $immunizations->max('updated_at'); @endphp
+        <p class="text-sm text-white/60">Last updated: {{ $lastUpdate ? \Carbon\Carbon::parse($lastUpdate)->format('M d, Y g:i A') : '—' }}</p>
     </div>
-    <div class="flex gap-4">
-        <button class="px-4 sm:px-6 py-2 border border-white/20 rounded-xl text-sm font-bold hover:bg-white/10 transition-colors whitespace-nowrap">Download Certificate</button>
-        <button class="px-4 sm:px-6 py-2 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all whitespace-nowrap">Export PDF Record</button>
-    </div>
+    <button type="button" onclick="window.print()" class="no-print px-4 sm:px-6 py-2 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all whitespace-nowrap flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">print</span>
+        Print Record
+    </button>
 </div>
 @endsection

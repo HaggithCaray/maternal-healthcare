@@ -8,10 +8,6 @@
         <h1 class="font-headline-lg text-headline-lg text-primary">Patient Registration</h1>
         <p class="text-on-surface-variant max-w-2xl mt-xs">Please complete all steps to register a mother or child into the Maternal Healthcare monitoring system. This information is kept strictly confidential.</p>
     </div>
-    <button class="flex items-center justify-center gap-sm px-md py-sm rounded-lg border border-secondary text-secondary font-label-md text-label-md hover:bg-secondary/5 transition-all whitespace-nowrap">
-        <span class="material-symbols-outlined" data-icon="save">save</span>
-        Save Draft
-    </button>
 </header>
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
@@ -24,7 +20,7 @@
                     [2, 'Contact &amp; Address', 'Emergency details'],
                     [3, 'Maternal/Child Details', 'Specific health data'],
                     [4, 'Medical History', 'Past conditions'],
-                    [5, 'Document Upload', 'Verify identity'],
+                    [5, 'Review &amp; Submit', 'Confirm and register'],
                 ] as $step)
                 <div class="flex items-start gap-md group cursor-pointer" onclick="goToStep({{ $step[0] }})">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-on-primary font-bold transition-colors" id="step-icon-{{ $step[0] }}">{{ $step[0] }}</div>
@@ -49,7 +45,7 @@
 
     <div class="lg:col-span-9 flex flex-col gap-gutter">
         <div class="bg-surface-container-lowest p-gutter rounded-xl soft-drop-shadow min-h-[600px] flex flex-col">
-            <form method="POST" action="{{ route('register') }}" class="flex-grow" id="registrationForm">
+            <form method="POST" action="{{ route('register') }}" class="grow" id="registrationForm">
                 @csrf
                 <div class="step-transition" id="form-step-1">
                     <div class="mb-lg">
@@ -220,7 +216,7 @@
 
                 <div class="step-transition hidden" id="form-step-5">
                     <div class="mb-lg">
-                        <h2 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Document/Verification Complete</h2>
+                        <h2 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Review &amp; Submit</h2>
                         <p class="text-body-sm text-on-surface-variant">Confirm details and submit registration to the barangay health network.</p>
                     </div>
                     <div class="p-lg bg-surface-container rounded-xl border border-outline-variant/30 text-center">
@@ -232,7 +228,7 @@
                         <span class="material-symbols-outlined text-secondary" data-icon="verified_user">verified_user</span>
                         <div class="flex flex-col gap-xs">
                             <p class="font-label-md text-label-md text-secondary">Data Protection Shield</p>
-                            <p class="text-xs text-on-secondary-container">By submitting, you confirm that the patient has consented to the storage of these documents for clinical use within the health network.</p>
+                            <p class="text-xs text-on-secondary-container">By submitting, you confirm that the patient has consented to the storage of this information for clinical use within the health network.</p>
                         </div>
                     </div>
                 </div>
@@ -244,7 +240,7 @@
                     Previous
                 </button>
                 <div class="flex items-center gap-md">
-                    <button class="hidden md:flex items-center gap-xs text-secondary font-label-md text-label-md hover:underline decoration-2 underline-offset-4 whitespace-nowrap">Cancel Registration</button>
+                    <a href="{{ route('records') }}" class="hidden md:flex items-center gap-xs text-secondary font-label-md text-label-md hover:underline decoration-2 underline-offset-4 whitespace-nowrap">Cancel Registration</a>
                     <button class="flex items-center gap-xs px-xl py-sm rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container hover:shadow-lg active:scale-95 transition-all whitespace-nowrap" id="nextBtn" onclick="nextStep()">
                         <span>Next Step</span>
                         <span class="material-symbols-outlined">arrow_forward</span>
@@ -258,10 +254,9 @@
                 <span class="material-symbols-outlined" data-icon="lightbulb">lightbulb</span>
             </div>
             <div class="text-center md:text-left">
-                <h4 class="font-label-md text-label-md text-on-surface">Did you know?</h4>
-                <p class="text-body-sm text-on-surface-variant">You can use your tablet's camera to scan and auto-fill PhilHealth numbers in Step 3. Look for the scanner icon next to the input field.</p>
+                <h4 class="font-label-md text-label-md text-on-surface">Works without internet</h4>
+                <p class="text-body-sm text-on-surface-variant">If the connection drops, finish the form anyway: the registration is saved on this device and sent automatically when you are back online.</p>
             </div>
-            <button class="md:ml-auto px-md py-xs rounded-full border border-secondary text-secondary text-xs font-bold hover:bg-secondary/5">LEARN MORE</button>
         </div>
     </div>
 </div>

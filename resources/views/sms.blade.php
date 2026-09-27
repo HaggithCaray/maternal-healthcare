@@ -17,39 +17,20 @@
     </div>
     @endif
 
+    @foreach([
+        ['icon' => 'send', 'tone' => 'primary', 'value' => $stats['sent'], 'label' => 'Messages sent', 'note' => number_format($stats['sentThisMonth']) . ' this month'],
+        ['icon' => 'group', 'tone' => 'secondary', 'value' => $stats['reachableMothers'] + $stats['reachableChildren'], 'label' => 'Patients with a phone number', 'note' => $stats['reachableMothers'] . ' mothers · ' . $stats['reachableChildren'] . ' children'],
+        ['icon' => 'error', 'tone' => 'error', 'value' => $stats['failed'], 'label' => 'Failed deliveries', 'note' => $stats['failed'] > 0 ? 'Check the gateway, then resend' : 'None'],
+    ] as $card)
     <div class="col-span-12 md:col-span-4 bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/20">
         <div class="flex items-center justify-between mb-sm">
-            <span class="p-2 bg-primary/10 text-primary rounded-lg material-symbols-outlined">send</span>
-            <span class="text-label-sm font-label-sm text-on-tertiary-container bg-tertiary-container/10 px-2 py-0.5 rounded-full">+12% vs last mo</span>
+            <span class="p-2 rounded-lg material-symbols-outlined {{ ['primary' => 'bg-primary/10 text-primary', 'secondary' => 'bg-secondary/10 text-secondary', 'error' => 'bg-error/10 text-error'][$card['tone']] }}">{{ $card['icon'] }}</span>
         </div>
-        <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">1,248</h3>
-        <p class="font-body-sm text-body-sm text-on-surface-variant">Messages Sent</p>
-        <div class="mt-md h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
-            <div class="h-full bg-primary" style="width: 85%;"></div>
-        </div>
+        <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">{{ number_format($card['value']) }}</h3>
+        <p class="font-body-sm text-body-sm text-on-surface-variant">{{ $card['label'] }}</p>
+        <p class="text-[11px] text-outline mt-xs">{{ $card['note'] }}</p>
     </div>
-    <div class="col-span-12 md:col-span-4 bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/20">
-        <div class="flex items-center justify-between mb-sm">
-            <span class="p-2 bg-secondary/10 text-secondary rounded-lg material-symbols-outlined">schedule</span>
-            <span class="text-label-sm font-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full">Next: 2:00 PM</span>
-        </div>
-        <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">42</h3>
-        <p class="font-body-sm text-body-sm text-on-surface-variant">Scheduled Reminders</p>
-        <div class="mt-md h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
-            <div class="h-full bg-secondary" style="width: 30%;"></div>
-        </div>
-    </div>
-    <div class="col-span-12 md:col-span-4 bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/20">
-        <div class="flex items-center justify-between mb-sm">
-            <span class="p-2 bg-error/10 text-error rounded-lg material-symbols-outlined">error</span>
-            <span class="text-label-sm font-label-sm text-error bg-error-container/20 px-2 py-0.5 rounded-full">Requires Action</span>
-        </div>
-        <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">14</h3>
-        <p class="font-body-sm text-body-sm text-on-surface-variant">Failed Deliveries</p>
-        <div class="mt-md h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
-            <div class="h-full bg-error" style="width: 5%;"></div>
-        </div>
-    </div>
+    @endforeach
 </div>
 
 <div class="grid grid-cols-12 gap-gutter items-start">
@@ -71,10 +52,10 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div class="space-y-xs">
                     <label class="font-label-md text-label-md text-on-surface">Recipient Patient *</label>
-                    <select name="patient_id" required class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-sm py-2 px-3 bg-surface-container-lowest">
+                    <select name="patient_id" id="smsPatient" required class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-sm py-2 px-3 bg-surface-container-lowest">
                         <option value="">Select Patient...</option>
                         @foreach($patients as $p)
-                            <option value="{{ $p->id }}">{{ $p->first_name }} {{ $p->last_name }} (+63 {{ $p->phone }})</option>
+                            <option value="{{ $p->id }}" data-first-name="{{ $p->first_name }}" @selected(old('patient_id', request('patient_id')) == $p->id)>{{ $p->last_name }}, {{ $p->first_name }} ({{ $p->phone }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -82,8 +63,9 @@
                     <label class="font-label-md text-label-md text-on-surface">Select Template</label>
                     <select id="smsTemplate" onchange="applyTemplate()" class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-sm py-2 px-3 bg-surface-container-lowest">
                         <option value="">Custom Message</option>
-                        <option value="Dear Elena Dela Cruz, this is Bicao Health Station reminding you of your prenatal checkup tomorrow. Please arrive with your booklet.">Prenatal Visit Reminder</option>
-                        <option value="Dear Parent, your child Liam Gabriel is scheduled for their next vaccine dose this Thursday. Please visit Bicao Health Station.">Vaccine Dose Alert</option>
+                        <option value="Hi {name}, this is Bicao Health Station reminding you of your prenatal check-up. Please bring your Mother and Child Book.">Prenatal Visit Reminder</option>
+                        <option value="Hi, this is Bicao Health Station. {name} is due for the next vaccine dose. Please visit the health station and bring the yellow immunization card.">Vaccine Dose Reminder</option>
+                        <option value="Hi {name}, please visit Bicao Health Station for a follow-up. Message us here if you have questions.">Follow-up Request</option>
                     </select>
                 </div>
                 <div class="md:col-span-2 space-y-xs">
@@ -98,8 +80,8 @@
 
         <section class="bg-surface-container-lowest rounded-xl soft-drop-shadow border border-outline-variant/20 overflow-hidden">
             <div class="px-md py-sm bg-surface-container-low border-b border-outline-variant/20 flex justify-between items-center">
-                <h4 class="font-label-md text-label-md text-on-surface-variant">Recent Activity</h4>
-                <button class="text-primary font-label-sm text-label-sm hover:underline">View All History</button>
+                <h4 class="font-label-md text-label-md text-on-surface-variant">Message History</h4>
+                <span class="text-label-sm text-outline">Latest 50</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -120,14 +102,22 @@
                                 <p class="text-xs text-outline">{{ $msg->phone_number }}</p>
                             </td>
                             <td class="px-md py-4 text-body-sm text-on-surface-variant">{{ $msg->type }} Notification</td>
-                            <td class="px-md py-4 text-body-sm text-on-surface-variant">{{ \Carbon\Carbon::parse($msg->sent_at)->format('M d, Y, h:i A') }}</td>
+                            <td class="px-md py-4 text-body-sm text-on-surface-variant">{{ ($msg->sent_at ? \Carbon\Carbon::parse($msg->sent_at) : $msg->created_at)->format('M d, Y, h:i A') }}</td>
                             <td class="px-md py-4">
+                                @if($msg->status === 'Sent')
                                 <span class="inline-flex items-center gap-xs px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary text-[11px] font-bold">
-                                    <span class="material-symbols-outlined text-[14px]">check_circle</span> Delivered
+                                    <span class="material-symbols-outlined text-[14px]">check_circle</span> Sent
                                 </span>
+                                @else
+                                <span class="inline-flex items-center gap-xs px-2 py-0.5 rounded-full bg-error/10 text-error text-[11px] font-bold">
+                                    <span class="material-symbols-outlined text-[14px]">error</span> {{ $msg->status }}
+                                </span>
+                                @endif
                             </td>
                             <td class="px-md py-4 text-right">
-                                <span class="text-xs text-outline">Processed</span>
+                                @if($msg->status !== 'Sent' && $msg->patient)
+                                <a href="{{ route('sms', ['patient_id' => $msg->patient_id]) }}" class="text-xs text-primary font-bold hover:underline">Resend</a>
+                                @endif
                             </td>
                         </tr>
                         @empty
@@ -144,75 +134,6 @@
     </div>
 
     <div class="col-span-12 lg:col-span-4 space-y-gutter">
-        <section class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/20">
-            <div class="flex items-center justify-between mb-md">
-                <h4 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">Saved Templates</h4>
-                <button class="material-symbols-outlined text-primary">add_circle</button>
-            </div>
-            <div class="space-y-sm">
-                <div class="p-sm bg-surface rounded-lg border border-outline-variant/20 group cursor-pointer hover:border-primary transition-all">
-                    <div class="flex justify-between items-start mb-xs">
-                        <h5 class="font-label-md text-label-md text-primary">Check-up Reminder</h5>
-                        <span class="material-symbols-outlined text-[16px] text-outline group-hover:text-primary">edit</span>
-                    </div>
-                    <p class="text-body-sm text-on-surface-variant line-clamp-2 italic">&quot;Hi {name}, this is a reminder for your prenatal check-up tomorrow...&quot;</p>
-                </div>
-                <div class="p-sm bg-surface rounded-lg border border-outline-variant/20 group cursor-pointer hover:border-primary transition-all">
-                    <div class="flex justify-between items-start mb-xs">
-                        <h5 class="font-label-md text-label-md text-primary">Vaccine Alert</h5>
-                        <span class="material-symbols-outlined text-[16px] text-outline group-hover:text-primary">edit</span>
-                    </div>
-                    <p class="text-body-sm text-on-surface-variant line-clamp-2 italic">&quot;Dear Parent, your child {child_name} is due for a measles vaccination...&quot;</p>
-                </div>
-                <div class="p-sm bg-surface rounded-lg border border-outline-variant/20 group cursor-pointer hover:border-primary transition-all">
-                    <div class="flex justify-between items-start mb-xs">
-                        <h5 class="font-label-md text-label-md text-primary">Clinic Hours</h5>
-                        <span class="material-symbols-outlined text-[16px] text-outline group-hover:text-primary">edit</span>
-                    </div>
-                    <p class="text-body-sm text-on-surface-variant line-clamp-2 italic">&quot;Maternal Health Hub will be closed on Friday for staff training...&quot;</p>
-                </div>
-            </div>
-            <button class="w-full mt-md py-2 text-center text-body-sm font-semibold text-secondary hover:bg-secondary/5 rounded-lg border border-secondary/20 transition-all">
-                Manage All Templates
-            </button>
-        </section>
-
-        <section class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/20">
-            <h4 class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-md">Active Groups</h4>
-            <div class="space-y-md">
-                <div class="flex items-center gap-sm">
-                    <div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
-                        <span class="material-symbols-outlined">baby_changing_station</span>
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-label-md text-label-md text-on-surface">Newborn Care</p>
-                        <p class="text-[11px] text-outline">128 Mothers</p>
-                    </div>
-                    <span class="text-label-sm font-label-sm text-on-surface-variant">92% Reach</span>
-                </div>
-                <div class="flex items-center gap-sm">
-                    <div class="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
-                        <span class="material-symbols-outlined">pregnant_woman</span>
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-label-md text-label-md text-on-surface">Prenatal Phase 1</p>
-                        <p class="text-[11px] text-outline">56 Patients</p>
-                    </div>
-                    <span class="text-label-sm font-label-sm text-on-surface-variant">88% Reach</span>
-                </div>
-                <div class="flex items-center gap-sm">
-                    <div class="w-10 h-10 rounded-full bg-tertiary-fixed-dim/20 flex items-center justify-center text-tertiary">
-                        <span class="material-symbols-outlined">health_metrics</span>
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-label-md text-label-md text-on-surface">Chronic Monitoring</p>
-                        <p class="text-[11px] text-outline">32 Patients</p>
-                    </div>
-                    <span class="text-label-sm font-label-sm text-on-surface-variant">100% Reach</span>
-                </div>
-            </div>
-        </section>
-
         <section class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/20">
             <h4 class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-md">Gateway Configuration</h4>
             <form action="{{ route('sms.settings') }}" method="POST" class="space-y-sm">
@@ -290,7 +211,9 @@
     function applyTemplate() {
         const val = document.getElementById('smsTemplate').value;
         if (val) {
-            document.getElementById('smsContent').value = val;
+            const option = document.getElementById('smsPatient').selectedOptions[0];
+            const name = option && option.dataset.firstName ? option.dataset.firstName : 'there';
+            document.getElementById('smsContent').value = val.replaceAll('{name}', name);
             updateCharCount();
         }
     }

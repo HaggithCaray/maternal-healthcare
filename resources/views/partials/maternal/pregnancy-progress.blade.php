@@ -31,7 +31,7 @@
         </div>
     </div>
     <div class="mt-md p-sm bg-secondary-container/20 rounded-lg flex items-center gap-md">
-        <div class="flex-grow">
+        <div class="grow">
             @if($gestationalDays === null)
             <p class="text-body-sm font-bold text-on-secondary-container">Gestational age unknown</p>
             <p class="text-xs text-on-secondary-container opacity-80">No last menstrual period (LMP) is on file. Record the LMP on the patient's profile to track weeks and the due date.</p>

@@ -12,6 +12,7 @@ use App\Models\MaternalRecord;
 use App\Models\Patient;
 use App\Models\User;
 use App\Models\ChatMessage;
+use App\Services\PrenatalAssessment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -122,7 +123,7 @@ class PatientController extends Controller
                 $user = User::where('email', $request->email)->first();
                 if (!$user) {
                     // Random initial password, shown once to the midwife so the patient can log in
-                    $temporaryPassword = $this->generateTemporaryPassword();
+                    $temporaryPassword = User::temporaryPassword();
                     $user = User::create([
                         'name' => $request->first_name . ' ' . $request->last_name,
                         'email' => $request->email,
@@ -265,7 +266,8 @@ class PatientController extends Controller
             'dob' => 'required|date',
             'gender' => 'required|string',
             'phone' => 'required|string',
-            'email' => 'nullable|email',
+            // The email is also the portal login, so it must not belong to another account.
+            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($patient->user_id)],
             'address' => 'required|string',
             'emergency_contact_name' => 'required|string',
             'emergency_contact_phone' => 'required|string',
@@ -323,6 +325,15 @@ class PatientController extends Controller
                 ]);
             }
 
+            // Keep the portal login in step with the patient record — only when this patient owns
+            // the login (a child registered with the mother's email shares her account).
+            if ($patient->user && $patient->user->isUser() && $patient->user->patient?->is($patient)) {
+                $patient->user->update(array_filter([
+                    'name' => $patient->first_name . ' ' . $patient->last_name,
+                    'email' => $request->email,
+                ]));
+            }
+
             AuditLog::log('update_patient', $patient);
         });
 
@@ -336,7 +347,7 @@ class PatientController extends Controller
     {
         $this->authorize('update', $patient);
 
-        $temporaryPassword = $this->generateTemporaryPassword();
+        $temporaryPassword = User::temporaryPassword();
         $user = $patient->user;
 
         if ($user && ! $user->isUser()) {
@@ -361,6 +372,7 @@ class PatientController extends Controller
             $patient->update(['user_id' => $user->id]);
         } else {
             $user->update(['password' => Hash::make($temporaryPassword)]);
+            $user->signOutOtherSessions();
         }
 
         AuditLog::log('reset_patient_portal_password', $patient);
@@ -405,62 +417,113 @@ class PatientController extends Controller
     }
 
     /**
-     * Readable temporary password (no symbols) the midwife can hand to the patient.
-     */
-    protected function generateTemporaryPassword(): string
-    {
-        return Str::password(10, symbols: false);
-    }
-
-    /**
      * Display patient portal dashboard.
      */
     public function patientPortal()
     {
         $user = auth()->user();
-        $mother = Patient::where('user_id', $user->id)->first();
-        
-        $childrenCount = 0;
+        $mother = Patient::with('maternalRecord')->where('user_id', $user->id)->first();
+        $today = Carbon::today();
+
+        $children = collect();
         $nextVaccineDate = 'N/A';
         $nextVaccineName = 'None';
         $overdueVaccinesCount = 0;
         $unreadMessagesCount = 0;
+        $activity = collect();
 
         if ($mother) {
-            $children = ChildRecord::where('mother_id', $mother->id)->get();
-            $childrenCount = $children->count();
+            $children = ChildRecord::with(['patient', 'immunizations'])->where('mother_id', $mother->id)->get();
+            $childRecordIds = $children->pluck('id');
 
-            $upcoming = Immunization::whereIn('child_record_id', $children->pluck('id'))
-                                     ->where('status', 'Scheduled')
-                                     ->orderBy('scheduled_date', 'asc')
-                                     ->first();
+            $scheduled = Immunization::with('childRecord.patient')
+                ->whereIn('child_record_id', $childRecordIds)
+                ->where('status', 'Scheduled');
+
+            // Next dose still ahead; doses whose date has passed are counted as overdue instead.
+            $upcoming = (clone $scheduled)->whereDate('scheduled_date', '>=', $today)->orderBy('scheduled_date')->first();
             if ($upcoming) {
                 $nextVaccineDate = Carbon::parse($upcoming->scheduled_date)->format('M d');
                 $nextVaccineName = $upcoming->vaccine_name . ' · ' . ($upcoming->childRecord->patient->first_name ?? 'Child');
             }
 
-            $overdueVaccinesCount = Immunization::whereIn('child_record_id', $children->pluck('id'))
-                                                 ->where('status', 'Scheduled')
-                                                 ->where('scheduled_date', '<', Carbon::now())
-                                                 ->count();
-        }
+            $overdueVaccinesCount = (clone $scheduled)->whereDate('scheduled_date', '<', $today)->count();
 
-        $midwife = User::where('role', 'admin')->first();
+            $activity = $this->familyActivity($mother, $childRecordIds);
+        }
+        $childrenCount = $children->count();
+
+        $midwife = User::careTeamContact();
+        $recentMessages = collect();
         if ($midwife) {
             $unreadMessagesCount = ChatMessage::where('sender_id', $midwife->id)
                                              ->where('receiver_id', $user->id)
                                              ->where('is_read', false)
                                              ->count();
+
+            $recentMessages = ChatMessage::with('sender:id,name')
+                ->where(fn ($q) => $q->where('sender_id', $user->id)->where('receiver_id', $midwife->id))
+                ->orWhere(fn ($q) => $q->where('sender_id', $midwife->id)->where('receiver_id', $user->id))
+                ->latest('id')
+                ->take(3)
+                ->get();
         }
 
         AuditLog::log('view_patient_portal', $mother);
 
         return view('patient.portal', compact(
+            'mother',
+            'children',
             'childrenCount',
             'nextVaccineDate',
             'nextVaccineName',
             'overdueVaccinesCount',
-            'unreadMessagesCount'
+            'unreadMessagesCount',
+            'recentMessages',
+            'midwife',
+            'activity'
         ));
+    }
+
+    /**
+     * Latest events on a family's records (vaccines, growth checks, prenatal visits), newest first.
+     */
+    protected function familyActivity(Patient $mother, $childRecordIds)
+    {
+        $vaccines = Immunization::with('childRecord.patient')
+            ->whereIn('child_record_id', $childRecordIds)
+            ->where('status', 'Given')
+            ->latest('updated_at')
+            ->take(5)
+            ->get()
+            ->map(fn ($i) => [
+                'at' => $i->updated_at,
+                'text' => "{$i->vaccine_name} dose {$i->dose_number} given to",
+                'name' => $i->childRecord?->patient?->first_name,
+                'level' => 'good',
+            ]);
+
+        $growth = GrowthMeasurement::with('childRecord.patient')
+            ->whereIn('child_record_id', $childRecordIds)
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(fn ($g) => [
+                'at' => $g->created_at,
+                'text' => 'Weight and height recorded for',
+                'name' => $g->childRecord?->patient?->first_name,
+                'level' => 'info',
+            ]);
+
+        $visits = $mother->maternalRecord
+            ? $mother->maternalRecord->checkups()->reorder()->latest()->take(5)->get()->map(fn ($v) => [
+                'at' => $v->created_at,
+                'text' => 'Prenatal visit logged',
+                'name' => $v->age_of_gestation ? "({$v->age_of_gestation})" : '',
+                'level' => $v->status === PrenatalAssessment::HIGH_RISK ? 'alert' : 'info',
+            ])
+            : collect();
+
+        return $vaccines->concat($growth)->concat($visits)->sortByDesc('at')->take(5)->values();
     }
 }

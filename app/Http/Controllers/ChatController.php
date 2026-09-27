@@ -103,7 +103,7 @@ class ChatController extends Controller
 
     protected function patientMessaging(Request $request, User $user)
     {
-        $midwife = User::where('role', 'admin')->first();
+        $midwife = User::careTeamContact();
 
         $messages = collect();
         if ($midwife) {

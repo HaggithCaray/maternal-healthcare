@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\MaternalRecordController;
@@ -48,7 +50,21 @@ Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/messaging', [ChatController::class, 'messaging'])->name('messaging');
     Route::get('/messaging/attachments/{message}', [ChatController::class, 'attachment'])->name('messaging.attachment');
 
+    // Own account
+    Route::get('/account/password', [AccountController::class, 'editPassword'])->name('account.password');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+
     // Reporting & Administration
     Route::get('/reports', [ReportController::class, 'reports'])->name('reports')->middleware('role:admin');
-    Route::get('/admin', [ReportController::class, 'admin'])->name('admin')->middleware('role:admin');
+
+    Route::middleware('role:admin')->prefix('admin')->group(function () {
+        Route::get('/', [AdminController::class, 'index'])->name('admin');
+        Route::get('/activity', [AdminController::class, 'activity'])->name('admin.activity');
+        Route::get('/users/create', [AdminController::class, 'create'])->name('admin.users.create');
+        Route::post('/users', [AdminController::class, 'store'])->name('admin.users.store');
+        Route::get('/users/{user}/edit', [AdminController::class, 'edit'])->name('admin.users.edit');
+        Route::put('/users/{user}', [AdminController::class, 'update'])->name('admin.users.update');
+        Route::post('/users/{user}/password', [AdminController::class, 'resetPassword'])->name('admin.users.password');
+        Route::post('/users/{user}/status', [AdminController::class, 'toggleStatus'])->name('admin.users.status');
+    });
 });

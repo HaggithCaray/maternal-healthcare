@@ -14,7 +14,7 @@
 
 <section class="bg-surface-container-lowest p-md rounded-xl soft-shadow flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
     <div class="flex items-center gap-md w-full md:w-auto">
-        <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary-container flex items-center justify-center font-bold text-2xl text-primary border-4 border-surface-container shadow-sm shrink-0">
+        <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary-container flex items-center justify-center font-bold text-2xl text-primary border-4 border-surface-container shadow-xs shrink-0">
             {{ strtoupper(substr($patient->first_name, 0, 2)) }}
         </div>
         <div>
@@ -27,12 +27,13 @@
     </div>
     <div class="flex gap-sm w-full md:w-auto">
         @if(auth()->user()->role === 'admin')
-        <button onclick="toggleModal(true)" class="flex-grow md:flex-initial px-md py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 transition-transform active:scale-95 whitespace-nowrap">
+        <button onclick="toggleModal(true)" class="grow md:flex-initial px-md py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 transition-transform active:scale-95 whitespace-nowrap">
             <span class="material-symbols-outlined text-[18px]">add</span>
             New Visit Log
         </button>
         @endif
-        <button class="flex-1 md:flex-initial px-md py-sm border border-outline-variant text-primary rounded-lg font-label-md text-label-md transition-colors hover:bg-surface-variant whitespace-nowrap">
+        <button type="button" onclick="window.print()" class="no-print flex-1 md:flex-initial px-md py-sm border border-outline-variant text-primary rounded-lg font-label-md text-label-md transition-colors hover:bg-surface-variant whitespace-nowrap flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">print</span>
             Print Health Summary
         </button>
     </div>
@@ -91,39 +92,9 @@
     <div class="md:col-span-4 space-y-md">
         @include('partials.maternal.risk-profile')
 
-        <div class="bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
-            <h4 class="font-label-md text-label-md text-primary uppercase mb-sm">To-Do This Week</h4>
-            <ul class="space-y-sm">
-                <li class="flex gap-sm">
-                    <input checked class="mt-1 rounded text-primary focus:ring-primary h-4 w-4" type="checkbox">
-                    <span class="text-body-sm text-on-surface-variant line-through">Second dose of Tetanus Toxoid</span>
-                </li>
-                <li class="flex gap-sm">
-                    <input class="mt-1 rounded text-primary focus:ring-primary h-4 w-4" type="checkbox">
-                    <span class="text-body-sm text-on-surface">Pick up Iron/Folic supplements</span>
-                </li>
-                <li class="flex gap-sm">
-                    <input class="mt-1 rounded text-primary focus:ring-primary h-4 w-4" type="checkbox">
-                    <span class="text-body-sm text-on-surface">Fasting for 8 hours before OGTT lab</span>
-                </li>
-                <li class="flex gap-sm">
-                    <input class="mt-1 rounded text-primary focus:ring-primary h-4 w-4" type="checkbox">
-                    <span class="text-body-sm text-on-surface">Update birth plan preferences</span>
-                </li>
-            </ul>
-        </div>
+        @include('partials.maternal.care-reminders')
 
-        <div class="bg-surface-container-highest p-md rounded-xl border border-primary/20">
-            <div class="flex items-center gap-sm mb-sm">
-                <span class="material-symbols-outlined text-primary">local_hospital</span>
-                <p class="font-bold text-on-surface">Emergency Contact</p>
-            </div>
-            <p class="text-body-sm text-on-surface-variant mb-md">Brgy. Health Hotline: <br><span class="font-bold text-on-surface">0917-555-0123</span></p>
-            <div class="flex gap-2">
-                <button class="flex-grow py-2 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">Call Clinic</button>
-                <button class="flex-grow py-2 bg-secondary/10 text-secondary text-xs font-bold rounded-lg hover:bg-secondary hover:text-white transition-colors">SMS Patient</button>
-            </div>
-        </div>
+        @include('partials.maternal.contact-card')
     </div>
 </div>
 

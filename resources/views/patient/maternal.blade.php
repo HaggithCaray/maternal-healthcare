@@ -5,7 +5,7 @@
 @section('content')
 <section class="bg-surface-container-lowest p-md rounded-xl soft-shadow flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
     <div class="flex items-center gap-md w-full md:w-auto">
-        <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary-container flex items-center justify-center font-bold text-2xl text-primary shadow-sm shrink-0 border-2 border-primary-container">
+        <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary-container flex items-center justify-center font-bold text-2xl text-primary shadow-xs shrink-0 border-2 border-primary-container">
             {{ strtoupper(substr($patient->first_name, 0, 2)) }}
         </div>
         <div>
@@ -31,7 +31,6 @@
         <div class="bg-surface-container-lowest rounded-xl soft-shadow overflow-hidden">
             <div class="p-md border-b border-outline-variant/30 flex justify-between items-center">
                 <h4 class="font-headline-sm text-headline-sm text-on-surface">Recent Prenatal Visits</h4>
-                <button class="text-primary font-label-md text-label-md hover:underline transition-all">View All History</button>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
@@ -76,39 +75,9 @@
     <div class="md:col-span-4 space-y-md">
         @include('partials.maternal.risk-profile')
 
-        <div class="bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
-            <h4 class="font-label-md text-label-md text-primary uppercase mb-sm">To-Do This Week</h4>
-            <ul class="space-y-sm">
-                <li class="flex gap-sm">
-                    <input checked class="mt-1 rounded text-primary focus:ring-primary h-4 w-4" type="checkbox">
-                    <span class="text-body-sm text-on-surface-variant line-through">Second dose of Tetanus Toxoid</span>
-                </li>
-                <li class="flex gap-sm">
-                    <input class="mt-1 rounded text-primary focus:ring-primary h-4 w-4" type="checkbox">
-                    <span class="text-body-sm text-on-surface">Pick up Iron/Folic supplements</span>
-                </li>
-                <li class="flex gap-sm">
-                    <input class="mt-1 rounded text-primary focus:ring-primary h-4 w-4" type="checkbox">
-                    <span class="text-body-sm text-on-surface">Fasting for 8 hours before OGTT lab</span>
-                </li>
-                <li class="flex gap-sm">
-                    <input class="mt-1 rounded text-primary focus:ring-primary h-4 w-4" type="checkbox">
-                    <span class="text-body-sm text-on-surface">Update birth plan preferences</span>
-                </li>
-            </ul>
-        </div>
+        @include('partials.maternal.care-reminders')
 
-        <div class="bg-surface-container-highest p-md rounded-xl border border-primary/20">
-            <div class="flex items-center gap-sm mb-sm">
-                <span class="material-symbols-outlined text-primary">local_hospital</span>
-                <p class="font-bold text-on-surface">Emergency Contact</p>
-            </div>
-            <p class="text-body-sm text-on-surface-variant mb-md">Brgy. Health Hotline: <br><span class="font-bold text-on-surface">0917-555-0123</span></p>
-            <div class="flex gap-2">
-                <button class="flex-grow py-2 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">Call Clinic</button>
-                <button class="flex-grow py-2 bg-secondary/10 text-secondary text-xs font-bold rounded-lg hover:bg-secondary hover:text-white transition-colors">Message Midwife</button>
-            </div>
-        </div>
+        @include('partials.maternal.contact-card')
     </div>
 </div>
 @endsection

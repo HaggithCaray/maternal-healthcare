@@ -16,17 +16,25 @@ class SmsGatewayController extends Controller
      */
     public function sms(Request $request, SmsService $smsService)
     {
-        $smsMessages = SmsMessage::with('patient')->latest()->get();
-        $patients = Patient::whereNotNull('phone')->get();
-
-        $gatewaySettings = $smsService->getSettings();
-        $gatewayStatus = $smsService->checkStatus();
-
         if ($request->isMethod('post') && auth()->user()->role === 'admin') {
             return $this->send($request, $smsService);
         }
 
-        return view('sms', compact('smsMessages', 'patients', 'gatewaySettings', 'gatewayStatus'));
+        $smsMessages = SmsMessage::with('patient')->latest()->take(50)->get();
+        $patients = Patient::whereNotNull('phone')->orderBy('last_name')->orderBy('first_name')->get();
+
+        $stats = [
+            'sent' => SmsMessage::where('status', 'Sent')->count(),
+            'sentThisMonth' => SmsMessage::where('status', 'Sent')->where('created_at', '>=', Carbon::now()->startOfMonth())->count(),
+            'failed' => SmsMessage::where('status', 'Failed')->count(),
+            'reachableMothers' => $patients->where('registration_type', 'Maternal')->count(),
+            'reachableChildren' => $patients->where('registration_type', 'Child')->count(),
+        ];
+
+        $gatewaySettings = $smsService->getSettings();
+        $gatewayStatus = $smsService->checkStatus();
+
+        return view('sms', compact('smsMessages', 'patients', 'stats', 'gatewaySettings', 'gatewayStatus'));
     }
 
     /**

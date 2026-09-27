@@ -119,37 +119,52 @@
                 <span class="material-symbols-outlined text-secondary">vaccines</span>
                 Immunization Schedule
             </h4>
+            @if($children->isEmpty())
+            <p class="text-body-sm text-on-surface-variant">
+                No children are linked to your record yet. Ask the midwife to link your child when they register them.
+            </p>
+            @else
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-gutter">
-                <div class="p-sm bg-surface-container-low rounded-lg border-l-4 border-tertiary">
-                    <div class="flex items-start justify-between">
+                @foreach($children as $childRecord)
+                @php
+                    $child = $childRecord->patient;
+                    $ageMonths = $child ? (int) \Carbon\Carbon::parse($child->dob)->diffInMonths(\Carbon\Carbon::now()) : null;
+                    $pending = $childRecord->immunizations->where('status', 'Scheduled')->sortBy('scheduled_date');
+                    $overdue = $pending->filter(fn ($i) => \Carbon\Carbon::parse($i->scheduled_date)->lt(\Carbon\Carbon::today()));
+                    $next = $overdue->first() ?? $pending->first();
+                    $isOverdue = $overdue->isNotEmpty();
+                @endphp
+                <div class="p-sm bg-surface-container-low rounded-lg border-l-4 {{ $isOverdue ? 'border-error' : ($next ? 'border-tertiary' : 'border-outline-variant') }}">
+                    <div class="flex items-start justify-between gap-sm">
                         <div>
-                            <p class="font-label-md text-on-surface">Liam Gabriel (18mo)</p>
-                            <p class="text-body-sm text-on-surface-variant">MMR &mdash; 2nd Dose</p>
+                            <p class="font-label-md text-on-surface">{{ $child?->first_name }} {{ $child?->last_name }} @if($ageMonths !== null)({{ $ageMonths }}mo)@endif</p>
+                            <p class="text-body-sm text-on-surface-variant">
+                                {{ $next ? $next->vaccine_name . ' — dose ' . $next->dose_number : 'All scheduled vaccines given' }}
+                            </p>
                         </div>
-                        <span class="text-label-sm font-bold text-tertiary">Apr 15</span>
+                        @if($next)
+                        <span class="text-label-sm font-bold whitespace-nowrap {{ $isOverdue ? 'text-error' : 'text-tertiary' }}">{{ \Carbon\Carbon::parse($next->scheduled_date)->format('M d') }}</span>
+                        @endif
                     </div>
                     <div class="mt-sm flex items-center gap-1">
-                        <span class="material-symbols-outlined text-xs text-tertiary">check_circle</span>
-                        <span class="text-label-sm text-tertiary">Scheduled</span>
-                    </div>
-                </div>
-                <div class="p-sm bg-surface-container-low rounded-lg border-l-4 border-error">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="font-label-md text-on-surface">Sofia Marie (6mo)</p>
-                            <p class="text-body-sm text-on-surface-variant">Pentavalent &mdash; 3rd Dose</p>
-                        </div>
-                        <span class="text-label-sm font-bold text-error">Overdue</span>
-                    </div>
-                    <div class="mt-sm flex items-center gap-1">
+                        @if($isOverdue)
                         <span class="material-symbols-outlined text-xs text-error">warning</span>
-                        <span class="text-label-sm text-error">Due Mar 28 &middot; Please visit clinic</span>
+                        <span class="text-label-sm text-error">{{ $overdue->count() }} overdue &middot; Please visit the health station</span>
+                        @elseif($next)
+                        <span class="material-symbols-outlined text-xs text-tertiary">event</span>
+                        <span class="text-label-sm text-tertiary">Scheduled</span>
+                        @else
+                        <span class="material-symbols-outlined text-xs text-tertiary">check_circle</span>
+                        <span class="text-label-sm text-tertiary">Up to date</span>
+                        @endif
                     </div>
                 </div>
+                @endforeach
             </div>
-            <button class="w-full mt-md py-sm border border-outline-variant text-primary rounded-lg font-label-md hover:bg-surface-container-high transition-colors">
+            @endif
+            <a href="{{ route('immunization') }}" class="block text-center w-full mt-md py-sm border border-outline-variant text-primary rounded-lg font-label-md hover:bg-surface-container-high transition-colors">
                 View Full Immunization Record
-            </button>
+            </a>
         </div>
     </div>
 
@@ -160,35 +175,26 @@
                 Recent Messages
             </h4>
             <div class="space-y-sm">
-                <div class="p-sm bg-surface-container-low rounded-lg hover:bg-surface-container transition-colors cursor-pointer border-l-4 border-primary">
-                    <p class="font-label-md text-on-surface">Dr. Elena Reyes</p>
-                    <p class="text-body-sm text-on-surface-variant truncate">Your OGTT results are normal. Next prenatal visit is on schedule.</p>
-                    <p class="text-[10px] text-outline mt-1">2 hours ago</p>
-                </div>
-                <div class="p-sm bg-surface-container-low rounded-lg hover:bg-surface-container transition-colors cursor-pointer border-l-4 border-secondary">
-                    <p class="font-label-md text-on-surface">Nurse Maria Santos</p>
-                    <p class="text-body-sm text-on-surface-variant truncate">Reminder: Please bring Sofia's yellow card for the immunization this Friday.</p>
-                    <p class="text-[10px] text-outline mt-1">Yesterday</p>
-                </div>
-                <div class="p-sm bg-surface-container-low rounded-lg hover:bg-surface-container transition-colors cursor-pointer border-l-4 border-outline-variant opacity-70">
-                    <p class="font-label-md text-on-surface">Barangay Health Office</p>
-                    <p class="text-body-sm text-on-surface-variant truncate">Free nutrition counseling every Wednesday at 9 AM. Walk-ins welcome!</p>
-                    <p class="text-[10px] text-outline mt-1">3 days ago</p>
-                </div>
+                @forelse($recentMessages as $message)
+                @php $fromMe = $message->sender_id === auth()->id(); @endphp
+                <a href="{{ route('messaging') }}" class="block p-sm bg-surface-container-low rounded-lg hover:bg-surface-container transition-colors border-l-4 {{ ! $fromMe && ! $message->is_read ? 'border-primary' : 'border-outline-variant' }}">
+                    <p class="font-label-md text-on-surface">{{ $fromMe ? 'You' : $message->sender?->name }}</p>
+                    <p class="text-body-sm text-on-surface-variant truncate">{{ $message->message ?: ($message->attachment_name ? 'Attachment: ' . $message->attachment_name : '') }}</p>
+                    <p class="text-[10px] text-outline mt-1">{{ $message->created_at->diffForHumans() }}</p>
+                </a>
+                @empty
+                <p class="text-body-sm text-on-surface-variant">No messages yet. You can ask your midwife anything here.</p>
+                @endforelse
             </div>
             <a href="{{ route('messaging') }}" class="block text-center w-full mt-md py-sm border border-outline-variant text-primary rounded-lg font-label-md hover:bg-surface-container-high transition-colors">
-                Open Messages ({{ $unreadMessagesCount }} Unread)
+                Open Messages{{ $unreadMessagesCount > 0 ? " ({$unreadMessagesCount} unread)" : '' }}
             </a>
         </div>
 
         <div class="bg-secondary text-on-secondary rounded-xl soft-drop-shadow overflow-hidden p-md relative">
             <div class="relative z-10 pr-12">
                 <h5 class="font-headline-sm mb-2">Health Reminder</h5>
-                <p class="text-body-sm opacity-90">Stay hydrated! Drink at least 8 glasses of water daily, especially during pregnancy. Bring your yellow card to all clinic visits.</p>
-                <div class="mt-4 flex gap-sm">
-                    <span class="px-3 py-1 bg-on-secondary/15 text-on-secondary rounded-full font-label-sm text-[11px]">Pregnancy Tip</span>
-                    <span class="px-3 py-1 bg-on-secondary/15 text-on-secondary rounded-full font-label-sm text-[11px]">Immunization</span>
-                </div>
+                <p class="text-body-sm opacity-90">Drink plenty of water every day, especially during pregnancy, and bring your child's yellow immunization card to every clinic visit.</p>
             </div>
             <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-9xl opacity-15 text-on-secondary">medical_services</span>
         </div>
@@ -200,59 +206,64 @@
                     <span class="material-symbols-outlined">identity_card</span>
                     <h4 class="font-label-md text-label-md uppercase tracking-widest">My Profile</h4>
                 </div>
-                <div class="space-y-sm">
-                    <div class="flex justify-between text-body-sm">
-                        <span class="opacity-80">Name</span>
-                        <span class="font-bold">{{ auth()->user()?->name ?? 'Maria Santos-Dizon' }}</span>
+                <dl class="space-y-sm">
+                    <div class="flex justify-between gap-sm text-body-sm">
+                        <dt class="opacity-80">Name</dt>
+                        <dd class="font-bold text-right">{{ $mother ? $mother->full_name : auth()->user()->name }}</dd>
                     </div>
-                    <div class="flex justify-between text-body-sm">
-                        <span class="opacity-80">Patient ID</span>
-                        <span class="font-bold">#MC-2024-0089</span>
+                    @if($mother)
+                    <div class="flex justify-between gap-sm text-body-sm">
+                        <dt class="opacity-80">Patient ID</dt>
+                        <dd class="font-bold text-right">#MC-{{ $mother->created_at->format('Y') }}-{{ sprintf('%03d', $mother->id) }}</dd>
                     </div>
-                    <div class="flex justify-between text-body-sm">
-                        <span class="opacity-80">Blood Type</span>
-                        <span class="font-bold">O+</span>
+                    <div class="flex justify-between gap-sm text-body-sm">
+                        <dt class="opacity-80">Phone</dt>
+                        <dd class="font-bold text-right">{{ $mother->phone }}</dd>
                     </div>
-                    <div class="flex justify-between text-body-sm">
-                        <span class="opacity-80">Children</span>
-                        <span class="font-bold">Liam (18mo) &middot; Sofia (6mo)</span>
+                    <div class="flex justify-between gap-sm text-body-sm">
+                        <dt class="opacity-80">Blood Type</dt>
+                        <dd class="font-bold text-right">{{ $mother->maternalRecord?->blood_type ?: 'Not recorded' }}</dd>
                     </div>
-                </div>
+                    @endif
+                    <div class="flex justify-between gap-sm text-body-sm">
+                        <dt class="opacity-80">Children</dt>
+                        <dd class="font-bold text-right">
+                            @forelse($children as $childRecord)
+                                {{ $childRecord->patient?->first_name }} ({{ (int) \Carbon\Carbon::parse($childRecord->patient?->dob)->diffInMonths(\Carbon\Carbon::now()) }}mo)@if(! $loop->last) &middot; @endif
+                            @empty
+                                None linked
+                            @endforelse
+                        </dd>
+                    </div>
+                </dl>
                 <div class="mt-md pt-md border-t border-white/20 flex gap-sm">
-                    <button class="flex-1 py-sm bg-on-primary/15 text-on-primary rounded-lg font-label-sm text-label-sm hover:bg-on-primary/25 transition-colors">
-                        View Records
-                    </button>
-                    <button class="flex-1 py-sm bg-on-primary/15 text-on-primary rounded-lg font-label-sm text-label-sm hover:bg-on-primary/25 transition-colors">
-                        Edit Profile
-                    </button>
+                    @if($mother?->registration_type === 'Maternal')
+                    <a href="{{ route('maternal') }}" class="flex-1 text-center py-sm bg-on-primary/15 text-on-primary rounded-lg font-label-sm text-label-sm hover:bg-on-primary/25 transition-colors">
+                        My Pregnancy Record
+                    </a>
+                    @endif
+                    <a href="{{ route('account.password') }}" class="flex-1 text-center py-sm bg-on-primary/15 text-on-primary rounded-lg font-label-sm text-label-sm hover:bg-on-primary/25 transition-colors">
+                        Change Password
+                    </a>
                 </div>
+                <p class="text-[11px] opacity-80 mt-sm">Something wrong in your details? Tell your midwife so your record can be updated.</p>
             </div>
         </div>
 
         <div class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/10">
             <h4 class="font-label-md text-on-surface-variant mb-md uppercase tracking-widest text-[10px]">Recent Activity</h4>
             <div class="space-y-md">
+                @forelse($activity as $event)
                 <div class="flex gap-sm">
-                    <div class="w-2 h-2 rounded-full bg-tertiary mt-1.5"></div>
+                    <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 {{ $event['level'] === 'alert' ? 'bg-error' : ($event['level'] === 'good' ? 'bg-tertiary' : 'bg-primary') }}"></div>
                     <div>
-                        <p class="text-body-sm text-on-surface">Immunization record updated for <span class="font-bold">Liam</span></p>
-                        <p class="text-[10px] text-outline">2 days ago</p>
+                        <p class="text-body-sm text-on-surface">{{ $event['text'] }} <span class="font-bold">{{ $event['name'] }}</span></p>
+                        <p class="text-[10px] text-outline" title="{{ $event['at']->format('M d, Y g:i A') }}">{{ $event['at']->diffForHumans() }}</p>
                     </div>
                 </div>
-                <div class="flex gap-sm">
-                    <div class="w-2 h-2 rounded-full bg-primary mt-1.5"></div>
-                    <div>
-                        <p class="text-body-sm text-on-surface">Vaccination scheduled: <span class="font-bold">MMR for Liam</span></p>
-                        <p class="text-[10px] text-outline">3 days ago</p>
-                    </div>
-                </div>
-                <div class="flex gap-sm">
-                    <div class="w-2 h-2 rounded-full bg-secondary mt-1.5"></div>
-                    <div>
-                        <p class="text-body-sm text-on-surface">Growth metrics logged for <span class="font-bold">Sofia</span></p>
-                        <p class="text-[10px] text-outline">1 week ago</p>
-                    </div>
-                </div>
+                @empty
+                <p class="text-body-sm text-on-surface-variant">Nothing recorded yet.</p>
+                @endforelse
             </div>
         </div>
     </div>

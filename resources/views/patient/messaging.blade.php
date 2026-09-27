@@ -181,7 +181,7 @@
                 @else
                 <div class="flex gap-3 max-w-[85%] sm:max-w-[80%]">
                     <div>
-                        <div class="bg-surface-container-high text-on-surface p-3 chat-bubble-in shadow-sm">
+                        <div class="bg-surface-container-high text-on-surface p-3 chat-bubble-in shadow-xs">
                             @if($msg->message)
                             <p class="text-sm {{ $msg->attachment_path ? 'mb-2' : '' }}">{{ $msg->message }}</p>
                             @endif
@@ -225,7 +225,7 @@
             {{-- Typing indicator --}}
             <div class="flex gap-3 max-w-[85%] sm:max-w-[80%] hidden" id="typing-indicator">
                 <div>
-                    <div class="bg-surface-container-high text-on-surface-variant px-4 py-3 chat-bubble-in shadow-sm">
+                    <div class="bg-surface-container-high text-on-surface-variant px-4 py-3 chat-bubble-in shadow-xs">
                         <div class="flex items-center gap-1">
                             <span class="w-2 h-2 bg-on-surface-variant/60 rounded-full animate-bounce" style="animation-delay: 0ms;"></span>
                             <span class="w-2 h-2 bg-on-surface-variant/60 rounded-full animate-bounce" style="animation-delay: 150ms;"></span>
@@ -256,12 +256,12 @@
                 <button type="button" id="clip-btn" class="w-12 h-12 flex items-center justify-center text-outline hover:text-primary hover:bg-surface-container rounded-xl transition-all shrink-0">
                     <span class="material-symbols-outlined">attach_file</span>
                 </button>
-                <textarea name="message" class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 resize-none max-h-32 custom-scrollbar outline-none" placeholder="Type a secure message..." rows="1" id="msg-input"></textarea>
+                <textarea name="message" class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 resize-none max-h-32 custom-scrollbar outline-hidden" placeholder="Type a secure message..." rows="1" id="msg-input"></textarea>
                 <button type="submit" class="w-12 h-12 flex items-center justify-center bg-primary text-on-primary rounded-xl hover:bg-primary-container transition-colors shadow-md active:scale-95 shrink-0" id="send-btn">
                     <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
                 </button>
             </div>
-            <p class="text-[10px] text-center text-outline-variant mt-2 font-medium uppercase tracking-tighter">Messages are end-to-end encrypted for your safety.</p>
+            <p class="text-[10px] text-center text-outline-variant mt-2 font-medium uppercase tracking-tighter">Only you and the health station staff can see these messages.</p>
         </form>
     </section>
 </div>
@@ -379,7 +379,7 @@
             return `
             <div class="flex gap-3 max-w-[85%] sm:max-w-[80%]">
                 <div>
-                    <div class="bg-surface-container-high text-on-surface p-3 chat-bubble-in shadow-sm">
+                    <div class="bg-surface-container-high text-on-surface p-3 chat-bubble-in shadow-xs">
                         ${msgText}
                         ${attachmentHtml}
                     </div>

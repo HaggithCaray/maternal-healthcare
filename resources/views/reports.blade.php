@@ -2,35 +2,13 @@
 
 @section('title', 'Reports')
 
-@push('styles')
-<style>
-    /* Chart series colors (validated for color-vision deficiency and contrast on white) */
-    .series-maternal { background-color: #2a78d6; }
-    .series-child { background-color: #eb6834; }
-
-    @media print {
-        #sidebar, main > header, main > footer, .no-print, .fixed { display: none !important; }
-        main { margin-left: 0 !important; }
-        .soft-drop-shadow { box-shadow: none !important; border: 1px solid #c2c6d4; }
-        details > table { display: table !important; }
-        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-</style>
-@endpush
-
 @section('content')
 @php
     $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    $totals = array_map('array_sum', $monthlyRegistrations);
-    $peakTotal = max($totals);
-
-    // Clean y-axis maximum: the smallest of 1, 2, 5 x 10^n that fits the busiest month (4 at minimum).
-    $axisMax = 4;
-    foreach ([1, 2, 5, 10, 20, 50, 100, 200, 500, 1000] as $step) {
-        if ($step * 4 >= $peakTotal) { $axisMax = $step * 4; break; }
+    $chartMonths = [];
+    foreach ($monthlyRegistrations as $month => $counts) {
+        $chartMonths[] = ['label' => $monthNames[$month - 1] . ' ' . $year, 'short' => $monthNames[$month - 1]] + $counts;
     }
-    $ticks = [$axisMax, $axisMax * 3 / 4, $axisMax / 2, $axisMax / 4, 0];
-    $peakMonth = $peakTotal > 0 ? array_search($peakTotal, $totals, true) : null;
 @endphp
 
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-md mb-lg">
@@ -48,7 +26,7 @@
             </select>
             <noscript><button type="submit" class="px-sm py-xs border border-outline-variant rounded-lg text-label-md">Show</button></noscript>
         </form>
-        <button type="button" onclick="window.print()" class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap">
+        <button type="button" onclick="window.print()" class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-xs whitespace-nowrap">
             <span class="material-symbols-outlined">print</span>
             Print Report
         </button>
@@ -94,95 +72,11 @@
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter mb-lg">
     {{-- Monthly registrations --}}
     <div class="col-span-1 xl:col-span-8 bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10">
-        <div class="flex flex-wrap items-start justify-between gap-sm mb-md">
-            <div>
-                <h4 class="font-headline-sm text-headline-sm">Registrations per month, {{ $year }}</h4>
-                <p class="text-body-sm text-on-surface-variant">New patients by month of registration.</p>
-            </div>
-            <div class="flex items-center gap-md text-label-sm text-on-surface" aria-label="Legend">
-                <span class="flex items-center gap-xs"><span class="series-maternal inline-block w-3 h-3 rounded-sm"></span>Maternal</span>
-                <span class="flex items-center gap-xs"><span class="series-child inline-block w-3 h-3 rounded-sm"></span>Child</span>
-            </div>
+        <div class="mb-md">
+            <h4 class="font-headline-sm text-headline-sm">Registrations per month, {{ $year }}</h4>
+            <p class="text-body-sm text-on-surface-variant">New patients by month of registration.</p>
         </div>
-
-        @if($registeredInYear === 0)
-            <div class="h-56 flex items-center justify-center bg-surface-container-low rounded-lg text-body-sm text-on-surface-variant">
-                No patients were registered in {{ $year }}.
-            </div>
-        @else
-        <div class="flex gap-xs" role="img" aria-label="Column chart of monthly registrations in {{ $year }}; the table below lists every value.">
-            {{-- Y axis --}}
-            <div class="flex flex-col justify-between h-56 pb-5 text-[10px] text-on-surface-variant text-right w-6 tabular-nums" aria-hidden="true">
-                @foreach($ticks as $tick)
-                <span class="leading-none">{{ $tick == (int) $tick ? (int) $tick : $tick }}</span>
-                @endforeach
-            </div>
-            {{-- Plot --}}
-            <div class="relative flex-1 h-56">
-                <div class="absolute inset-x-0 top-0 bottom-5 flex flex-col justify-between pointer-events-none" aria-hidden="true">
-                    @foreach($ticks as $tick)
-                    <div class="border-t border-outline-variant/50"></div>
-                    @endforeach
-                </div>
-                {{-- Columns fill the gridline area exactly, so segment heights are a share of the axis maximum --}}
-                <div class="absolute inset-x-0 top-0 bottom-5 flex">
-                    @foreach($monthlyRegistrations as $month => $counts)
-                    @php $total = $totals[$month]; @endphp
-                    <div class="group relative flex-1 h-full flex justify-center outline-none rounded-t hover:bg-surface-container-low/70 focus:bg-surface-container-low/70" tabindex="0"
-                         aria-label="{{ $monthNames[$month - 1] }} {{ $year }}: {{ $counts['Maternal'] }} maternal, {{ $counts['Child'] }} child, {{ $total }} total">
-                        <div class="h-full w-full max-w-6 flex flex-col justify-end gap-[2px]">
-                            @if($month === $peakMonth)
-                            <span class="text-[10px] font-bold text-on-surface text-center tabular-nums leading-none mb-[2px]">{{ $total }}</span>
-                            @endif
-                            @if($counts['Child'] > 0)
-                            <div class="series-child w-full rounded-t shrink-0" style="height: {{ $counts['Child'] / $axisMax * 100 }}%"></div>
-                            @endif
-                            @if($counts['Maternal'] > 0)
-                            <div class="series-maternal w-full shrink-0 {{ $counts['Child'] > 0 ? '' : 'rounded-t' }}" style="height: {{ $counts['Maternal'] / $axisMax * 100 }}%"></div>
-                            @endif
-                        </div>
-                        {{-- Tooltip --}}
-                        <div class="pointer-events-none absolute bottom-full mb-1 z-20 hidden group-hover:block group-focus:block bg-inverse-surface text-inverse-on-surface text-[11px] rounded-lg px-sm py-xs shadow-lg whitespace-nowrap">
-                            <p class="font-bold">{{ $monthNames[$month - 1] }} {{ $year }}</p>
-                            <p class="flex items-center gap-xs"><span class="series-maternal inline-block w-2 h-2 rounded-sm"></span>Maternal: {{ $counts['Maternal'] }}</p>
-                            <p class="flex items-center gap-xs"><span class="series-child inline-block w-2 h-2 rounded-sm"></span>Child: {{ $counts['Child'] }}</p>
-                            <p>Total: {{ $total }}</p>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-                <div class="absolute inset-x-0 bottom-0 h-5 flex items-end" aria-hidden="true">
-                    @foreach($monthNames as $name)
-                    <span class="flex-1 text-center text-[10px] text-on-surface-variant leading-none">{{ $name }}</span>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-        @endif
-
-        <details class="mt-md">
-            <summary class="text-label-md text-primary cursor-pointer no-print">Show as table</summary>
-            <table class="w-full mt-sm text-body-sm tabular-nums">
-                <thead>
-                    <tr class="text-left text-on-surface-variant border-b border-outline-variant/30">
-                        <th class="py-xs font-medium">Month</th>
-                        <th class="py-xs font-medium text-right">Maternal</th>
-                        <th class="py-xs font-medium text-right">Child</th>
-                        <th class="py-xs font-medium text-right">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($monthlyRegistrations as $month => $counts)
-                    <tr class="border-b border-outline-variant/10">
-                        <td class="py-xs">{{ $monthNames[$month - 1] }} {{ $year }}</td>
-                        <td class="py-xs text-right">{{ $counts['Maternal'] }}</td>
-                        <td class="py-xs text-right">{{ $counts['Child'] }}</td>
-                        <td class="py-xs text-right font-bold">{{ $totals[$month] }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </details>
+        @include('partials.registration-chart', ['emptyMessage' => "No patients were registered in {$year}."])
     </div>
 
     {{-- Prenatal care and immunization follow-up --}}

@@ -16,6 +16,11 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+    | Health station phone number shown to patients (hidden when not set).
+    */
+    'clinic_phone' => env('CLINIC_PHONE'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

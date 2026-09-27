@@ -1,0 +1,184 @@
+/*
+ * Design tokens shared by app.css (signed-in pages) and guest.css (login).
+ */
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-on-surface-variant: #424752;
+    --color-on-tertiary-container: #84f366;
+    --color-tertiary-fixed-dim: #71df54;
+    --color-secondary: #006a6a;
+    --color-secondary-fixed: #7df5f5;
+    --color-error: #ba1a1a;
+    --color-error-container: #ffdad6;
+    --color-on-primary-container: #c8daff;
+    --color-primary-fixed: #d6e3ff;
+    --color-on-secondary-fixed: #002020;
+    --color-surface-container: #e0f0ff;
+    --color-tertiary-container: #146f00;
+    --color-on-tertiary-fixed-variant: #0d5300;
+    --color-on-primary-fixed: #001b3d;
+    --color-on-surface: #0d1d29;
+    --color-surface: #f6f9ff;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-bright: #f6f9ff;
+    --color-inverse-on-surface: #e6f2ff;
+    --color-outline-variant: #c2c6d4;
+    --color-surface-variant: #d4e5f5;
+    --color-on-tertiary: #ffffff;
+    --color-background: #f6f9ff;
+    --color-outline: #727783;
+    --color-secondary-container: #7af2f2;
+    --color-secondary-fixed-dim: #5dd9d8;
+    --color-on-error: #ffffff;
+    --color-on-primary-fixed-variant: #00468c;
+    --color-on-secondary-fixed-variant: #004f4f;
+    --color-on-tertiary-fixed: #022100;
+    --color-tertiary-fixed: #8cfc6d;
+    --color-on-primary: #ffffff;
+    --color-surface-dim: #cbdcec;
+    --color-on-secondary: #ffffff;
+    --color-surface-container-high: #d9eafa;
+    --color-primary: #00478d;
+    --color-surface-container-highest: #d4e5f5;
+    --color-primary-container: #005eb8;
+    --color-inverse-surface: #22323e;
+    --color-on-error-container: #93000a;
+    --color-on-secondary-container: #006e6e;
+    --color-tertiary: #0d5400;
+    --color-primary-fixed-dim: #a9c7ff;
+    --color-inverse-primary: #a9c7ff;
+    --color-surface-tint: #005db6;
+    --color-surface-container-low: #ebf5ff;
+    --color-on-background: #0d1d29;
+
+    --spacing-gutter: 24px;
+    --spacing-base: 8px;
+    --spacing-lg: 40px;
+    --spacing-md: 24px;
+    --spacing-margin-desktop: 48px;
+    --spacing-xl: 64px;
+    --spacing-margin-mobile: 16px;
+    --spacing-xs: 4px;
+    --spacing-sm: 12px;
+
+    --font-label-md: 'Inter', sans-serif;
+    --font-body-md: 'Inter', sans-serif;
+    --font-body-lg: 'Inter', sans-serif;
+    --font-body-sm: 'Inter', sans-serif;
+    --font-headline-sm: 'Inter', sans-serif;
+    --font-headline-lg: 'Inter', sans-serif;
+    --font-headline-md: 'Inter', sans-serif;
+}
+
+/*
+ * The spacing scale above reuses the names xs–xl, which Tailwind v4 would also apply to
+ * max-w-* (max-w-md would become 24px). These rules come later in the utilities layer, so
+ * max-w-xs … max-w-xl keep the standard container widths.
+ */
+@layer utilities {
+    .max-w-xs { max-width: var(--container-xs); }
+    .max-w-sm { max-width: var(--container-sm); }
+    .max-w-md { max-width: var(--container-md); }
+    .max-w-lg { max-width: var(--container-lg); }
+    .max-w-xl { max-width: var(--container-xl); }
+}
+
+/*
+ * Material Symbols icon font, bundled from node_modules so icons also work offline.
+ * The class lives in the base layer so size utilities such as text-[18px] still win.
+ */
+@font-face {
+    font-family: 'Material Symbols Outlined';
+    font-style: normal;
+    font-weight: 100 700;
+    font-display: block;
+    src: url('../../node_modules/material-symbols/material-symbols-outlined.woff2') format('woff2');
+}
+
+@layer base {
+    .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        font-feature-settings: 'liga';
+    }
+}
+
+/*
+ * Printing a page (Print Report / Print Record buttons): only the page content, no app chrome.
+ */
+@media print {
+    #sidebar,
+    main > header,
+    main > footer,
+    .no-print {
+        display: none !important;
+    }
+
+    main {
+        margin-left: 0 !important;
+    }
+
+    .soft-drop-shadow,
+    .soft-shadow {
+        box-shadow: none !important;
+    }
+
+    details > table {
+        display: table !important;
+    }
+
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/*
+ * Chart series colors for maternal and child registrations
+ * (validated for color-vision deficiency and contrast on white).
+ */
+@layer components {
+    .series-maternal {
+        background-color: #2a78d6;
+    }
+    .series-child {
+        background-color: #eb6834;
+    }
+}
+
+/*
+ * Keep Tailwind v3 defaults the views were designed with (they used the v3 Play CDN):
+ * light gray borders and placeholders, and a pointer cursor on buttons.
+ */
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--color-gray-400);
+    }
+
+    button:not(:disabled),
+    [role="button"]:not(:disabled) {
+        cursor: pointer;
+    }
+}

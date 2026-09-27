@@ -107,7 +107,7 @@
         <div class="p-md">
             <div class="relative group">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
-                <input class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Search patients..." type="text">
+                <input class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-hidden transition-all" placeholder="Search patients..." type="text">
             </div>
         </div>
         <div class="flex-1 overflow-y-auto custom-scrollbar">
@@ -210,7 +210,7 @@
                 @else
                 <div class="flex gap-3 max-w-[80%]">
                     <div>
-                        <div class="bg-surface-container-high text-on-surface p-3 chat-bubble-in shadow-sm">
+                        <div class="bg-surface-container-high text-on-surface p-3 chat-bubble-in shadow-xs">
                             @if($msg->message)
                             <p class="text-sm {{ $msg->attachment_path ? 'mb-2' : '' }}">{{ $msg->message }}</p>
                             @endif
@@ -254,7 +254,7 @@
             {{-- Typing indicator --}}
             <div class="flex gap-3 max-w-[80%] hidden" id="typing-indicator">
                 <div>
-                    <div class="bg-surface-container-high text-on-surface-variant px-4 py-3 chat-bubble-in shadow-sm">
+                    <div class="bg-surface-container-high text-on-surface-variant px-4 py-3 chat-bubble-in shadow-xs">
                         <div class="flex items-center gap-1">
                             <span class="w-2 h-2 bg-on-surface-variant/60 rounded-full animate-bounce" style="animation-delay: 0ms;"></span>
                             <span class="w-2 h-2 bg-on-surface-variant/60 rounded-full animate-bounce" style="animation-delay: 150ms;"></span>
@@ -286,15 +286,15 @@
                 <button type="button" id="clip-btn" class="w-10 h-10 flex items-center justify-center text-outline hover:text-primary hover:bg-surface-container rounded-xl transition-all shrink-0">
                     <span class="material-symbols-outlined">attach_file</span>
                 </button>
-                <textarea name="message" class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 resize-none max-h-32 custom-scrollbar outline-none" placeholder="Type a secure message..." rows="1" id="msg-input"></textarea>
+                <textarea name="message" class="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 resize-none max-h-32 custom-scrollbar outline-hidden" placeholder="Type a secure message..." rows="1" id="msg-input"></textarea>
                 <button type="submit" class="w-10 h-10 flex items-center justify-center bg-primary text-on-primary rounded-xl hover:bg-primary-container transition-colors shadow-md active:scale-95 shrink-0" id="send-btn">
                     <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
                 </button>
             </div>
-            <p class="text-[10px] text-center text-outline-variant mt-2 font-medium uppercase tracking-tighter">Messages are end-to-end encrypted for your safety.</p>
+            <p class="text-[10px] text-center text-outline-variant mt-2 font-medium uppercase tracking-tighter">Only this patient and health station staff can see this conversation.</p>
         </form>
         @else
-        <div class="flex-grow flex flex-col items-center justify-center text-on-surface-variant p-md">
+        <div class="grow flex flex-col items-center justify-center text-on-surface-variant p-md">
             <span class="material-symbols-outlined text-6xl text-outline mb-md">chat_bubble</span>
             <p class="text-sm">Please select a patient from the sidebar to view history or start chatting.</p>
         </div>
@@ -322,11 +322,11 @@
             <div>
                 <h4 class="text-[10px] font-bold text-outline uppercase tracking-widest mb-3">Quick Vitals</h4>
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30 shadow-sm">
+                    <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30 shadow-xs">
                         <p class="text-[10px] text-on-surface-variant">Weight</p>
                         <p class="font-bold text-sm">{{ $vitals?->weight_kg ?? 'N/A' }} kg</p>
                     </div>
-                    <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30 shadow-sm">
+                    <div class="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30 shadow-xs">
                         <p class="text-[10px] text-on-surface-variant">BP</p>
                         <p class="font-bold text-sm text-secondary">{{ $vitals?->bp ?? 'N/A' }}</p>
                     </div>
@@ -334,12 +334,12 @@
             </div>
             <div>
                 <h4 class="text-[10px] font-bold text-outline uppercase tracking-widest mb-3">Demographics</h4>
-                <p class="text-xs text-on-surface-variant">Phone: +63 {{ $activePatient?->phone ?? 'N/A' }}</p>
+                <p class="text-xs text-on-surface-variant">Phone: {{ $activePatient?->phone ?? 'N/A' }}</p>
                 <p class="text-xs text-on-surface-variant mt-1">Barangay: {{ $activePatient?->barangay ?? 'N/A' }}</p>
             </div>
         </div>
         @else
-        <div class="flex-grow flex items-center justify-center p-md text-xs text-on-surface-variant text-center">
+        <div class="grow flex items-center justify-center p-md text-xs text-on-surface-variant text-center">
             No active patient selected
         </div>
         @endif
@@ -458,7 +458,7 @@
             return `
             <div class="flex gap-3 max-w-[80%]">
                 <div>
-                    <div class="bg-surface-container-high text-on-surface p-3 chat-bubble-in shadow-sm">
+                    <div class="bg-surface-container-high text-on-surface p-3 chat-bubble-in shadow-xs">
                         ${msgText}
                         ${attachmentHtml}
                     </div>

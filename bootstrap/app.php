@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckRole::class,
         ]);
 
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureUserIsActive::class,
+        ]);
+
         $middleware->trustProxies(
             at: ['127.0.0.1', '::1'],
             headers: Request::HEADER_X_FORWARDED_FOR |
