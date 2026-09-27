@@ -22,7 +22,7 @@
 | `immunization.blade.php` | Immunization timeline with status badges, mark-as-given form |
 | `sms.blade.php` | SMS gateway settings, send form, message history log |
 | `messaging.blade.php` | Chat: patient sidebar + unread badges, message bubbles, file attachments |
-| `reports.blade.php` | Analytics: registration trends, vaccine compliance, export button |
+| `reports.blade.php` | Analytics: registration trends, vaccine compliance (note: "Export Report" button in the UI is a non-functional placeholder — PDF/CSV export was descoped, see [[Milestones]]) |
 | `admin.blade.php` | System info, user management table |
 
 ## Patient Views

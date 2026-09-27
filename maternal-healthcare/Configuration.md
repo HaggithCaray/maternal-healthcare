@@ -30,7 +30,7 @@
 | `DB_CONNECTION` | mysql | Database driver |
 | `DB_HOST` | 127.0.0.1 | MySQL host |
 | `DB_PORT` | 3306 | MySQL port |
-| `DB_DATABASE` | healthcare_db | Database name |
+| `DB_DATABASE` | healthcare_base_db / healthcare_db | Database name (base / advanced) |
 | `DB_USERNAME` | root | DB user |
 | `DB_PASSWORD` | (empty) | DB password |
 | `SESSION_DRIVER` | database | Session storage |

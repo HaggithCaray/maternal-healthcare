@@ -1,5 +1,14 @@
 # Milestones
 
+## Repository Split
+
+The project is now split into two repos:
+
+| Milestone | Repo |
+|-----------|------|
+| Base version (auth, dashboard, patient CRUD, portal) | **M-healthcare** — https://github.com/HaggithCaray/M-healthcare.git |
+| Full version (all features below) | **maternal-healthcare** — https://github.com/HaggithCaray/maternal-healthcare.git |
+
 ## Milestone: 10 Percent — Core Registration & Records
 - [x] Patient registration (maternal + child)
 - [x] Patient records list with search/filter
@@ -69,12 +78,14 @@
 - [x] **Phase 6**: PHI Compliance & Audit Logging Engine
 
 ## In Progress
-- Phase 7: Multi-Entity Offline Form Auto-Queuing UI
-- Phase 8: Data Export (PDF/CSV) for DOH Reports
+- Phase 7: Multi-Entity Offline Form Auto-Queuing UI (checkup/growth/immunization forms still require a live connection; only patient registration queues offline today)
 
 ## Upcoming
-- Phase 9: Multi-Barangay Support & Federation
-- Phase 10: Biometric / Smartcard Field Authentication
+- Phase 8: Multi-Barangay Support & Federation
+- Phase 9: Biometric / Smartcard Field Authentication
+
+## Descoped
+- ~~Data Export (PDF/CSV) for DOH Reports~~ — dropped from the roadmap, not needed
 
 ---
 

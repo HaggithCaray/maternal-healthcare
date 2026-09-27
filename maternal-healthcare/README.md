@@ -2,6 +2,12 @@
 
 This vault contains complete documentation for the Maternal Health Hub project.
 
+## Repositories
+| Repo | URL | Scope |
+|------|-----|-------|
+| **M-healthcare** (Base) | https://github.com/HaggithCaray/M-healthcare.git | 30% — Auth, dashboard, patient CRUD, portal |
+| **maternal-healthcare** (Advanced) | https://github.com/HaggithCaray/maternal-healthcare.git | 85-90% — Full system with all features |
+
 ## Navigation
 Start with [[Project Overview]] for a high-level summary.
 

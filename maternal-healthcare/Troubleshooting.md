@@ -28,7 +28,7 @@ php artisan cache:clear
 1. MySQL is running in XAMPP Control Panel
 2. `.env` has `DB_HOST=127.0.0.1` (not `db`)
 3. Port is `3306`
-4. Database `healthcare_db` exists
+4. Database exists (`healthcare_base_db` for base, `healthcare_db` for advanced)
 
 ### WebSocket Not Connecting
 **Check:**

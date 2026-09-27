@@ -1,5 +1,18 @@
 # Maternal Health Hub — Project Overview
 
+## Repositories
+
+This project is split into two GitHub repositories:
+
+| Repo | URL | Scope |
+|------|-----|-------|
+| **maternal-healthcare** (Advanced) | https://github.com/HaggithCaray/maternal-healthcare.git | Full system — 85-90% complete with all features |
+| **M-healthcare** (Base) | https://github.com/HaggithCaray/M-healthcare.git | Stripped version — 30% core (auth, dashboard, patient CRUD, portal) |
+
+### Which repo to use?
+- **M-healthcare** — For initial deployment, presentations, or if you only need basic patient registration and records.
+- **maternal-healthcare** — For the full system with maternal/child health tracking, SMS, chat, PWA offline, reports, and analytics.
+
 ## Purpose
 A **maternal and child health monitoring system** for Barangay Bicao Health Station, Carmen, Bohol, Philippines. Designed for community health workers (midwives) and patients.
 

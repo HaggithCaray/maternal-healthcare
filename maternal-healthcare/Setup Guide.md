@@ -1,5 +1,41 @@
 # Setup Guide
 
+## Which Repo?
+
+| Repo                               | URL                                                       | What's Included                                                                               |
+| ---------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **M-healthcare** (Base)            | `https://github.com/HaggithCaray/M-healthcare.git`        | Auth, dashboard, patient CRUD, records, patient portal (19 tests)                             |
+| **maternal-healthcare** (Advanced) | `https://github.com/HaggithCaray/maternal-healthcare.git` | Everything above + maternal/child records, immunizations, SMS, chat, PWA, reports (47+ tests) |
+
+### Setup for M-healthcare (Base)
+```bash
+git clone https://github.com/HaggithCaray/M-healthcare.git
+cd M-healthcare
+composer install
+cp .env.example .env
+php artisan key:generate
+npm install && npm run build
+php artisan migrate --seed
+php artisan serve
+```
+Only one terminal needed — no Reverb/WebSocket.
+
+### Setup for maternal-healthcare (Advanced)
+```bash
+git clone https://github.com/HaggithCaray/maternal-healthcare.git
+cd maternal-healthcare
+composer install
+cp .env.example .env
+php artisan key:generate
+npm install && npm run build
+php artisan migrate --seed
+```
+Two terminals needed:
+```bash
+php artisan serve          # Terminal 1
+php artisan reverb:start   # Terminal 2 (WebSocket for chat)
+```
+
 ## Prerequisites
 - **XAMPP** (Apache + MySQL + PHP 8.4)
 - **Node.js** (v20+) and **NPM**
@@ -9,8 +45,8 @@
 ## Quick Start
 ```bash
 # 1. Clone the repo
-git clone https://github.com/your-username/maternal-health-care.git
-cd maternal-health-care
+git clone https://github.com/HaggithCaray/maternal-healthcare.git
+cd maternal-healthcare
 
 # 2. Install PHP dependencies
 composer install
@@ -35,11 +71,31 @@ php artisan reverb:start   # Terminal 2 — WebSocket
 
 ## Database Setup
 1. Start MySQL via XAMPP Control Panel
-2. Create database:
+2. Create the appropriate database:
+
+**M-healthcare (Base):**
+```sql
+CREATE DATABASE healthcare_base_db;
+```
+
+**maternal-healthcare (Advanced):**
 ```sql
 CREATE DATABASE healthcare_db;
 ```
+
 3. Update `.env` — make sure these values are set:
+
+**M-healthcare (Base):**
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=healthcare_base_db
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+**maternal-healthcare (Advanced):**
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -48,6 +104,7 @@ DB_DATABASE=healthcare_db
 DB_USERNAME=root
 DB_PASSWORD=
 ```
+
 4. Run migrations and seed data:
 ```bash
 php artisan migrate --seed
@@ -201,6 +258,10 @@ This prevents the `Bad Request — speaking plain HTTP to an SSL-enabled server 
 
 ### Step 7: Create Database
 ```powershell
+# M-healthcare (Base)
+mysql -u root -e "CREATE DATABASE healthcare_base_db;"
+
+# maternal-healthcare (Advanced)
 mysql -u root -e "CREATE DATABASE healthcare_db;"
 ```
 
