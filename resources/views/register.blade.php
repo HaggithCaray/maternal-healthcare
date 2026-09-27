@@ -205,7 +205,7 @@
                         <p class="text-body-sm text-on-surface-variant">Check all that apply to the patient's history.</p>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-md">
-                        @foreach(['Hypertension', 'Diabetes', 'Asthma', 'Heart Disease', 'Anemia', 'Multiple Births'] as $i => $condition)
+                        @foreach(\App\Models\MaternalRecord::CONDITIONS as $i => $condition)
                         <div class="flex items-center p-sm rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer">
                             <input name="medical_history[{{ $condition }}]" value="1" class="w-5 h-5 rounded text-primary focus:ring-primary mr-sm" id="hist_{{ $i + 1 }}" type="checkbox">
                             <label class="text-on-surface-variant text-sm cursor-pointer" for="hist_{{ $i + 1 }}">{{ $condition }}</label>

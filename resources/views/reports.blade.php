@@ -2,233 +2,255 @@
 
 @section('title', 'Reports')
 
+@push('styles')
+<style>
+    /* Chart series colors (validated for color-vision deficiency and contrast on white) */
+    .series-maternal { background-color: #2a78d6; }
+    .series-child { background-color: #eb6834; }
+
+    @media print {
+        #sidebar, main > header, main > footer, .no-print, .fixed { display: none !important; }
+        main { margin-left: 0 !important; }
+        .soft-drop-shadow { box-shadow: none !important; border: 1px solid #c2c6d4; }
+        details > table { display: table !important; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+</style>
+@endpush
+
 @section('content')
+@php
+    $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    $totals = array_map('array_sum', $monthlyRegistrations);
+    $peakTotal = max($totals);
+
+    // Clean y-axis maximum: the smallest of 1, 2, 5 x 10^n that fits the busiest month (4 at minimum).
+    $axisMax = 4;
+    foreach ([1, 2, 5, 10, 20, 50, 100, 200, 500, 1000] as $step) {
+        if ($step * 4 >= $peakTotal) { $axisMax = $step * 4; break; }
+    }
+    $ticks = [$axisMax, $axisMax * 3 / 4, $axisMax / 2, $axisMax / 4, 0];
+    $peakMonth = $peakTotal > 0 ? array_search($peakTotal, $totals, true) : null;
+@endphp
+
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-md mb-lg">
     <div>
         <h3 class="font-headline-lg text-headline-lg text-primary">Reports &amp; Analytics</h3>
-        <p class="text-on-surface-variant font-body-md">Generate and export reports on maternal and child health data.</p>
+        <p class="text-on-surface-variant font-body-md">Barangay Bicao maternal and child health summary for {{ $year }}.</p>
     </div>
-    <button class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap">
-        <span class="material-symbols-outlined">download</span>
-        Export Report
-    </button>
-</div>
-
-<div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10 mb-lg">
-    <div class="flex items-center gap-lg flex-wrap">
-        <div class="flex items-center gap-sm">
-            <span class="material-symbols-outlined text-on-surface-variant">calendar_month</span>
-            <div>
-                <p class="text-label-sm text-on-surface-variant">From</p>
-                <p class="text-label-md font-label-md">Oct 1, 2023</p>
-            </div>
-        </div>
-        <span class="material-symbols-outlined text-outline">arrow_forward</span>
-        <div class="flex items-center gap-sm">
-            <span class="material-symbols-outlined text-on-surface-variant">calendar_month</span>
-            <div>
-                <p class="text-label-sm text-on-surface-variant">To</p>
-                <p class="text-label-md font-label-md">Oct 31, 2023</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-sm border-l border-outline-variant/20 pl-lg">
-            <span class="material-symbols-outlined text-on-surface-variant">category</span>
-            <select class="bg-surface-container border-none rounded-lg px-md py-xs text-label-md font-label-md text-on-surface focus:ring-1 focus:ring-primary outline-none">
-                <option>All Reports</option>
-                <option>Monthly Summary</option>
-                <option>Immunization</option>
-                <option>Maternal Health</option>
-                <option>Growth Monitoring</option>
+    <div class="flex items-center gap-sm no-print">
+        <form method="GET" action="{{ route('reports') }}" class="flex items-center gap-xs">
+            <label for="report-year" class="text-label-md text-on-surface-variant">Year</label>
+            <select id="report-year" name="year" onchange="this.form.submit()" class="bg-surface-container border border-outline-variant rounded-lg px-md py-xs text-label-md font-label-md text-on-surface focus:ring-1 focus:ring-primary">
+                @foreach($years as $option)
+                <option value="{{ $option }}" @selected($option === $year)>{{ $option }}</option>
+                @endforeach
             </select>
-        </div>
-        <button class="ml-auto bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all">
-            <span class="material-symbols-outlined">refresh</span>
-            Generate
+            <noscript><button type="submit" class="px-sm py-xs border border-outline-variant rounded-lg text-label-md">Show</button></noscript>
+        </form>
+        <button type="button" onclick="window.print()" class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap">
+            <span class="material-symbols-outlined">print</span>
+            Print Report
         </button>
     </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-md mb-lg">
+{{-- Headline figures --}}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-md mb-lg">
     <div class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/10">
-        <div class="flex items-start justify-between mb-sm">
-            <span class="material-symbols-outlined text-primary text-3xl">assessment</span>
-            <span class="px-sm py-xs bg-primary-container/20 text-primary rounded-full text-label-sm font-label-sm">Updated</span>
-        </div>
-        <p class="font-label-md text-on-surface">Monthly Summary</p>
-        <p class="text-xs text-on-surface-variant mt-xs">Comprehensive overview of all patient activities, visits, and outcomes for the selected period.</p>
-        <div class="flex justify-between items-center mt-md pt-sm border-t border-outline-variant/10">
-            <span class="text-label-sm text-on-surface-variant">Last: Oct 1, 2023</span>
-            <button class="text-primary text-label-sm font-label-sm flex items-center gap-xs hover:underline">
-                <span class="material-symbols-outlined text-[16px]">download</span>
-                Download
-            </button>
-        </div>
+        <p class="text-label-sm text-on-surface-variant">Registered patients</p>
+        <p class="text-headline-md font-bold text-on-surface mt-xs">{{ number_format($totalPatients) }}</p>
+        <p class="text-xs text-on-surface-variant mt-xs">{{ number_format($maternalCases) }} mothers &bull; {{ number_format($childRecords) }} children</p>
     </div>
     <div class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/10">
-        <div class="flex items-start justify-between mb-sm">
-            <span class="material-symbols-outlined text-secondary text-3xl">immunology</span>
-            <span class="px-sm py-xs bg-secondary-container/20 text-secondary rounded-full text-label-sm font-label-sm">Quarterly</span>
-        </div>
-        <p class="font-label-md text-on-surface">Immunization Coverage</p>
-        <p class="text-xs text-on-surface-variant mt-xs">Vaccination rates by barangay, coverage gaps, and wastage analysis for the current quarter.</p>
-        <div class="flex justify-between items-center mt-md pt-sm border-t border-outline-variant/10">
-            <span class="text-label-sm text-on-surface-variant">Last: Q3 2023</span>
-            <button class="text-primary text-label-sm font-label-sm flex items-center gap-xs hover:underline">
-                <span class="material-symbols-outlined text-[16px]">download</span>
-                Download
-            </button>
-        </div>
+        <p class="text-label-sm text-on-surface-variant">New registrations in {{ $year }}</p>
+        <p class="text-headline-md font-bold text-on-surface mt-xs">{{ number_format($registeredInYear) }}</p>
+        <p class="text-xs text-on-surface-variant mt-xs">
+            {{ number_format(array_sum(array_column($monthlyRegistrations, 'Maternal'))) }} mothers &bull;
+            {{ number_format(array_sum(array_column($monthlyRegistrations, 'Child'))) }} children
+        </p>
     </div>
     <div class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/10">
-        <div class="flex items-start justify-between mb-sm">
-            <span class="material-symbols-outlined text-tertiary text-3xl">demography</span>
-            <span class="px-sm py-xs bg-tertiary-fixed-dim/20 text-tertiary rounded-full text-label-sm font-label-sm">Annual</span>
-        </div>
-        <p class="font-label-md text-on-surface">Demographic Data</p>
-        <p class="text-xs text-on-surface-variant mt-xs">Population breakdown by age group, gender, and barangay with year-over-year comparison.</p>
-        <div class="flex justify-between items-center mt-md pt-sm border-t border-outline-variant/10">
-            <span class="text-label-sm text-on-surface-variant">Last: 2023</span>
-            <button class="text-primary text-label-sm font-label-sm flex items-center gap-xs hover:underline">
-                <span class="material-symbols-outlined text-[16px]">download</span>
-                Download
-            </button>
-        </div>
+        <p class="text-label-sm text-on-surface-variant">Immunization coverage, {{ $year }}</p>
+        <p class="text-headline-md font-bold text-on-surface mt-xs">{{ $complianceRate === null ? '—' : $complianceRate . '%' }}</p>
+        <p class="text-xs text-on-surface-variant mt-xs">
+            @if($complianceRate === null)
+                No doses were due in {{ $year }}.
+            @else
+                {{ number_format($dosesGiven) }} of {{ number_format($dosesDue) }} doses due so far were given.
+            @endif
+        </p>
+    </div>
+    <div class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow border border-outline-variant/10">
+        <p class="text-label-sm text-on-surface-variant">High-risk mothers</p>
+        <p class="text-headline-md font-bold text-on-surface mt-xs flex items-center gap-xs">
+            @if($highRiskMothers > 0)<span class="material-symbols-outlined text-error" aria-hidden="true">warning</span>@endif
+            {{ number_format($highRiskMothers) }}
+        </p>
+        <p class="text-xs text-on-surface-variant mt-xs">Currently marked High Risk in Records.</p>
     </div>
 </div>
 
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter mb-lg">
-    <div class="col-span-1 xl:col-span-7 bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10">
-        <div class="flex items-center justify-between mb-md">
-            <h4 class="font-headline-sm text-headline-sm">Report Generation Trends</h4>
-            <div class="flex bg-surface-container rounded-lg p-xs">
-                <button class="px-md py-xs bg-surface-container-lowest rounded-md text-label-sm font-label-sm shadow-sm">Weekly</button>
-                <button class="px-md py-xs text-on-surface-variant text-label-sm font-label-sm">Monthly</button>
-                <button class="px-md py-xs text-on-surface-variant text-label-sm font-label-sm">Yearly</button>
+    {{-- Monthly registrations --}}
+    <div class="col-span-1 xl:col-span-8 bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10">
+        <div class="flex flex-wrap items-start justify-between gap-sm mb-md">
+            <div>
+                <h4 class="font-headline-sm text-headline-sm">Registrations per month, {{ $year }}</h4>
+                <p class="text-body-sm text-on-surface-variant">New patients by month of registration.</p>
+            </div>
+            <div class="flex items-center gap-md text-label-sm text-on-surface" aria-label="Legend">
+                <span class="flex items-center gap-xs"><span class="series-maternal inline-block w-3 h-3 rounded-sm"></span>Maternal</span>
+                <span class="flex items-center gap-xs"><span class="series-child inline-block w-3 h-3 rounded-sm"></span>Child</span>
             </div>
         </div>
-        <div class="relative h-56 w-full bg-surface-container-low rounded-lg overflow-hidden flex items-end px-md pb-md">
-            <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#00478d 0.5px, transparent 0.5px); background-size: 24px 24px;"></div>
-            <div class="flex items-end justify-between w-full h-4/5 gap-xs z-10">
-                @php $weeks = [65, 80, 55, 92, 70, 45, 85]; $labels = ['Week 39', 'Week 40', 'Week 41', 'Week 42', 'Week 43', 'Week 44', 'Week 45']; @endphp
-                @foreach($weeks as $i => $val)
-                <div class="w-full relative group cursor-pointer">
-                    <div class="bg-primary rounded-t-sm hover:bg-primary/80 transition-colors" style="height: {{ $val }}%"></div>
-                    <div class="absolute -top-7 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-xs py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{{ $val }} reports</div>
-                    <p class="text-[9px] text-on-surface-variant text-center mt-1">{{ $labels[$i] }}</p>
-                </div>
+
+        @if($registeredInYear === 0)
+            <div class="h-56 flex items-center justify-center bg-surface-container-low rounded-lg text-body-sm text-on-surface-variant">
+                No patients were registered in {{ $year }}.
+            </div>
+        @else
+        <div class="flex gap-xs" role="img" aria-label="Column chart of monthly registrations in {{ $year }}; the table below lists every value.">
+            {{-- Y axis --}}
+            <div class="flex flex-col justify-between h-56 pb-5 text-[10px] text-on-surface-variant text-right w-6 tabular-nums" aria-hidden="true">
+                @foreach($ticks as $tick)
+                <span class="leading-none">{{ $tick == (int) $tick ? (int) $tick : $tick }}</span>
                 @endforeach
             </div>
+            {{-- Plot --}}
+            <div class="relative flex-1 h-56">
+                <div class="absolute inset-x-0 top-0 bottom-5 flex flex-col justify-between pointer-events-none" aria-hidden="true">
+                    @foreach($ticks as $tick)
+                    <div class="border-t border-outline-variant/50"></div>
+                    @endforeach
+                </div>
+                {{-- Columns fill the gridline area exactly, so segment heights are a share of the axis maximum --}}
+                <div class="absolute inset-x-0 top-0 bottom-5 flex">
+                    @foreach($monthlyRegistrations as $month => $counts)
+                    @php $total = $totals[$month]; @endphp
+                    <div class="group relative flex-1 h-full flex justify-center outline-none rounded-t hover:bg-surface-container-low/70 focus:bg-surface-container-low/70" tabindex="0"
+                         aria-label="{{ $monthNames[$month - 1] }} {{ $year }}: {{ $counts['Maternal'] }} maternal, {{ $counts['Child'] }} child, {{ $total }} total">
+                        <div class="h-full w-full max-w-6 flex flex-col justify-end gap-[2px]">
+                            @if($month === $peakMonth)
+                            <span class="text-[10px] font-bold text-on-surface text-center tabular-nums leading-none mb-[2px]">{{ $total }}</span>
+                            @endif
+                            @if($counts['Child'] > 0)
+                            <div class="series-child w-full rounded-t shrink-0" style="height: {{ $counts['Child'] / $axisMax * 100 }}%"></div>
+                            @endif
+                            @if($counts['Maternal'] > 0)
+                            <div class="series-maternal w-full shrink-0 {{ $counts['Child'] > 0 ? '' : 'rounded-t' }}" style="height: {{ $counts['Maternal'] / $axisMax * 100 }}%"></div>
+                            @endif
+                        </div>
+                        {{-- Tooltip --}}
+                        <div class="pointer-events-none absolute bottom-full mb-1 z-20 hidden group-hover:block group-focus:block bg-inverse-surface text-inverse-on-surface text-[11px] rounded-lg px-sm py-xs shadow-lg whitespace-nowrap">
+                            <p class="font-bold">{{ $monthNames[$month - 1] }} {{ $year }}</p>
+                            <p class="flex items-center gap-xs"><span class="series-maternal inline-block w-2 h-2 rounded-sm"></span>Maternal: {{ $counts['Maternal'] }}</p>
+                            <p class="flex items-center gap-xs"><span class="series-child inline-block w-2 h-2 rounded-sm"></span>Child: {{ $counts['Child'] }}</p>
+                            <p>Total: {{ $total }}</p>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                <div class="absolute inset-x-0 bottom-0 h-5 flex items-end" aria-hidden="true">
+                    @foreach($monthNames as $name)
+                    <span class="flex-1 text-center text-[10px] text-on-surface-variant leading-none">{{ $name }}</span>
+                    @endforeach
+                </div>
+            </div>
         </div>
+        @endif
+
+        <details class="mt-md">
+            <summary class="text-label-md text-primary cursor-pointer no-print">Show as table</summary>
+            <table class="w-full mt-sm text-body-sm tabular-nums">
+                <thead>
+                    <tr class="text-left text-on-surface-variant border-b border-outline-variant/30">
+                        <th class="py-xs font-medium">Month</th>
+                        <th class="py-xs font-medium text-right">Maternal</th>
+                        <th class="py-xs font-medium text-right">Child</th>
+                        <th class="py-xs font-medium text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($monthlyRegistrations as $month => $counts)
+                    <tr class="border-b border-outline-variant/10">
+                        <td class="py-xs">{{ $monthNames[$month - 1] }} {{ $year }}</td>
+                        <td class="py-xs text-right">{{ $counts['Maternal'] }}</td>
+                        <td class="py-xs text-right">{{ $counts['Child'] }}</td>
+                        <td class="py-xs text-right font-bold">{{ $totals[$month] }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </details>
     </div>
-    <div class="col-span-1 xl:col-span-5 bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10">
-        <h4 class="font-headline-sm text-headline-sm mb-md">Quick Stats</h4>
-        <div class="space-y-sm">
-            <div class="flex items-center justify-between p-sm bg-primary-container/10 rounded-lg">
-                <span class="text-label-md">Reports Generated (Oct)</span>
-                <span class="text-label-md font-bold text-primary">248</span>
+
+    {{-- Prenatal care and immunization follow-up --}}
+    <div class="col-span-1 xl:col-span-4 space-y-gutter">
+        <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10">
+            <h4 class="font-headline-sm text-headline-sm mb-md">Prenatal care, {{ $year }}</h4>
+            <div class="space-y-sm">
+                <div class="flex items-center justify-between p-sm bg-primary-container/10 rounded-lg">
+                    <span class="text-label-md">Prenatal visits logged</span>
+                    <span class="text-label-md font-bold text-on-surface tabular-nums">{{ number_format($prenatalVisits) }}</span>
+                </div>
+                <div class="flex items-center justify-between p-sm bg-error-container/10 rounded-lg">
+                    <span class="text-label-md flex items-center gap-xs">
+                        <span class="material-symbols-outlined text-error text-[18px]" aria-hidden="true">warning</span>
+                        Visits flagged High Risk
+                    </span>
+                    <span class="text-label-md font-bold text-on-surface tabular-nums">{{ number_format($highRiskVisits) }}</span>
+                </div>
             </div>
-            <div class="flex items-center justify-between p-sm bg-secondary-container/10 rounded-lg">
-                <span class="text-label-md">Avg. Generation Time</span>
-                <span class="text-label-md font-bold text-secondary">2.4s</span>
+        </div>
+        <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10">
+            <h4 class="font-headline-sm text-headline-sm mb-md">Immunization follow-up</h4>
+            <div class="flex items-center justify-between p-sm {{ $overdueDoses > 0 ? 'bg-error-container/10' : 'bg-tertiary-fixed-dim/10' }} rounded-lg">
+                <span class="text-label-md flex items-center gap-xs">
+                    <span class="material-symbols-outlined {{ $overdueDoses > 0 ? 'text-error' : 'text-tertiary' }} text-[18px]" aria-hidden="true">{{ $overdueDoses > 0 ? 'schedule' : 'check_circle' }}</span>
+                    Overdue doses (all years)
+                </span>
+                <span class="text-label-md font-bold text-on-surface tabular-nums">{{ number_format($overdueDoses) }}</span>
             </div>
-            <div class="flex items-center justify-between p-sm bg-tertiary-fixed-dim/10 rounded-lg">
-                <span class="text-label-md">Scheduled Reports</span>
-                <span class="text-label-md font-bold text-tertiary">12</span>
-            </div>
-            <div class="flex items-center justify-between p-sm bg-error-container/10 rounded-lg">
-                <span class="text-label-md">Failed Last 7 Days</span>
-                <span class="text-label-md font-bold text-error">3</span>
-            </div>
-            <div class="flex items-center justify-between p-sm bg-surface-container rounded-lg">
-                <span class="text-label-md">Storage Used</span>
-                <span class="text-label-md font-bold">2.4 GB</span>
-            </div>
+            <p class="text-xs text-on-surface-variant mt-sm">Scheduled doses whose date has passed without being marked as given.</p>
         </div>
     </div>
 </div>
 
-<div class="bg-surface-container-lowest rounded-xl soft-drop-shadow border border-outline-variant/10">
-    <div class="flex items-center justify-between p-md border-b border-outline-variant/10">
-        <h4 class="font-headline-sm text-headline-sm">Recent Reports</h4>
-        <div class="flex items-center gap-sm">
-            <span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">grid_view</span>
-            <span class="material-symbols-outlined text-primary cursor-pointer">view_list</span>
-        </div>
+{{-- Child nutrition --}}
+<div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10">
+    <div class="flex flex-wrap items-baseline justify-between gap-sm mb-md">
+        <h4 class="font-headline-sm text-headline-sm">Child nutritional status</h4>
+        <p class="text-body-sm text-on-surface-variant">Latest measurement of each child &bull; WHO Child Growth Standards</p>
     </div>
-    <div class="overflow-x-auto">
-    <table class="w-full">
+    @if($childrenMeasured === 0)
+        <p class="text-body-sm text-on-surface-variant">No growth measurements recorded yet.</p>
+    @else
+    <table class="w-full text-body-sm tabular-nums">
         <thead>
-            <tr class="text-left text-label-sm text-on-surface-variant border-b border-outline-variant/10">
-                <th class="p-md font-medium">Report Name</th>
-                <th class="p-md font-medium">Type</th>
-                <th class="p-md font-medium">Generated By</th>
-                <th class="p-md font-medium">Date</th>
-                <th class="p-md font-medium">Size</th>
-                <th class="p-md font-medium">Status</th>
-                <th class="p-md font-medium"></th>
+            <tr class="text-left text-on-surface-variant border-b border-outline-variant/30">
+                <th class="py-xs font-medium">Status (most severe finding)</th>
+                <th class="py-xs font-medium text-right">Children</th>
+                <th class="py-xs font-medium text-right">Share</th>
             </tr>
         </thead>
         <tbody>
-            @php
-                $reports = [
-                    ['Monthly Summary - Oct 2023', 'Summary', 'Dr. Maria Santos', 'Oct 31, 2023', '2.4 MB', 'completed', 'primary'],
-                    ['Immunization Coverage Q3', 'Immunization', 'Nurse Elena', 'Oct 28, 2023', '1.8 MB', 'completed', 'secondary'],
-                    ['Demographic Report 2023', 'Demographic', 'Admin', 'Oct 25, 2023', '4.2 MB', 'completed', 'tertiary'],
-                    ['Maternal Health Outcomes', 'Maternal', 'Dr. Cruz', 'Oct 22, 2023', '3.1 MB', 'completed', 'primary'],
-                    ['Growth Monitoring Batch', 'Growth', 'Nurse Reyes', 'Oct 20, 2023', '1.2 MB', 'failed', 'error'],
-                    ['Vaccine Wastage Analysis', 'Immunization', 'Admin', 'Oct 18, 2023', '0.8 MB', 'completed', 'secondary'],
-                    ['Barangay Coverage Report', 'Summary', 'Dr. Maria Santos', 'Oct 15, 2023', '5.6 MB', 'completed', 'primary'],
-                ];
-            @endphp
-            @foreach($reports as $report)
-            <tr class="border-b border-outline-variant/5 hover:bg-surface-container-high/20 transition-colors">
-                <td class="p-md">
-                    <div class="flex items-center gap-sm">
-                        <span class="material-symbols-outlined text-{{ $report[5] === 'failed' ? 'error' : $report[6] }}">description</span>
-                        <span class="text-label-md font-label-md">{{ $report[0] }}</span>
-                    </div>
-                </td>
-                <td class="p-md">
-                    <span class="px-sm py-xs bg-{{ $report[6] }}-container/20 text-{{ $report[6] }} rounded-full text-label-sm font-label-sm">
-                        {{ $report[1] }}
-                    </span>
-                </td>
-                <td class="p-md text-label-md text-on-surface-variant">{{ $report[2] }}</td>
-                <td class="p-md text-label-md text-on-surface-variant">{{ $report[3] }}</td>
-                <td class="p-md text-label-md text-on-surface-variant">{{ $report[4] }}</td>
-                <td class="p-md">
-                    @if($report[5] === 'completed')
-                    <span class="flex items-center gap-xs text-tertiary text-label-sm font-label-sm">
-                        <span class="w-1.5 h-1.5 bg-tertiary rounded-full"></span>
-                        Completed
-                    </span>
-                    @else
-                    <span class="flex items-center gap-xs text-error text-label-sm font-label-sm">
-                        <span class="w-1.5 h-1.5 bg-error rounded-full"></span>
-                        Failed
-                    </span>
-                    @endif
-                </td>
-                <td class="p-md">
-                    <button class="text-primary text-label-sm font-label-sm flex items-center gap-xs hover:underline">
-                        <span class="material-symbols-outlined text-[16px]">download</span>
-                        Download
-                    </button>
-                </td>
+            @foreach($nutritionSummary as $status => $count)
+            <tr class="border-b border-outline-variant/10">
+                <td class="py-xs">@include('partials.growth.status-badge', ['status' => $status])</td>
+                <td class="py-xs text-right">{{ number_format($count) }}</td>
+                <td class="py-xs text-right">{{ round($count / $childrenMeasured * 100) }}%</td>
             </tr>
             @endforeach
         </tbody>
+        <tfoot>
+            <tr class="font-bold">
+                <td class="py-xs">Children measured</td>
+                <td class="py-xs text-right">{{ number_format($childrenMeasured) }}</td>
+                <td class="py-xs text-right">100%</td>
+            </tr>
+        </tfoot>
     </table>
-    </div>
-    <div class="flex items-center justify-between p-md border-t border-outline-variant/10">
-        <span class="text-label-sm text-on-surface-variant">Showing 7 of 42 reports</span>
-        <div class="flex gap-sm">
-            <button class="px-sm py-xs border border-outline-variant rounded-lg text-label-sm hover:bg-surface-container-high transition-colors">Previous</button>
-            <button class="px-sm py-xs bg-primary text-on-primary rounded-lg text-label-sm">1</button>
-            <button class="px-sm py-xs border border-outline-variant rounded-lg text-label-sm hover:bg-surface-container-high transition-colors">2</button>
-            <button class="px-sm py-xs border border-outline-variant rounded-lg text-label-sm hover:bg-surface-container-high transition-colors">3</button>
-            <button class="px-sm py-xs border border-outline-variant rounded-lg text-label-sm hover:bg-surface-container-high transition-colors">Next</button>
-        </div>
-    </div>
+    @endif
 </div>
 @endsection

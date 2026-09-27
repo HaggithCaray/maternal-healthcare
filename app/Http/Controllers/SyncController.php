@@ -165,7 +165,7 @@ class SyncController extends Controller
                 'gravida' => $data['gravida'] ?? 1,
                 'para' => $data['para'] ?? 0,
                 'philhealth_number' => $data['philhealth_number'] ?? null,
-                'medical_history' => $data['medical_history'] ?? [],
+                'medical_history' => MaternalRecord::normalizeConditions($data['medical_history'] ?? []),
                 'allergies' => $data['allergies'] ?? null,
                 'birth_plan' => [
                     'facility' => 'Barangay Bicao Health Station',

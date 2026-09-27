@@ -220,9 +220,12 @@
                 <div class="mt-md">
                     <label class="font-label-md text-label-md text-on-surface-variant mb-xs block">Medical History</label>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-md">
-                        @foreach(['Hypertension', 'Diabetes', 'Asthma', 'Heart Disease', 'Anemia', 'Multiple Births'] as $i => $condition)
                         @php
-                            $checked = in_array($condition, old('medical_history', $patient->maternalRecord->medical_history ?? []));
+                            $checkedConditions = \App\Models\MaternalRecord::normalizeConditions(old('medical_history', $patient->maternalRecord->medical_history ?? []));
+                        @endphp
+                        @foreach(\App\Models\MaternalRecord::CONDITIONS as $i => $condition)
+                        @php
+                            $checked = in_array($condition, $checkedConditions, true);
                         @endphp
                         <div class="flex items-center p-sm rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer">
                             <input name="medical_history[{{ $condition }}]" value="1" {{ $checked ? 'checked' : '' }} class="w-5 h-5 rounded text-primary focus:ring-primary mr-sm" id="hist_{{ $i + 1 }}" type="checkbox">

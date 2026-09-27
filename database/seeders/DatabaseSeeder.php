@@ -70,14 +70,7 @@ class DatabaseSeeder extends Seeder
             'blood_type' => 'O+',
             'height_cm' => 152.5,
             'allergies' => 'None',
-            'medical_history' => [
-                'Hypertension' => false,
-                'Diabetes' => false,
-                'Asthma' => false,
-                'Heart Disease' => false,
-                'Anemia' => false,
-                'Multiple Births' => false
-            ],
+            'medical_history' => [],
             'birth_plan' => [
                 'facility' => 'Barangay Bicao Health Station',
                 'attendant' => 'Midwife Elena',
@@ -394,14 +387,7 @@ class DatabaseSeeder extends Seeder
             'blood_type' => 'A+',
             'height_cm' => 150.0,
             'allergies' => 'Penicillin',
-            'medical_history' => [
-                'Hypertension' => true,
-                'Diabetes' => false,
-                'Asthma' => true,
-                'Heart Disease' => false,
-                'Anemia' => true,
-                'Multiple Births' => false
-            ],
+            'medical_history' => ['Hypertension', 'Asthma', 'Anemia'],
             'birth_plan' => [
                 'facility' => 'Carmen District Hospital',
                 'attendant' => 'Dr. Elena',

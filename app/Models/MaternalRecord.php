@@ -35,20 +35,37 @@ class MaternalRecord extends Model
     }
 
     /**
-     * Checked medical-history conditions as a plain list. Older registrations stored
-     * the checkbox map ({"Hypertension": "1"}) instead of a list, so accept both.
+     * Medical-history checklist shown on the registration and edit forms.
+     */
+    public const CONDITIONS = ['Hypertension', 'Diabetes', 'Asthma', 'Heart Disease', 'Anemia', 'Multiple Births'];
+
+    /**
+     * Normalize checklist input to a plain list of known conditions, e.g. ["Hypertension", "Anemia"].
+     * Accepts the form's checkbox map ({"Hypertension": "1", "Asthma": "0"}) or an existing list.
+     *
+     * @return array<int, string>
+     */
+    public static function normalizeConditions(mixed $history): array
+    {
+        if (! is_array($history)) {
+            return [];
+        }
+
+        $checked = array_is_list($history)
+            ? array_filter($history, 'is_string')
+            : array_keys(array_filter($history, fn ($value) => filter_var($value, FILTER_VALIDATE_BOOLEAN)));
+
+        return array_values(array_intersect(self::CONDITIONS, $checked));
+    }
+
+    /**
+     * Checked medical-history conditions as a plain list.
      *
      * @return array<int, string>
      */
     public function conditions(): array
     {
-        $history = $this->medical_history ?? [];
-
-        if (array_is_list($history)) {
-            return array_values(array_filter($history, 'is_string'));
-        }
-
-        return array_keys(array_filter($history));
+        return self::normalizeConditions($this->medical_history);
     }
 
     public function patient(): BelongsTo

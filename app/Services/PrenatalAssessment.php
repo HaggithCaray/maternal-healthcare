@@ -20,8 +20,6 @@ class PrenatalAssessment
     public const MONITOR = 'Monitor';
     public const HIGH_RISK = 'High Risk';
 
-    protected const HIGH_RISK_CONDITIONS = ['Hypertension', 'Diabetes', 'Heart Disease', 'Asthma', 'Anemia', 'Multiple Births'];
-
     /**
      * Days since the last menstrual period on $on, or null if the LMP is unknown or after $on.
      */
@@ -177,7 +175,8 @@ class PrenatalAssessment
                 $factors[] = $this->flag(self::HIGH_RISK, "Height under 145 cm ({$record->height_cm} cm).");
             }
 
-            foreach (array_intersect($record->conditions(), self::HIGH_RISK_CONDITIONS) as $condition) {
+            // Every item on the medical-history checklist is a pregnancy risk factor.
+            foreach ($record->conditions() as $condition) {
                 $factors[] = $this->flag(self::HIGH_RISK, "History of {$condition}.");
             }
 

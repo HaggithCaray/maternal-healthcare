@@ -163,7 +163,8 @@ class PatientController extends Controller
                     'gravida' => $request->gravida ?? 1,
                     'para' => $request->para ?? 0,
                     'philhealth_number' => $request->philhealth_number,
-                    'medical_history' => $request->medical_history ?? [],
+                    'medical_history' => MaternalRecord::normalizeConditions($request->input('medical_history', [])),
+                    'allergies' => $request->allergies,
                     'birth_plan' => [
                         'facility' => 'Barangay Bicao Health Station',
                         'attendant' => 'Midwife Elena',
@@ -291,13 +292,6 @@ class PatientController extends Controller
                 $lmp = $request->lmp ? Carbon::parse($request->lmp) : null;
                 $edd = $lmp ? $lmp->copy()->addDays(280) : null;
 
-                $medicalHistory = [];
-                foreach (['Hypertension', 'Diabetes', 'Asthma', 'Heart Disease', 'Anemia', 'Multiple Births'] as $condition) {
-                    if ($request->boolean("medical_history.{$condition}")) {
-                        $medicalHistory[] = $condition;
-                    }
-                }
-
                 $patient->maternalRecord->update([
                     'lmp' => $lmp,
                     'edd' => $edd,
@@ -305,7 +299,7 @@ class PatientController extends Controller
                     'para' => $request->para,
                     'philhealth_number' => $request->philhealth_number,
                     'allergies' => $request->allergies,
-                    'medical_history' => $medicalHistory,
+                    'medical_history' => MaternalRecord::normalizeConditions($request->input('medical_history', [])),
                 ]);
             }
 
