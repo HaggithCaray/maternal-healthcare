@@ -30,7 +30,7 @@ class MaternalRecordController extends Controller
         }
 
         if (!$patient) {
-            return redirect()->route('dashboard')->with('error', 'Maternal patient record not found.');
+            return redirect()->route($this->homeRoute())->with('error', 'Maternal patient record not found.');
         }
 
         $this->authorize('view', $patient);

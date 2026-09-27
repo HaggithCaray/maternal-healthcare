@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\ChatMessage;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ChatController extends Controller
@@ -65,7 +66,7 @@ class ChatController extends Controller
             if ($request->hasFile('file')) {
                 $file = $request->file('file');
                 $safeName = Str::uuid() . '.' . $this->safeExtension($file);
-                $attachmentPath = $file->storeAs('attachments', $safeName, 'public');
+                $attachmentPath = $file->storeAs('attachments', $safeName, 'local');
                 $attachmentName = $file->getClientOriginalName();
                 $attachmentType = $file->getMimeType();
             }
@@ -137,7 +138,7 @@ class ChatController extends Controller
                 if ($request->hasFile('file')) {
                     $file = $request->file('file');
                     $safeName = Str::uuid() . '.' . $this->safeExtension($file);
-                    $attachmentPath = $file->storeAs('attachments', $safeName, 'public');
+                    $attachmentPath = $file->storeAs('attachments', $safeName, 'local');
                     $attachmentName = $file->getClientOriginalName();
                     $attachmentType = $file->getMimeType();
                 }
@@ -171,6 +172,35 @@ class ChatController extends Controller
         }
 
         return view('patient.messaging', compact('midwife', 'messages'));
+    }
+
+    /**
+     * Stream a chat attachment to one of the conversation's participants (or staff).
+     * Attachments live on the private disk so they are never reachable by bare URL.
+     */
+    public function attachment(ChatMessage $message)
+    {
+        $this->authorize('view', $message);
+        abort_unless($message->attachment_path, 404);
+
+        // Uploads made before attachments went private may still be on the public disk.
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($message->attachment_path)) {
+                $name = str_replace(['/', '\\'], '_', $message->attachment_name ?: basename($message->attachment_path));
+                $fallback = preg_replace('/[^A-Za-z0-9._-]/', '_', Str::ascii($name));
+
+                $response = response()->file(Storage::disk($disk)->path($message->attachment_path), [
+                    'Content-Type' => $message->attachment_type ?: 'application/octet-stream',
+                    'X-Content-Type-Options' => 'nosniff',
+                    'Cache-Control' => 'private, max-age=3600',
+                ]);
+                $response->setContentDisposition('inline', $name, $fallback);
+
+                return $response;
+            }
+        }
+
+        abort(404);
     }
 
     /**

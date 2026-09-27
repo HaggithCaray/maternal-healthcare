@@ -52,22 +52,9 @@ class PatientPolicy
      */
     public function update(User $user, Patient $patient): bool
     {
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        if ($patient->user_id !== null && $patient->user_id === $user->id) {
-            return true;
-        }
-
-        if ($patient->registration_type === 'Child' && $patient->childRecord) {
-            $mother = $patient->childRecord->mother;
-            if ($mother && $mother->user_id === $user->id) {
-                return true;
-            }
-        }
-
-        return false;
+        // Clinical fields (status, medical history, LMP) are staff-maintained;
+        // patients may view their own records but not change them.
+        return $user->isAdmin();
     }
 
     /**

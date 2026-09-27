@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class SyncController extends Controller
 {
@@ -99,6 +100,7 @@ class SyncController extends Controller
             'emergency_contact_name' => 'required|string',
             'emergency_contact_phone' => 'required|string',
             'registration_type' => 'required|in:Maternal,Child',
+            'mother_id' => ['nullable', Rule::exists('patients', 'id')->where('registration_type', 'Maternal')],
         ]);
 
         if ($validator->fails()) {
@@ -111,6 +113,9 @@ class SyncController extends Controller
         $email = $data['email'] ?? null;
         if ($email) {
             $user = User::where('email', $email)->first();
+            if ($user && ! $user->isUser()) {
+                throw new \RuntimeException('This email belongs to a staff account and cannot be used for a patient.');
+            }
             if (!$user) {
                 $user = User::create([
                     'name' => $data['first_name'] . ' ' . $data['last_name'],
@@ -162,6 +167,7 @@ class SyncController extends Controller
         } else {
             $child = ChildRecord::create([
                 'patient_id' => $patient->id,
+                'mother_id' => $data['mother_id'] ?? null,
                 'birth_weight_kg' => $data['birth_weight_kg'] ?? 3.0,
                 'birth_height_cm' => $data['birth_height_cm'] ?? 50.0,
                 'birth_type' => 'Single',

@@ -549,7 +549,7 @@ class PageControllerTest extends TestCase
             'role' => 'user',
         ]);
         $response3 = $this->actingAs($anotherUser)->get('/maternal');
-        $response3->assertRedirect('/dashboard');
+        $response3->assertRedirect('/portal');
         $response3->assertSessionHas('error');
     }
 
@@ -972,7 +972,7 @@ class PageControllerTest extends TestCase
      */
     public function test_message_with_image_upload(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::fake('local');
 
         $file = \Illuminate\Http\UploadedFile::fake()->create('vaccine_card.jpg', 100, 'image/jpeg');
 
@@ -996,7 +996,7 @@ class PageControllerTest extends TestCase
         $this->assertFalse($message->isVideo());
         $this->assertFalse($message->isDocument());
 
-        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($message->attachment_path);
+        \Illuminate\Support\Facades\Storage::disk('local')->assertExists($message->attachment_path);
     }
 
     /**
@@ -1004,7 +1004,7 @@ class PageControllerTest extends TestCase
      */
     public function test_message_with_document_upload(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::fake('local');
 
         $file = \Illuminate\Http\UploadedFile::fake()->create('medical_record.pdf', 100, 'application/pdf');
 
@@ -1026,7 +1026,7 @@ class PageControllerTest extends TestCase
         $this->assertFalse($message->isVideo());
         $this->assertTrue($message->isDocument());
 
-        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($message->attachment_path);
+        \Illuminate\Support\Facades\Storage::disk('local')->assertExists($message->attachment_path);
     }
 
     /**
@@ -1034,7 +1034,7 @@ class PageControllerTest extends TestCase
      */
     public function test_message_with_large_video_upload(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::fake('local');
 
         $file = \Illuminate\Http\UploadedFile::fake()->create('test_video.mp4', 15 * 1024, 'video/mp4');
 
@@ -1055,7 +1055,7 @@ class PageControllerTest extends TestCase
         $this->assertEquals('test_video.mp4', $message->attachment_name);
         $this->assertTrue($message->isVideo());
 
-        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($message->attachment_path);
+        \Illuminate\Support\Facades\Storage::disk('local')->assertExists($message->attachment_path);
     }
 
     /**

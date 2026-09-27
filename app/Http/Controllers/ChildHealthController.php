@@ -34,7 +34,7 @@ class ChildHealthController extends Controller
         }
 
         if (!$patient) {
-            return redirect()->route('dashboard')->with('error', 'Child record not found.');
+            return redirect()->route($this->homeRoute())->with('error', 'Child record not found.');
         }
 
         $this->authorize('view', $patient);
@@ -114,7 +114,7 @@ class ChildHealthController extends Controller
         }
 
         if (!$patient) {
-            return redirect()->route('dashboard')->with('error', 'Child immunization record not found.');
+            return redirect()->route($this->homeRoute())->with('error', 'Child immunization record not found.');
         }
 
         $this->authorize('view', $patient);

@@ -41,6 +41,11 @@ class AuthController extends Controller
 
     public function dashboard()
     {
+        // The dashboard lists other patients' names and vaccine schedules — staff only.
+        if (! auth()->user()->isAdmin()) {
+            return redirect()->route('patient.portal');
+        }
+
         $totalMothers = \App\Models\Patient::where('registration_type', 'Maternal')->count();
         $totalChildren = \App\Models\Patient::where('registration_type', 'Child')->count();
         

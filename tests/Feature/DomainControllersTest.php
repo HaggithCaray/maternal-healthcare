@@ -103,7 +103,7 @@ class DomainControllersTest extends TestCase
 
     public function test_chat_file_upload_security_validation(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $file = UploadedFile::fake()->create('medical_chart.pdf', 500, 'application/pdf');
 
@@ -202,7 +202,7 @@ class DomainControllersTest extends TestCase
 
     public function test_chat_upload_uses_safe_extension_not_client_filename(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         // Filename whose final extension (xyz) is NOT in the allowed set, but whose
         // content MIME (application/pdf) passes the mimes rule. The stored file must
@@ -226,7 +226,7 @@ class DomainControllersTest extends TestCase
 
     public function test_chat_upload_rejects_php_client_filename(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         // Laravel's mimes rule blocks .php client extensions outright (shouldBlockPhpUpload),
         // so a PHP-named file must never reach storage even with valid image content.

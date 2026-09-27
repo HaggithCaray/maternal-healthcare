@@ -40,6 +40,34 @@
 </div>
 @endif
 
+@include('partials.flash')
+
+<div class="bg-surface-container-lowest p-md rounded-xl soft-drop-shadow mb-lg flex flex-col sm:flex-row sm:items-center justify-between gap-md">
+    <div class="flex items-center gap-sm">
+        <span class="material-symbols-outlined text-primary bg-primary-container/20 p-xs rounded-lg">account_circle</span>
+        <div>
+            <p class="font-label-md text-label-md text-on-surface">Patient Portal Account</p>
+            @if($patient->user)
+            <p class="text-body-sm text-on-surface-variant">Signs in as <strong>{{ $patient->user->email }}</strong></p>
+            @elseif($patient->email)
+            <p class="text-body-sm text-on-surface-variant">No portal account yet &mdash; one can be created for <strong>{{ $patient->email }}</strong>.</p>
+            @else
+            <p class="text-body-sm text-on-surface-variant">No portal account. Add an email address below to enable one.</p>
+            @endif
+        </div>
+    </div>
+    @if($patient->user || $patient->email)
+    <form method="POST" action="{{ route('patients.portal-password', $patient->id) }}"
+          onsubmit="return confirm('{{ $patient->user ? 'Generate a new temporary password? The old one will stop working.' : 'Create a portal account for this patient?' }}')">
+        @csrf
+        <button type="submit" class="flex items-center gap-xs px-md py-sm rounded-lg border border-primary text-primary font-label-md text-label-md hover:bg-primary-container/20 transition-all whitespace-nowrap">
+            <span class="material-symbols-outlined">key</span>
+            {{ $patient->user ? 'Reset Password' : 'Create Portal Account' }}
+        </button>
+    </form>
+    @endif
+</div>
+
 <form method="POST" action="{{ route('patients.update', $patient->id) }}" id="editPatientForm">
     @csrf
     @method('PUT')
@@ -218,6 +246,16 @@
                     <p class="text-body-sm text-on-surface-variant">Update birth and screening information for this child.</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                    <div class="flex flex-col gap-xs md:col-span-2">
+                        <label class="font-label-md text-label-md text-on-surface-variant">Mother (registered maternal patient)</label>
+                        <select name="mother_id" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base cursor-pointer">
+                            <option value="">&mdash; Not registered / unknown &mdash;</option>
+                            @foreach($mothers as $mother)
+                            <option value="{{ $mother->id }}" @selected(old('mother_id', $patient->childRecord->mother_id) == $mother->id)>{{ $mother->last_name }}, {{ $mother->first_name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-on-surface-variant">The linked mother can see this child's growth and vaccines in her patient portal.</p>
+                    </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Birth Weight (kg)</label>
                         <input name="birth_weight_kg" value="{{ old('birth_weight_kg', $patient->childRecord->birth_weight_kg) }}" step="0.01" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 3.2" type="number">

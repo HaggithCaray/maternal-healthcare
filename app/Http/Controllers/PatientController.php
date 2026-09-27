@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class PatientController extends Controller
 {
@@ -88,7 +89,9 @@ class PatientController extends Controller
 
         $this->authorize('create', Patient::class);
 
-        return view('register');
+        $mothers = $this->maternalPatients();
+
+        return view('register', compact('mothers'));
     }
 
     /**
@@ -104,20 +107,22 @@ class PatientController extends Controller
             'dob' => 'required|date',
             'gender' => 'required|string',
             'phone' => 'required|string',
-            'email' => 'nullable|email',
+            'email' => ['nullable', 'email', $this->notStaffEmail()],
             'address' => 'required|string',
             'emergency_contact_name' => 'required|string',
             'emergency_contact_phone' => 'required|string',
             'registration_type' => 'required|in:Maternal,Child',
+            'mother_id' => ['nullable', $this->maternalPatientRule()],
         ]);
 
         return DB::transaction(function () use ($request) {
             $userId = null;
+            $temporaryPassword = null;
             if ($request->email) {
                 $user = User::where('email', $request->email)->first();
                 if (!$user) {
-                    // SECURE: Generate random secure initial password
-                    $temporaryPassword = Str::random(16);
+                    // Random initial password, shown once to the midwife so the patient can log in
+                    $temporaryPassword = $this->generateTemporaryPassword();
                     $user = User::create([
                         'name' => $request->first_name . ' ' . $request->last_name,
                         'email' => $request->email,
@@ -167,6 +172,7 @@ class PatientController extends Controller
             } else {
                 $child = ChildRecord::create([
                     'patient_id' => $patient->id,
+                    'mother_id' => $request->mother_id,
                     'birth_weight_kg' => $request->birth_weight_kg ?? 3.0,
                     'birth_height_cm' => $request->birth_height_cm ?? 50.0,
                     'birth_type' => 'Single',
@@ -217,7 +223,17 @@ class PatientController extends Controller
                 'name' => $patient->first_name . ' ' . $patient->last_name,
             ]);
 
-            return redirect()->route('records')->with('success', 'Patient registered successfully!');
+            $redirect = redirect()->route('records')->with('success', 'Patient registered successfully!');
+
+            if ($temporaryPassword) {
+                $redirect->with('portal_credentials', [
+                    'name' => $patient->first_name . ' ' . $patient->last_name,
+                    'email' => $request->email,
+                    'password' => $temporaryPassword,
+                ]);
+            }
+
+            return $redirect;
         });
     }
 
@@ -228,11 +244,12 @@ class PatientController extends Controller
     {
         $this->authorize('update', $patient);
 
-        $patient->load(['maternalRecord', 'childRecord']);
+        $patient->load(['maternalRecord', 'childRecord', 'user']);
+        $mothers = $this->maternalPatients();
 
         AuditLog::log('view_edit_patient', $patient);
 
-        return view('patient.edit', compact('patient'));
+        return view('patient.edit', compact('patient', 'mothers'));
     }
 
     /**
@@ -253,6 +270,7 @@ class PatientController extends Controller
             'emergency_contact_name' => 'required|string',
             'emergency_contact_phone' => 'required|string',
             'status' => 'required|string|in:Active,Due for Visit,High Risk,Completed',
+            'mother_id' => ['nullable', $this->maternalPatientRule()],
         ]);
 
         DB::transaction(function () use ($request, $patient) {
@@ -293,6 +311,10 @@ class PatientController extends Controller
             }
 
             if ($patient->registration_type === 'Child' && $patient->childRecord) {
+                if ($request->has('mother_id')) {
+                    $patient->childRecord->mother_id = $request->mother_id;
+                }
+
                 $patient->childRecord->update([
                     'birth_weight_kg' => $request->birth_weight_kg,
                     'birth_height_cm' => $request->birth_height_cm,
@@ -312,6 +334,89 @@ class PatientController extends Controller
         });
 
         return redirect()->route('records')->with('success', 'Patient information updated successfully!');
+    }
+
+    /**
+     * Create (or reset) the patient's portal login and show the temporary password once.
+     */
+    public function resetPortalPassword(Patient $patient)
+    {
+        $this->authorize('update', $patient);
+
+        $temporaryPassword = $this->generateTemporaryPassword();
+        $user = $patient->user;
+
+        if ($user && ! $user->isUser()) {
+            return back()->with('error', 'This patient is linked to a staff account; its password cannot be reset here.');
+        }
+
+        if (! $user) {
+            if (! $patient->email) {
+                return back()->with('error', 'Add an email address for this patient first, then create the portal account.');
+            }
+
+            if (User::where('email', $patient->email)->exists()) {
+                return back()->with('error', 'That email address is already used by another account.');
+            }
+
+            $user = User::create([
+                'name' => $patient->first_name . ' ' . $patient->last_name,
+                'email' => $patient->email,
+                'password' => Hash::make($temporaryPassword),
+                'role' => 'user',
+            ]);
+            $patient->update(['user_id' => $user->id]);
+        } else {
+            $user->update(['password' => Hash::make($temporaryPassword)]);
+        }
+
+        AuditLog::log('reset_patient_portal_password', $patient);
+
+        return back()->with('portal_credentials', [
+            'name' => $patient->first_name . ' ' . $patient->last_name,
+            'email' => $user->email,
+            'password' => $temporaryPassword,
+        ]);
+    }
+
+    /**
+     * Maternal patients a child record can be linked to.
+     */
+    protected function maternalPatients()
+    {
+        return Patient::where('registration_type', 'Maternal')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get(['id', 'first_name', 'last_name']);
+    }
+
+    /**
+     * Validation rule: the given id must be a registered maternal patient.
+     */
+    protected function maternalPatientRule()
+    {
+        return Rule::exists('patients', 'id')->where('registration_type', 'Maternal');
+    }
+
+    /**
+     * Validation rule: a patient's email must not belong to a staff account,
+     * otherwise the patient record would be linked to (and log in as) that staff user.
+     */
+    protected function notStaffEmail(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) {
+            if (User::where('email', $value)->where('role', '!=', 'user')->exists()) {
+                $fail('This email belongs to a staff account and cannot be used for a patient.');
+            }
+        };
+    }
+
+    /**
+     * Readable temporary password (no symbols) the midwife can hand to the patient.
+     */
+    protected function generateTemporaryPassword(): string
+    {
+        return Str::password(10, symbols: false);
     }
 
     /**

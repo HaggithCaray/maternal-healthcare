@@ -178,6 +178,16 @@
 
                     <!-- Child Specific Fields (Hidden by default) -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-md hidden" id="childFields">
+                        <div class="flex flex-col gap-xs md:col-span-2">
+                            <label class="font-label-md text-label-md text-on-surface-variant">Mother (registered maternal patient)</label>
+                            <select name="mother_id" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base cursor-pointer">
+                                <option value="">&mdash; Not registered / unknown &mdash;</option>
+                                @foreach($mothers as $mother)
+                                <option value="{{ $mother->id }}" @selected(old('mother_id') == $mother->id)>{{ $mother->last_name }}, {{ $mother->first_name }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-xs text-on-surface-variant">Linking the mother lets her see this child's growth and vaccines in her patient portal.</p>
+                        </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Birth Weight (kg)</label>
                             <input name="birth_weight_kg" step="0.01" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 3.2" type="number">

@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/register', [PatientController::class, 'register'])->name('register');
     Route::get('/patients/{patient}/edit', [PatientController::class, 'edit'])->name('patients.edit');
     Route::put('/patients/{patient}', [PatientController::class, 'update'])->name('patients.update');
+    Route::post('/patients/{patient}/portal-password', [PatientController::class, 'resetPortalPassword'])->name('patients.portal-password');
     Route::get('/portal', [PatientController::class, 'patientPortal'])->name('patient.portal');
 
     // Maternal Health Tracking
@@ -36,13 +37,16 @@ Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/growth', [ChildHealthController::class, 'growth'])->name('growth');
     Route::match(['get', 'post'], '/immunization', [ChildHealthController::class, 'immunization'])->name('immunization');
 
-    // SMS Gateway Center
-    Route::match(['get', 'post'], '/sms', [SmsGatewayController::class, 'sms'])->name('sms');
-    Route::post('/sms/settings', [SmsGatewayController::class, 'updateSmsSettings'])->name('sms.settings');
-    Route::get('/sms/status', [SmsGatewayController::class, 'testSmsGatewayConnection'])->name('sms.status');
+    // SMS Gateway Center (exposes gateway credentials and every patient's phone number)
+    Route::middleware('role:admin')->group(function () {
+        Route::match(['get', 'post'], '/sms', [SmsGatewayController::class, 'sms'])->name('sms');
+        Route::post('/sms/settings', [SmsGatewayController::class, 'updateSmsSettings'])->name('sms.settings');
+        Route::get('/sms/status', [SmsGatewayController::class, 'testSmsGatewayConnection'])->name('sms.status');
+    });
 
     // Real-Time Chat & Patient Communication
     Route::match(['get', 'post'], '/messaging', [ChatController::class, 'messaging'])->name('messaging');
+    Route::get('/messaging/attachments/{message}', [ChatController::class, 'attachment'])->name('messaging.attachment');
 
     // Reporting & Administration
     Route::get('/reports', [ReportController::class, 'reports'])->name('reports')->middleware('role:admin');

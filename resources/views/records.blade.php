@@ -3,6 +3,8 @@
 @section('title', 'Patient Records')
 
 @section('content')
+@include('partials.flash')
+
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-md mb-lg">
     <div>
         <h3 class="font-headline-lg text-headline-lg text-primary">Patient Records</h3>
