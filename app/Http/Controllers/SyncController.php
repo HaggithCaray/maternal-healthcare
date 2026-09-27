@@ -85,11 +85,25 @@ class SyncController extends Controller
     }
 
     /**
+     * Validate one queued item; failures are reported per item in the sync response.
+     */
+    private function validateItem(array $data, array $rules): void
+    {
+        $validator = Validator::make($data, $rules);
+
+        if ($validator->fails()) {
+            throw new \RuntimeException(
+                implode(' ', collect($validator->errors()->all())->take(3)->all())
+            );
+        }
+    }
+
+    /**
      * Create a patient from offline registration data.
      */
     private function createPatient(array $data): void
     {
-        $validator = Validator::make($data, [
+        $this->validateItem($data, [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'dob' => 'required|date',
@@ -102,12 +116,6 @@ class SyncController extends Controller
             'registration_type' => 'required|in:Maternal,Child',
             'mother_id' => ['nullable', Rule::exists('patients', 'id')->where('registration_type', 'Maternal')],
         ]);
-
-        if ($validator->fails()) {
-            throw new \RuntimeException(
-                implode(' ', collect($validator->errors()->all())->take(3)->all())
-            );
-        }
 
         $userId = null;
         $email = $data['email'] ?? null;
@@ -180,7 +188,6 @@ class SyncController extends Controller
                 'age_months' => 0,
                 'weight_kg' => $data['birth_weight_kg'] ?? 3.0,
                 'height_cm' => $data['birth_height_cm'] ?? 50.0,
-                'status' => 'Normal',
             ]);
 
             $schedule = [
@@ -219,22 +226,30 @@ class SyncController extends Controller
      */
     private function createCheckup(array $data): void
     {
+        $this->validateItem($data, [
+            'maternal_record_id' => 'required|exists:maternal_records,id',
+            'date' => 'nullable|date|before_or_equal:today',
+            'weight_kg' => 'required|numeric|min:25|max:250',
+            'bp' => ['required', 'string', 'regex:/^\s*\d{2,3}\s*\/\s*\d{2,3}\s*$/'],
+            'fetal_heart_rate' => 'nullable|integer|min:50|max:250',
+        ]);
+
         $record = MaternalRecord::findOrFail($data['maternal_record_id']);
         $visitNumber = $record->checkups()->count() + 1;
-        $weeks = 4 * $visitNumber;
 
+        // Status, risk flags and next visit are derived by MaternalCheckup on save; age of gestation
+        // too when an LMP is on file (otherwise a field estimate such as "24w 2d" is kept).
         MaternalCheckup::create([
             'maternal_record_id' => $record->id,
             'visit_number' => $visitNumber,
             'date' => $data['date'] ?? Carbon::now()->format('Y-m-d'),
             'weight_kg' => $data['weight_kg'],
-            'bp' => $data['bp'],
-            'age_of_gestation' => $data['age_of_gestation'] ?? "{$weeks}w 0d",
-            'fetal_heart_rate' => $data['fetal_heart_rate'],
+            'bp' => preg_replace('/\s+/', '', $data['bp']),
+            'age_of_gestation' => $data['age_of_gestation'] ?? null,
+            'fetal_heart_rate' => $data['fetal_heart_rate'] ?? null,
             'attendant' => auth()->user()->name,
-            'status' => $data['status'] ?? 'Healthy',
             'notes' => $data['notes'] ?? null,
-            'next_visit_date' => $data['next_visit_date'] ?? Carbon::now()->addWeeks(4)->format('Y-m-d'),
+            'next_visit_date' => $data['next_visit_date'] ?? null,
         ]);
     }
 
@@ -243,17 +258,22 @@ class SyncController extends Controller
      */
     private function createGrowth(array $data): void
     {
-        $childRecord = ChildRecord::findOrFail($data['child_record_id']);
-        $dob = $childRecord->patient ? Carbon::parse($childRecord->patient->dob) : Carbon::now();
-        $ageMonths = $data['age_months'] ?? $dob->diffInMonths(Carbon::now());
+        $this->validateItem($data, [
+            'child_record_id' => 'required|exists:child_records,id',
+            'date' => 'nullable|date|before_or_equal:today',
+            'weight_kg' => 'required|numeric|min:0.5|max:100',
+            'height_cm' => 'required|numeric|min:20|max:200',
+        ]);
 
+        $childRecord = ChildRecord::findOrFail($data['child_record_id']);
+
+        // Age in months, WHO z-scores and status are derived by GrowthMeasurement on save.
         GrowthMeasurement::create([
             'child_record_id' => $childRecord->id,
             'date' => $data['date'] ?? Carbon::now()->format('Y-m-d'),
-            'age_months' => $ageMonths,
+            'age_months' => $data['age_months'] ?? 0,
             'weight_kg' => $data['weight_kg'],
             'height_cm' => $data['height_cm'],
-            'status' => $data['status'] ?? 'Normal',
         ]);
     }
 

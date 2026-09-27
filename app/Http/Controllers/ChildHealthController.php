@@ -7,6 +7,7 @@ use App\Models\ChildRecord;
 use App\Models\GrowthMeasurement;
 use App\Models\Immunization;
 use App\Models\Patient;
+use App\Services\WhoGrowthStandards;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -47,10 +48,12 @@ class ChildHealthController extends Controller
             return $this->storeGrowth($request, $childRecord, $patient);
         }
 
+        $latestGrowth = $growthMeasurements->sortByDesc('date')->first();
+
         AuditLog::log('view_growth_record', $patient);
 
         $view = auth()->user()->role === 'user' ? 'patient.growth' : 'growth';
-        return view($view, compact('patient', 'childRecord', 'growthMeasurements'));
+        return view($view, compact('patient', 'childRecord', 'growthMeasurements', 'latestGrowth'));
     }
 
     /**
@@ -72,22 +75,24 @@ class ChildHealthController extends Controller
             $childRecord = $patient->childRecord;
         }
 
-        $ageMonths = Carbon::parse($patient->dob)->diffInMonths(Carbon::now());
-
+        // Age in months, WHO z-scores and nutritional status are derived by GrowthMeasurement on save.
         $measurement = GrowthMeasurement::create([
             'child_record_id' => $childRecord->id,
             'date' => Carbon::now()->format('Y-m-d'),
-            'age_months' => $ageMonths,
             'weight_kg' => $request->weight_kg,
             'height_cm' => $request->height_cm,
-            'status' => 'Normal',
         ]);
 
         AuditLog::log('create_growth_measurement', $measurement, [
             'child_record_id' => $childRecord->id,
             'weight_kg' => $request->weight_kg,
             'height_cm' => $request->height_cm,
+            'status' => $measurement->status,
         ]);
+
+        if (! in_array($measurement->status, [WhoGrowthStandards::NORMAL, WhoGrowthStandards::NOT_ASSESSED], true)) {
+            return back()->with('warning', "Measurement saved. WHO assessment: {$measurement->status}.");
+        }
 
         return back()->with('success', 'Growth measurement log added successfully!');
     }

@@ -185,7 +185,6 @@ class PatientController extends Controller
                     'age_months' => 0,
                     'weight_kg' => $request->birth_weight_kg ?? 3.0,
                     'height_cm' => $request->birth_height_cm ?? 50.0,
-                    'status' => 'Normal',
                 ]);
 
                 $schedule = [

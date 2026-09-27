@@ -11,9 +11,9 @@
         <div>
             <div class="flex items-center gap-sm">
                 <h3 class="font-headline-sm text-headline-sm text-on-surface">{{ $patient->first_name }} {{ $patient->last_name }}</h3>
-                <span class="px-sm py-xs bg-tertiary-fixed text-on-tertiary-fixed rounded-full text-label-sm font-label-sm">Normal Growth</span>
+                @include('partials.growth.status-badge', ['status' => $latestGrowth?->status])
             </div>
-            <p class="text-body-md text-on-surface-variant mt-xs">Age: {{ \Carbon\Carbon::parse($patient->dob)->diffInMonths(\Carbon\Carbon::now()) }} Months &bull; {{ $patient->gender }} &bull; Patient ID: #BC-{{ $patient->created_at->format('Y') }}-{{ sprintf('%03d', $patient->id) }}</p>
+            <p class="text-body-md text-on-surface-variant mt-xs">Age: {{ (int) \Carbon\Carbon::parse($patient->dob)->diffInMonths(\Carbon\Carbon::now()) }} Months &bull; {{ $patient->gender }} &bull; Patient ID: #BC-{{ $patient->created_at->format('Y') }}-{{ sprintf('%03d', $patient->id) }}</p>
         </div>
     </div>
     <a href="{{ route('patient.portal') }}" class="flex-1 md:flex-initial px-md py-sm border border-primary text-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-xs hover:bg-primary/5 transition-all">
@@ -24,37 +24,7 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
     <div class="col-span-1 lg:col-span-8 space-y-gutter">
-        <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow">
-            <div class="flex items-center justify-between mb-lg">
-                <div>
-                    <h4 class="font-headline-sm text-headline-sm">Growth Velocity</h4>
-                    <p class="text-body-sm text-on-surface-variant">Weight and Height trajectory vs. WHO standard</p>
-                </div>
-                <div class="flex bg-surface-container rounded-lg p-xs">
-                    <button class="px-md py-xs bg-surface-container-lowest rounded-md text-label-sm font-label-sm shadow-sm">Weight</button>
-                    <button class="px-md py-xs text-on-surface-variant text-label-sm font-label-sm">Height</button>
-                    <button class="px-md py-xs text-on-surface-variant text-label-sm font-label-sm">BMI</button>
-                </div>
-            </div>
-            <div class="relative h-64 w-full bg-surface-container-low rounded-lg overflow-hidden flex items-end px-md pb-md">
-                <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#00478d 0.5px, transparent 0.5px); background-size: 24px 24px;"></div>
-                <div class="flex items-end justify-between w-full h-4/5 gap-xs md:gap-sm z-10">
-                    @php $bars = [40, 45, 52, 60, 68, 75, 82]; @endphp
-                    @foreach($bars as $i => $h)
-                    <div class="w-full @if($i === 6) bg-primary/30 border-t-2 border-primary @else bg-primary/20 @endif rounded-t-sm relative group cursor-pointer" style="height: {{ $h }}%">
-                        @if($i === 0)
-                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-xs py-1 rounded hidden group-hover:block">8.2kg</div>
-                        @elseif($i === 6)
-                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-xs py-1 rounded">11.5kg</div>
-                        @endif
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            <div class="flex justify-between mt-sm text-label-sm text-on-surface-variant px-md">
-                <span>6m</span><span>8m</span><span>10m</span><span>12m</span><span>14m</span><span>16m</span><span>Today</span>
-            </div>
-        </div>
+        @include('partials.growth.weight-chart')
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
             <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow">
@@ -86,25 +56,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow">
-                <h4 class="font-headline-sm text-headline-sm mb-md flex items-center gap-sm">
-                    <span class="material-symbols-outlined text-tertiary">restaurant</span>
-                    Nutritional Status
-                </h4>
-                <div class="p-md rounded-xl bg-tertiary-fixed-dim/20 border-l-4 border-tertiary text-center">
-                    <p class="text-headline-md font-headline-md text-tertiary">WELL-NOURISHED</p>
-                    <p class="text-body-sm text-on-surface-variant mt-xs">Weight-for-age: Percentile 65%</p>
-                </div>
-                <div class="mt-md space-y-xs">
-                    <div class="flex justify-between text-label-sm">
-                        <span>Daily Protein Intake</span>
-                        <span class="text-tertiary font-bold">Optimal</span>
-                    </div>
-                    <div class="w-full bg-surface-container rounded-full h-2">
-                        <div class="bg-tertiary h-full rounded-full" style="width: 85%"></div>
-                    </div>
-                </div>
-            </div>
+            @include('partials.growth.nutrition')
         </div>
     </div>
 

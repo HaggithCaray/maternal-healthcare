@@ -34,6 +34,23 @@ class MaternalRecord extends Model
         ];
     }
 
+    /**
+     * Checked medical-history conditions as a plain list. Older registrations stored
+     * the checkbox map ({"Hypertension": "1"}) instead of a list, so accept both.
+     *
+     * @return array<int, string>
+     */
+    public function conditions(): array
+    {
+        $history = $this->medical_history ?? [];
+
+        if (array_is_list($history)) {
+            return array_values(array_filter($history, 'is_string'));
+        }
+
+        return array_keys(array_filter($history));
+    }
+
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);

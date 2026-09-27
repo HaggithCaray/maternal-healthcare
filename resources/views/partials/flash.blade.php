@@ -12,6 +12,13 @@
 </div>
 @endif
 
+@if(session('warning'))
+<div class="p-md mb-lg bg-amber-500/10 text-amber-700 rounded-xl border border-amber-500/30 flex items-start gap-xs">
+    <span class="material-symbols-outlined text-amber-600">warning</span>
+    <span class="text-body-sm font-bold">{{ session('warning') }}</span>
+</div>
+@endif
+
 @if(session('portal_credentials'))
 <div class="p-md mb-lg bg-primary-container/20 rounded-xl border border-primary/30 flex items-start gap-sm" id="portal-credentials">
     <span class="material-symbols-outlined text-primary">key</span>
