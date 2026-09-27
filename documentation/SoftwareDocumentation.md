@@ -310,7 +310,7 @@ The system was created using various Frameworks and APIs:
 | **Vonage** | SMS Gateway API | A flexible communications platform, used to send SMS notifications to users using the Android SMS Gateway's Communications API. |
 | **Laravel Reverb** | WebSocket Server | Laravel's first-party WebSocket server for real-time features, used for the online messaging module's live chat functionality. |
 | **MySQL** | Database | The primary relational database management system for production deployments. |
-| **Docker Compose** | Development Environment | Container orchestration tool for running the system (Nginx + PHP-FPM + MySQL + phpMyAdmin) consistently across environments. |
+| **XAMPP** | Local Server Environment | Bundles Apache, MySQL and PHP on Windows; used to run the system locally (MySQL via the XAMPP Control Panel, the app via `php artisan serve`). |
 | **Paragon** | Development IDE | Used for the development environment for the system, which works well with Laravel and MySQL. |
 
 ### 3.3 Offline/Online Architecture
