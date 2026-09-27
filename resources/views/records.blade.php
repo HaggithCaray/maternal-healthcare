@@ -148,10 +148,11 @@
                             <span class="material-symbols-outlined">visibility</span>
                         </a>
                         @endif
-                        <button class="p-xs text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all dropdown-toggle" onclick="toggleDropdown(this)">
+                        <button type="button" class="p-xs text-on-surface-variant hover:bg-surface-variant rounded-lg transition-all dropdown-toggle" onclick="toggleDropdown(this)" aria-haspopup="true" aria-expanded="false" aria-label="More actions for {{ $patient->first_name }} {{ $patient->last_name }}">
                             <span class="material-symbols-outlined">more_vert</span>
                         </button>
-                        <div class="hidden absolute right-0 top-full mt-1 w-48 bg-surface-container-low rounded-xl soft-drop-shadow border border-outline-variant/20 py-2 z-50 dropdown-menu">
+                        {{-- Positioned with the viewport (see toggleDropdown) so the scrolling table can't clip it --}}
+                        <div class="hidden fixed w-48 bg-surface-container-low rounded-xl soft-drop-shadow border border-outline-variant/20 py-2 z-50 text-left dropdown-menu">
                             @if($patient->registration_type === 'Maternal')
                             <a href="{{ route('maternal', ['id' => $patient->id]) }}" class="flex items-center gap-sm px-4 py-2 text-on-surface hover:bg-surface-variant/50 transition-colors text-sm">
                                 <span class="material-symbols-outlined text-[18px]">visibility</span> View Details
@@ -164,7 +165,6 @@
                             <a href="{{ route('patients.edit', $patient->id) }}" class="flex items-center gap-sm px-4 py-2 text-on-surface hover:bg-surface-variant/50 transition-colors text-sm">
                                 <span class="material-symbols-outlined text-[18px]">edit</span> Edit Patient
                             </a>
-                            <div class="border-t border-outline-variant/20 my-1"></div>
                         </div>
                     </div>
                 </td>
@@ -228,28 +228,44 @@
 
 @push('scripts')
 <script>
-    document.querySelectorAll('tbody tr').forEach(row => {
-        row.addEventListener('mouseenter', () => {
-            row.style.transform = 'translateX(4px)';
-            row.style.transition = 'transform 0.2s ease-out';
-        });
-        row.addEventListener('mouseleave', () => {
-            row.style.transform = 'translateX(0px)';
-        });
-    });
+    function closeDropdowns() {
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+        document.querySelectorAll('.dropdown-toggle').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    }
 
+    /*
+     * The table scrolls sideways, so an absolutely positioned menu would be cut off at its edge.
+     * Place the menu against the viewport instead: below the button, or above it near the bottom.
+     */
     function toggleDropdown(btn) {
         const menu = btn.nextElementSibling;
         const isOpen = !menu.classList.contains('hidden');
-        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
-        if (!isOpen) menu.classList.remove('hidden');
+        closeDropdowns();
+        if (isOpen) return;
+
+        menu.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+
+        const rect = btn.getBoundingClientRect();
+        const gap = 4;
+        const fitsBelow = rect.bottom + gap + menu.offsetHeight <= window.innerHeight;
+        menu.style.top = (fitsBelow ? rect.bottom + gap : rect.top - gap - menu.offsetHeight) + 'px';
+        menu.style.left = Math.max(8, rect.right - menu.offsetWidth) + 'px';
     }
 
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.dropdown-toggle') && !e.target.closest('.dropdown-menu')) {
-            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+            closeDropdowns();
         }
     });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeDropdowns();
+    });
+
+    // A fixed menu would drift away from its button while scrolling, so close it instead.
+    window.addEventListener('scroll', closeDropdowns, true);
+    window.addEventListener('resize', closeDropdowns);
 </script>
 @endpush
 @endsection
