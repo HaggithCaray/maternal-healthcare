@@ -203,10 +203,3 @@ tunnel. It is meant for demos, not production.
   Pages must be opened once while online before they are available offline.
 - There is no email-based password reset; staff reset passwords from the Admin page or *Edit Patient*.
 - Developmental milestones are shown as WHO age windows, not recorded per child.
-
-## Repositories
-
-| Repository | Scope |
-|---|---|
-| [maternal-healthcare](https://github.com/HaggithCaray/maternal-healthcare) | This repository — the full system |
-| [M-healthcare](https://github.com/HaggithCaray/M-healthcare) | Base version: authentication, dashboard, patient records and portal |

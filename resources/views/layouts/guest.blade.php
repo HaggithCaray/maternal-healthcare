@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Maternal Health Hub - Maternal &amp; Child Care Login</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" href="{{ asset('icons/icon-192.png') }}">
     @fonts
     @vite('resources/css/guest.css')
 
