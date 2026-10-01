@@ -11,8 +11,15 @@ See [[Local Development Setup]] for running locally with XAMPP.
 
 ## Production Considerations
 
+### Before going live
+Run `php artisan app:go-live-check`: it lists the settings that must change before real patient data is
+entered (debug mode, demo accounts, example real-time keys) and the recommended ones (HTTPS, secure and
+encrypted session cookies, log level, config cache). See the README section "Before using it with real patients".
+
 ### Security
-- HTTPS forced via AppServiceProvider (X-Forwarded-Proto)
+- HTTPS links behind the Cloudflare tunnel come from the trusted-proxy setting (`bootstrap/app.php`), which
+  only believes `X-Forwarded-Proto` from the tunnel on this machine
+- Rate limits on login, password change, chat and SMS sending
 - CSRF tokens on all forms
 - Session-based auth with database driver
 - Role-based access control (CheckRole middleware)
@@ -27,7 +34,7 @@ See [[Local Development Setup]] for running locally with XAMPP.
 ### Backup
 - MySQL database dumps
 - SMS settings in `storage/app/sms_settings.json`
-- Chat attachments in `storage/app/public/`
+- Chat attachments in `storage/app/private/attachments/` (not publicly served)
 
 ### Scaling
 - Reverb supports Redis-backed scaling (disabled by default)
@@ -39,6 +46,11 @@ See [[Local Development Setup]] for running locally with XAMPP.
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://your-domain.com
+LOG_LEVEL=warning
+SESSION_ENCRYPT=true
+SESSION_SECURE_COOKIE=true
+REVERB_APP_KEY=<random>
+REVERB_APP_SECRET=<random>
 DB_CONNECTION=mysql
 DB_HOST=your-mysql-host
 DB_PORT=3306

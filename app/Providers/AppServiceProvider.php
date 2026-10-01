@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -25,9 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
-            URL::forceScheme('https');
-        }
+        // HTTPS links behind the Cloudflare tunnel come from the trusted-proxy setting in
+        // bootstrap/app.php, which only believes X-Forwarded-Proto from the local tunnel.
 
         Gate::policy(\App\Models\Patient::class, \App\Policies\PatientPolicy::class);
         Gate::policy(\App\Models\MaternalRecord::class, \App\Policies\MaternalRecordPolicy::class);

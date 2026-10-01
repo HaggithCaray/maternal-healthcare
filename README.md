@@ -161,6 +161,32 @@ npm run build
 - `attachments:make-private` moves chat files uploaded before attachments became private out of the
   public folder. Both are safe to run more than once.
 
+## Before using it with real patients
+
+The setup above is for development. Before real patient data goes in, run:
+
+```bash
+php artisan app:go-live-check
+```
+
+It lists what still needs changing, marks what blocks real use (**FIX FIRST**) and says how to fix
+each item. The usual changes in `.env`:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+LOG_LEVEL=warning
+SESSION_ENCRYPT=true
+SESSION_SECURE_COOKIE=true   # only once the app is served over HTTPS
+REVERB_APP_KEY=<random>      # new key and secret, then npm run build
+REVERB_APP_SECRET=<random>
+```
+
+- Give the demo accounts (`health@example.com`, `patient@example.com`) real passwords from
+  **Admin**, or deactivate them.
+- After any `.env` change run `php artisan config:cache` (and `npm run build` if a `REVERB_*` value changed).
+- Back up the MySQL database and `storage/app` (SMS settings and chat attachments) regularly.
+
 ## Running the tests
 
 ```bash
