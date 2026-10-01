@@ -45,6 +45,17 @@
 
     <div class="lg:col-span-9 flex flex-col gap-gutter">
         <div class="bg-surface-container-lowest p-gutter rounded-xl soft-drop-shadow min-h-[600px] flex flex-col">
+            @if($errors->any())
+            <div class="p-md mb-lg bg-error/10 text-error rounded-xl border border-error/20" role="alert">
+                <p class="font-label-md text-label-md">The patient was not registered. Please fix the following:</p>
+                <ul class="list-disc ml-md mt-xs">
+                    @foreach($errors->all() as $error)
+                    <li class="text-body-sm">{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
             <form method="POST" action="{{ route('register') }}" class="grow" id="registrationForm">
                 @csrf
                 <div class="step-transition" id="form-step-1">
@@ -55,32 +66,32 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">First Name *</label>
-                            <input name="first_name" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Maria" type="text">
+                            <input name="first_name" value="{{ old('first_name') }}" required maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Maria" type="text">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Last Name *</label>
-                            <input name="last_name" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Santos" type="text">
+                            <input name="last_name" value="{{ old('last_name') }}" required maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Santos" type="text">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Date of Birth *</label>
-                            <input name="dob" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
+                            <input name="dob" value="{{ old('dob') }}" required data-max-today class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Gender *</label>
                             <div class="flex gap-md mt-xs">
                                 <label class="flex items-center gap-xs cursor-pointer">
-                                    <input name="gender" value="Female" checked class="text-primary focus:ring-primary" type="radio">
+                                    <input name="gender" value="Female" @checked(old('gender', 'Female') === 'Female') class="text-primary focus:ring-primary" type="radio">
                                     <span>Female</span>
                                 </label>
                                 <label class="flex items-center gap-xs cursor-pointer">
-                                    <input name="gender" value="Male" class="text-primary focus:ring-primary" type="radio">
+                                    <input name="gender" value="Male" @checked(old('gender') === 'Male') class="text-primary focus:ring-primary" type="radio">
                                     <span>Male</span>
                                 </label>
                             </div>
                         </div>
                         <div class="md:col-span-2 flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Occupation</label>
-                            <input name="occupation" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Housewife, Teacher, Vendor" type="text">
+                            <input name="occupation" value="{{ old('occupation') }}" maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Housewife, Teacher, Vendor" type="text">
                         </div>
                     </div>
                 </div>
@@ -95,16 +106,21 @@
                             <label class="font-label-md text-label-md text-on-surface-variant">Phone Number *</label>
                             <div class="flex">
                                 <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-outline bg-surface-container text-on-surface-variant text-sm">+63</span>
-                                <input name="phone" required class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
+                                <input name="phone" value="{{ old('phone') }}" required maxlength="30" class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
                             </div>
                         </div>
-                        <div class="flex flex-col gap-xs">
+                        <div class="flex flex-col gap-xs" data-maternal-only>
                             <label class="font-label-md text-label-md text-on-surface-variant">Email Address</label>
-                            <input name="email" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="example@email.com" type="email">
+                            <input name="email" value="{{ old('email') }}" maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="example@email.com" type="email">
+                            <p class="text-xs text-on-surface-variant">Becomes the mother's patient portal login.</p>
+                        </div>
+                        <div class="flex flex-col gap-xs hidden" data-child-only>
+                            <label class="font-label-md text-label-md text-on-surface-variant">Patient Portal</label>
+                            <p class="text-body-sm text-on-surface-variant">A child doesn't get a login. Link the mother in step 3 and she will see this child in her portal.</p>
                         </div>
                         <div class="md:col-span-2 flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Permanent Address *</label>
-                            <textarea name="address" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="House number, Street, Purok..." rows="3"></textarea>
+                            <textarea name="address" required maxlength="500" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="House number, Street, Purok..." rows="3">{{ old('address') }}</textarea>
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Barangay</label>
@@ -112,11 +128,11 @@
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Emergency Contact Person *</label>
-                            <input name="emergency_contact_name" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Name of Relative" type="text">
+                            <input name="emergency_contact_name" value="{{ old('emergency_contact_name') }}" required maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Name of Relative" type="text">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Emergency Contact Phone *</label>
-                            <input name="emergency_contact_phone" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Phone of emergency contact" type="tel">
+                            <input name="emergency_contact_phone" value="{{ old('emergency_contact_phone') }}" required maxlength="30" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Phone of emergency contact" type="tel">
                         </div>
                     </div>
                 </div>
@@ -137,7 +153,7 @@
                                     <p class="font-label-md text-label-md">Prenatal Care</p>
                                     <p class="text-xs text-on-surface-variant">Expecting mothers</p>
                                 </div>
-                                <input checked class="ml-auto text-primary" name="registration_type" id="reg_maternal" value="Maternal" type="radio">
+                                <input @checked(old('registration_type', 'Maternal') === 'Maternal') class="ml-auto text-primary" name="registration_type" id="reg_maternal" value="Maternal" type="radio">
                             </div>
                             <div class="p-md rounded-lg border border-outline-variant bg-surface-container-lowest flex items-center gap-md cursor-pointer hover:border-primary/50 transition-colors" onclick="document.getElementById('reg_child').click()">
                                 <div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
@@ -147,7 +163,7 @@
                                     <p class="font-label-md text-label-md">Child Health</p>
                                     <p class="text-xs text-on-surface-variant">Pediatric monitoring</p>
                                 </div>
-                                <input class="ml-auto text-primary" name="registration_type" id="reg_child" value="Child" type="radio">
+                                <input @checked(old('registration_type') === 'Child') class="ml-auto text-primary" name="registration_type" id="reg_child" value="Child" type="radio">
                             </div>
                         </div>
                     </div>
@@ -156,27 +172,27 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-md" id="maternalFields">
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Last Menstrual Period (LMP)</label>
-                            <input name="lmp" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
+                            <input name="lmp" value="{{ old('lmp') }}" data-max-today class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Number of Previous Pregnancies (Gravida)</label>
-                            <input name="gravida" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" placeholder="0" type="number">
+                            <input name="gravida" value="{{ old('gravida') }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" placeholder="0" type="number">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Number of Previous Births (Para)</label>
-                            <input name="para" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" placeholder="0" type="number">
+                            <input name="para" value="{{ old('para') }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" placeholder="0" type="number">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">PhilHealth Number</label>
-                            <input name="philhealth_number" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="XX-XXXXXXXXX-X" type="text">
+                            <input name="philhealth_number" value="{{ old('philhealth_number') }}" maxlength="50" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="XX-XXXXXXXXX-X" type="text">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Planned Place of Delivery</label>
-                            <input name="birth_plan_facility" value="{{ old('birth_plan_facility') }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Carmen District Hospital" type="text">
+                            <input name="birth_plan_facility" value="{{ old('birth_plan_facility') }}" maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Carmen District Hospital" type="text">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Planned Birth Attendant</label>
-                            <input name="birth_plan_attendant" value="{{ old('birth_plan_attendant') }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Midwife, doctor" type="text">
+                            <input name="birth_plan_attendant" value="{{ old('birth_plan_attendant') }}" maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Midwife, doctor" type="text">
                         </div>
                     </div>
 
@@ -194,11 +210,11 @@
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Birth Weight (kg)</label>
-                            <input name="birth_weight_kg" step="0.01" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 3.2" type="number">
+                            <input name="birth_weight_kg" value="{{ old('birth_weight_kg') }}" step="0.01" min="0.3" max="7" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 3.2" type="number">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Birth Height (cm)</label>
-                            <input name="birth_height_cm" step="0.1" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 50.0" type="number">
+                            <input name="birth_height_cm" value="{{ old('birth_height_cm') }}" step="0.1" min="20" max="70" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 50.0" type="number">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-md text-label-md text-on-surface-variant">Birth Type</label>
@@ -240,14 +256,14 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-md">
                         @foreach(\App\Models\MaternalRecord::CONDITIONS as $i => $condition)
                         <div class="flex items-center p-sm rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer">
-                            <input name="medical_history[{{ $condition }}]" value="1" class="w-5 h-5 rounded text-primary focus:ring-primary mr-sm" id="hist_{{ $i + 1 }}" type="checkbox">
+                            <input name="medical_history[{{ $condition }}]" value="1" @checked(old("medical_history.{$condition}")) class="w-5 h-5 rounded text-primary focus:ring-primary mr-sm" id="hist_{{ $i + 1 }}" type="checkbox">
                             <label class="text-on-surface-variant text-sm cursor-pointer" for="hist_{{ $i + 1 }}">{{ $condition }}</label>
                         </div>
                         @endforeach
                     </div>
                     <div class="mt-lg">
                         <label class="font-label-md text-label-md text-on-surface-variant mb-xs block">Known Allergies</label>
-                        <textarea name="allergies" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="List any medicine or food allergies..." rows="3"></textarea>
+                        <textarea name="allergies" maxlength="1000" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="List any medicine or food allergies..." rows="3">{{ old('allergies') }}</textarea>
                     </div>
                 </div>
 
@@ -356,13 +372,37 @@
         }
     }
 
+    const registrationForm = document.getElementById('registrationForm');
+
+    function stepOf(field) {
+        const step = field.closest('[id^="form-step-"]');
+        return step ? Number(step.id.replace('form-step-', '')) : 1;
+    }
+
+    // Show the browser's message on the first invalid field, on its own step.
+    function reportFirstInvalid(fields) {
+        const invalid = fields.find((field) => field.willValidate && !field.checkValidity());
+        if (!invalid) {
+            return false;
+        }
+        goToStep(stepOf(invalid));
+        invalid.reportValidity();
+        return true;
+    }
+
     function nextStep() {
         if (currentStep < totalSteps) {
+            const stepFields = [...document.getElementById(`form-step-${currentStep}`).querySelectorAll('input, select, textarea')];
+            if (reportFirstInvalid(stepFields)) {
+                return;
+            }
             currentStep++;
             updateProgress();
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            document.getElementById('registrationForm').submit();
+        } else if (!reportFirstInvalid([...registrationForm.elements])) {
+            // requestSubmit (not submit) fires the submit event, so an offline registration is
+            // saved on the device by offline.js instead of being lost.
+            registrationForm.requestSubmit();
         }
     }
 
@@ -380,15 +420,44 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Toggle registration type fields
-    document.querySelectorAll('input[name="registration_type"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            const type = e.target.value;
-            document.getElementById('maternalFields').classList.toggle('hidden', type !== 'Maternal');
-            document.getElementById('childFields').classList.toggle('hidden', type !== 'Child');
+    // Show the fields for the chosen registration type. The other type's fields are disabled, so
+    // they are neither checked nor sent (e.g. an LMP typed before switching to Child).
+    function showTypeFields(type) {
+        [
+            ...[...document.querySelectorAll('#maternalFields, [data-maternal-only]')].map((el) => [el, 'Maternal']),
+            ...[...document.querySelectorAll('#childFields, [data-child-only]')].map((el) => [el, 'Child']),
+        ].forEach(([section, fieldsType]) => {
+            section.classList.toggle('hidden', type !== fieldsType);
+            section.querySelectorAll('input, select, textarea').forEach((field) => {
+                field.disabled = type !== fieldsType;
+            });
         });
+    }
+
+    document.querySelectorAll('input[name="registration_type"]').forEach(radio => {
+        radio.addEventListener('change', (e) => showTypeFields(e.target.value));
     });
+    const checkedType = () => document.querySelector('input[name="registration_type"]:checked')?.value ?? 'Maternal';
+    showTypeFields(checkedType());
+    // A reset (after saving offline) puts the type back to its default; match the fields to it.
+    registrationForm.addEventListener('reset', () => setTimeout(() => showTypeFields(checkedType())));
+
+    // Dates can't be in the future. Set from this device's clock, since the form may be an offline copy.
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    document.querySelectorAll('input[data-max-today]').forEach((field) => { field.max = today; });
 
     updateProgress();
+
+    // After the server rejected the form, open the step with the first problem.
+    const errorFields = @json($errors->keys());
+    if (errorFields.length > 0) {
+        // "medical_history.Asthma" is the error key for the field named "medical_history[Asthma]".
+        const firstError = [...registrationForm.elements].find((field) =>
+            errorFields.some((key) => field.name.split('[')[0] === key.split('.')[0]));
+        if (firstError) {
+            goToStep(stepOf(firstError));
+        }
+    }
 </script>
 @endpush

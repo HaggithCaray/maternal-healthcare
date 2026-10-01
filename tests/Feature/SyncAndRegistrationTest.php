@@ -392,4 +392,36 @@ class SyncAndRegistrationTest extends TestCase
             ->assertOk()
             ->assertDontSee('offline-user-id', false);
     }
+
+    // --- Registration form feedback ---------------------------------------------------------
+
+    public function test_a_rejected_registration_says_why_and_keeps_what_was_typed(): void
+    {
+        $this->actingAs($this->adminUser)
+            ->from('/register')
+            ->followingRedirects()
+            ->post('/register', $this->patientData([
+                'first_name' => 'Lorna',
+                'email' => 'rosa@health.test', // the midwife's own login
+                'address' => 'Purok 5, near the chapel',
+                'medical_history' => ['Asthma' => '1'],
+            ]))
+            ->assertOk()
+            ->assertSee('The patient was not registered')
+            ->assertSee('This email belongs to a staff account')
+            ->assertSee('value="Lorna"', false)
+            ->assertSee('Purok 5, near the chapel')
+            ->assertSee('name="medical_history[Asthma]" value="1" checked', false);
+
+        $this->assertSame(0, Patient::count());
+    }
+
+    public function test_registration_form_submits_through_the_submit_event(): void
+    {
+        // form.submit() skips the submit event, so offline.js could not save an offline registration.
+        $this->actingAs($this->adminUser)->get('/register')
+            ->assertOk()
+            ->assertSee('registrationForm.requestSubmit()', false)
+            ->assertDontSee("getElementById('registrationForm').submit()", false);
+    }
 }

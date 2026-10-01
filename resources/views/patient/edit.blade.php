@@ -47,7 +47,16 @@
         <span class="material-symbols-outlined text-primary bg-primary-container/20 p-xs rounded-lg">account_circle</span>
         <div>
             <p class="font-label-md text-label-md text-on-surface">Patient Portal Account</p>
-            @if($patient->user)
+            @if($patient->registration_type === 'Child')
+            <p class="text-body-sm text-on-surface-variant">
+                Children don't have their own login.
+                @if($patient->childRecord?->mother)
+                <strong>{{ $patient->childRecord->mother->first_name }} {{ $patient->childRecord->mother->last_name }}</strong> sees this child in her portal.
+                @else
+                Link the mother below so she can see this child in her portal.
+                @endif
+            </p>
+            @elseif($patient->user)
             <p class="text-body-sm text-on-surface-variant">Signs in as <strong>{{ $patient->user->email }}</strong></p>
             @elseif($patient->email)
             <p class="text-body-sm text-on-surface-variant">No portal account yet &mdash; one can be created for <strong>{{ $patient->email }}</strong>.</p>
@@ -56,7 +65,7 @@
             @endif
         </div>
     </div>
-    @if($patient->user || $patient->email)
+    @if($patient->registration_type !== 'Child' && ($patient->user || $patient->email))
     <form method="POST" action="{{ route('patients.portal-password', $patient->id) }}"
           onsubmit="return confirm('{{ $patient->user ? 'Generate a new temporary password? The old one will stop working.' : 'Create a portal account for this patient?' }}')">
         @csrf
@@ -169,10 +178,12 @@
                             <input name="phone" value="{{ old('phone', $patient->phone) }}" required class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
                         </div>
                     </div>
+                    @if($patient->registration_type !== 'Child')
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Email Address</label>
-                        <input name="email" value="{{ old('email', $patient->email) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="example@email.com" type="email">
+                        <input name="email" value="{{ old('email', $patient->email) }}" maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="example@email.com" type="email">
                     </div>
+                    @endif
                     <div class="md:col-span-2 flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Permanent Address *</label>
                         <textarea name="address" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="House number, Street, Purok..." rows="3">{{ old('address', $patient->address) }}</textarea>

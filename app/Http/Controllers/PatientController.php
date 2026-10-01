@@ -145,10 +145,13 @@ class PatientController extends Controller
     {
         $this->authorize('update', $patient);
 
+        $isChild = $patient->registration_type === 'Child';
+
         // Same rules as registration, so an edit can't store what the form would have refused.
         $request->validate(Arr::except(PatientRegistration::rules(), ['registration_type', 'barangay', 'email']) + [
             // The email is also the portal login, so it must not belong to another account.
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($patient->user_id)],
+            // Children have no login (the form doesn't show the field), so theirs is left as is.
+            'email' => $isChild ? 'exclude' : ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($patient->user_id)],
             'status' => 'required|string|in:Active,Due for Visit,High Risk,Completed',
             'head_circumference_cm' => 'nullable|numeric|min:20|max:60',
             'has_newborn_screening' => 'nullable|boolean',
@@ -157,14 +160,14 @@ class PatientController extends Controller
             'has_vitamin_k' => 'nullable|boolean',
         ]);
 
-        DB::transaction(function () use ($request, $patient) {
+        DB::transaction(function () use ($request, $patient, $isChild) {
             $patient->update([
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'dob' => $request->dob,
                 'gender' => $request->gender,
                 'phone' => $request->phone,
-                'email' => $request->email,
+                'email' => $isChild ? $patient->email : $request->email,
                 'address' => $request->address,
                 'occupation' => $request->occupation,
                 'emergency_contact_name' => $request->emergency_contact_name,
@@ -235,6 +238,10 @@ class PatientController extends Controller
     public function resetPortalPassword(Patient $patient)
     {
         $this->authorize('update', $patient);
+
+        if ($patient->registration_type === 'Child') {
+            return back()->with('error', "Children don't have their own portal login. Link the child to the mother; she sees the child's records in her portal.");
+        }
 
         $temporaryPassword = User::temporaryPassword();
         $user = $patient->user;

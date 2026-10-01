@@ -111,10 +111,6 @@
                 <div>
                     <h3 class="font-bold text-sm">{{ $midwife->name ?? 'Brgy Midwife' }}</h3>
                     <div class="flex items-center gap-2">
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-secondary"></span>
-                            <span class="text-[10px] uppercase tracking-wider font-bold text-secondary">Online Support</span>
-                        </div>
                         @if($midwife)
                         <div class="flex items-center gap-1">
                             <span id="midwife-status-dot" class="w-2 h-2 rounded-full bg-outline-variant"></span>
@@ -217,7 +213,7 @@
                 </div>
                 @endif
             @empty
-            <div class="my-auto text-center text-on-surface-variant text-body-sm">
+            <div data-chat-empty class="my-auto text-center text-on-surface-variant text-body-sm">
                 No chat history found. Send a message to your midwife below!
             </div>
             @endforelse
@@ -293,6 +289,17 @@
     }
 
     const chatMessages = document.getElementById('chat-messages');
+
+    // New messages go above the typing bubble, so "typing..." always stays at the bottom.
+    function appendMessage(html) {
+        chatMessages.querySelector('[data-chat-empty]')?.remove();
+        const typing = document.getElementById('typing-indicator');
+        if (typing && typing.parentElement === chatMessages) {
+            typing.insertAdjacentHTML('beforebegin', html);
+        } else {
+            chatMessages.insertAdjacentHTML('beforeend', html);
+        }
+    }
     if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
 
     const textarea = document.querySelector('textarea');
@@ -480,7 +487,7 @@
                     const newMsg = renderMessageHtml(data.message, true);
 
                     if (chatMessages) {
-                        chatMessages.insertAdjacentHTML('beforeend', newMsg);
+                        appendMessage(newMsg);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     }
                 }
@@ -518,7 +525,7 @@
                     const newMsg = renderMessageHtml(e.message, false);
                     
                     if(chatMessages) {
-                        chatMessages.insertAdjacentHTML('beforeend', newMsg);
+                        appendMessage(newMsg);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     }
                 }

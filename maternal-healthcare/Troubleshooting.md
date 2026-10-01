@@ -38,12 +38,15 @@ php artisan cache:clear
 3. Port is `3306`
 4. Database exists (`healthcare_base_db` for base, `healthcare_db` for advanced)
 
-### WebSocket Not Connecting
+### WebSocket Not Connecting / Chat Only Updates After Refresh
+**Symptom:** New chat messages appear only after reloading the page. The browser console says "Real-time chat is off"
 **Check:**
-1. Reverb is running: `php artisan reverb:start`
-2. `.env` has `REVERB_HOST=127.0.0.1` and `REVERB_PORT=8080`
-3. `BROADCAST_CONNECTION=reverb` in `.env`
-4. No other process using port 8080
+1. `BROADCAST_CONNECTION=reverb` in `.env`. With `log`, messages are written to the log file instead of being sent
+2. `.env` has the `REVERB_*` and `VITE_REVERB_*` block from `.env.example` (app id, key, secret, `REVERB_HOST=localhost`, `REVERB_PORT=8080`, `REVERB_SCHEME=http`)
+3. Run `npm run build` after changing any `REVERB_*` value. The browser only gets these settings at build time
+4. Reverb is running in its own terminal: `php artisan reverb:start`
+5. No other process using port 8080
+**Note:** if Reverb is not running, chat still works: messages are saved and appear after a refresh, and the failure is logged.
 
 ### SMS Gateway Connection Failed
 1. Check gateway URL in admin panel `/sms`

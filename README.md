@@ -80,13 +80,49 @@ Then create the tables and demo data:
 php artisan migrate --seed
 ```
 
-### 5. Build the frontend
+### 5. Set up real-time chat (Reverb)
+
+Chat messages and "typing..." appear live through **Laravel Reverb**, a WebSocket server that runs
+next to the app. If this step is skipped, chat still works but new messages only show after a refresh.
+
+1. Make sure `.env` has these lines. They come from `.env.example`; an `.env` copied from an older
+   version or another project often lacks them, which is the most common reason live chat doesn't work:
+
+   ```env
+   BROADCAST_CONNECTION=reverb
+
+   REVERB_APP_ID=100001
+   REVERB_APP_KEY=local-reverb-key
+   REVERB_APP_SECRET=local-reverb-secret
+   REVERB_HOST=localhost
+   REVERB_PORT=8080
+   REVERB_SCHEME=http
+
+   VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+   VITE_REVERB_HOST="${REVERB_HOST}"
+   VITE_REVERB_PORT="${REVERB_PORT}"
+   VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+   ```
+
+   `BROADCAST_CONNECTION=log` turns live chat off; messages are then only written to the log.
+   Before real use, replace the key and secret with random values, e.g. from
+   `php -r "echo bin2hex(random_bytes(16));"`.
+2. **Build the frontend after any change to a `REVERB_*` value** (next step). The browser gets these
+   settings only when the frontend is built.
+3. Start Reverb in its own terminal and keep it open (step 7).
+
+To check it works: open the chat as a healthcare worker in one browser and as a patient in another
+(e.g. Chrome and Edge). A message sent in one appears in the other without a refresh, and the
+browser console has no "Real-time chat is off" warning. If port 8080 is taken, set both
+`REVERB_PORT` and `REVERB_SERVER_PORT` to another port and build again.
+
+### 6. Build the frontend
 
 ```bash
 npm run build
 ```
 
-### 6. Run the app (two terminals)
+### 7. Run the app (two terminals)
 
 ```bash
 php artisan serve
@@ -96,7 +132,8 @@ php artisan serve
 php artisan reverb:start
 ```
 
-Open **http://127.0.0.1:8000**.
+Open **http://127.0.0.1:8000**. Keep both terminals open while using the app; without the Reverb
+terminal, chat falls back to showing new messages on refresh.
 
 ### Demo accounts
 
@@ -192,14 +229,17 @@ tunnel. It is meant for demos, not production.
 | Problem | Fix |
 |---|---|
 | `No connection could be made because the target machine actively refused it` | MySQL is not running — start it in the XAMPP Control Panel. |
-| Sending a chat message fails, or messages only appear after a refresh | Start `php artisan reverb:start`. If you changed any `REVERB_*` value, run `npm run build` again. To run without real-time chat, set `BROADCAST_CONNECTION=log`. |
+| Chat messages only appear after a refresh | Check `BROADCAST_CONNECTION=reverb` and the `REVERB_*` / `VITE_REVERB_*` lines in `.env` (see *Set up real-time chat*), run `npm run build`, and start `php artisan reverb:start`. The browser console says "Real-time chat is off" when the build has no Reverb settings. |
 | Pages look unstyled | Run `npm run build`. |
 | A newly registered patient cannot sign in | Open *Edit Patient* → **Reset Password** and give the patient the temporary password shown. |
 | Someone cannot sign in although the password is right | Their account may be deactivated — check **Admin** → the user → **Reactivate**. |
 
 ## Known limitations
 
-- Only patient registration works offline; prenatal visits, growth and vaccine updates need a connection.
-  The registration form must be opened once while signed in and online; its offline copy is deleted at logout.
+- Offline: the registration form must be opened once while signed in and online (its offline copy is
+  deleted at logout). Prenatal visits, growth metrics and vaccine doses can be entered offline only on a
+  patient page that was already open when the connection dropped; patient pages are not stored on the device.
+- Real-time chat over the Cloudflare demo link only works on the computer running the app: other devices
+  load the chat but try to reach Reverb on their own `localhost`, so they see new messages on refresh.
 - There is no email-based password reset; staff reset passwords from the Admin page or *Edit Patient*.
 - Developmental milestones are shown as WHO age windows, not recorded per child.

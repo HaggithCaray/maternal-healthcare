@@ -97,6 +97,12 @@ class PatientRegistration
      */
     public function register(array $data): array
     {
+        // A child never gets a login of its own: the mother sees the child in her portal through
+        // the child record's mother link. An email entered for a child is not kept.
+        if ($data['registration_type'] === 'Child') {
+            $data['email'] = null;
+        }
+
         return DB::transaction(function () use ($data) {
             [$userId, $temporaryPassword] = $this->portalAccount($data);
 

@@ -145,10 +145,6 @@
                 <div>
                     <h3 class="font-bold text-sm">{{ $activeChatUser->name }}</h3>
                     <div class="flex items-center gap-2">
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-secondary"></span>
-                            <span class="text-[10px] uppercase tracking-wider font-bold text-secondary">Active Patient</span>
-                        </div>
                         <div class="flex items-center gap-1">
                             <span id="active-user-status-dot" class="w-2 h-2 rounded-full bg-outline-variant"></span>
                             <span id="active-user-status-text" class="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant">OFFLINE</span>
@@ -246,7 +242,7 @@
                 </div>
                 @endif
             @empty
-            <div class="my-auto text-center text-on-surface-variant text-body-sm">
+            <div data-chat-empty class="my-auto text-center text-on-surface-variant text-body-sm">
                 No chat history found. Start the conversation below!
             </div>
             @endforelse
@@ -372,6 +368,17 @@
     }
 
     const chatMessages = document.getElementById('chat-messages');
+
+    // New messages go above the typing bubble, so "typing..." always stays at the bottom.
+    function appendMessage(html) {
+        chatMessages.querySelector('[data-chat-empty]')?.remove();
+        const typing = document.getElementById('typing-indicator');
+        if (typing && typing.parentElement === chatMessages) {
+            typing.insertAdjacentHTML('beforebegin', html);
+        } else {
+            chatMessages.insertAdjacentHTML('beforeend', html);
+        }
+    }
     if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
 
     const textarea = document.querySelector('textarea');
@@ -559,7 +566,7 @@
                     const newMsg = renderMessageHtml(data.message, true);
 
                     if (chatMessages) {
-                        chatMessages.insertAdjacentHTML('beforeend', newMsg);
+                        appendMessage(newMsg);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     }
                 }
@@ -597,7 +604,7 @@
                     const newMsg = renderMessageHtml(e.message, false);
                     
                     if(chatMessages) {
-                        chatMessages.insertAdjacentHTML('beforeend', newMsg);
+                        appendMessage(newMsg);
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     }
                 }

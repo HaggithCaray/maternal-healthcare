@@ -29,7 +29,8 @@ class ChatController extends Controller
 
     protected function adminMessaging(Request $request, User $user)
     {
-        $patients = User::where('role', 'user')->get();
+        // Patient logins that belong to a patient record (e.g. not a login left over from a child).
+        $patients = User::where('role', 'user')->whereHas('patient')->get();
         $activePatientId = $request->query('chat_user_id') ?? ($patients->first()?->id ?? null);
         $activeChatUser = $activePatientId ? User::find($activePatientId) : null;
 
@@ -48,7 +49,7 @@ class ChatController extends Controller
 
             if ($unreadCount > 0) {
                 $conversationId = min($user->id, $activeChatUser->id) . '-' . max($user->id, $activeChatUser->id);
-                event(new MessageRead($conversationId, $user->id));
+                $this->broadcastSafely(fn () => event(new MessageRead($conversationId, $user->id)));
             }
         }
 
@@ -81,7 +82,7 @@ class ChatController extends Controller
                 'attachment_type' => $attachmentType,
             ]);
 
-            event(new MessageSent($newMessage, min($user->id, $request->receiver_id) . '-' . max($user->id, $request->receiver_id)));
+            $this->broadcastSafely(fn () => event(new MessageSent($newMessage, min($user->id, $request->receiver_id) . '-' . max($user->id, $request->receiver_id))));
 
             AuditLog::log('send_chat_message', $newMessage, [
                 'has_attachment' => $attachmentPath !== null,
@@ -120,7 +121,7 @@ class ChatController extends Controller
 
             if ($unreadCount > 0) {
                 $conversationId = min($user->id, $midwife->id) . '-' . max($user->id, $midwife->id);
-                event(new MessageRead($conversationId, $user->id));
+                $this->broadcastSafely(fn () => event(new MessageRead($conversationId, $user->id)));
             }
         }
 
@@ -153,7 +154,7 @@ class ChatController extends Controller
                     'attachment_type' => $attachmentType,
                 ]);
 
-                event(new MessageSent($newMessage, min($user->id, $midwife->id) . '-' . max($user->id, $midwife->id)));
+                $this->broadcastSafely(fn () => event(new MessageSent($newMessage, min($user->id, $midwife->id) . '-' . max($user->id, $midwife->id))));
 
                 AuditLog::log('send_chat_message', $newMessage, [
                     'has_attachment' => $attachmentPath !== null,
@@ -223,5 +224,14 @@ class ChatController extends Controller
         ];
 
         return $map[$file->getMimeType()] ?? 'bin';
+    }
+
+    /**
+     * Live updates are a bonus: if the Reverb server is down, the message is still saved (the other
+     * person sees it on refresh) and the failure is logged, instead of the chat failing.
+     */
+    protected function broadcastSafely(callable $broadcast): void
+    {
+        rescue($broadcast);
     }
 }
