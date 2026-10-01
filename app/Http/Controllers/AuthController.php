@@ -63,9 +63,7 @@ class AuthController extends Controller
             ->whereDate('scheduled_date', \Carbon\Carbon::today())
             ->count();
             
-        $unreadMessages = \App\Models\ChatMessage::where('receiver_id', auth()->user()->id)
-            ->where('is_read', false)
-            ->count();
+        $unreadMessages = auth()->user()->unreadChatCount();
 
         // Get upcoming vaccinations for dashboard list
         $upcomingVaccinations = \App\Models\Immunization::with('childRecord.patient')

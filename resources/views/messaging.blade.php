@@ -122,8 +122,11 @@
                         <span class="online-indicator absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-surface hidden"></span>
                     </div>
                     <div class="flex-1 overflow-hidden">
-                        <div class="flex justify-between items-center mb-0.5">
+                        <div class="flex justify-between items-center gap-2 mb-0.5">
                             <h4 class="font-bold text-sm truncate">{{ $p->name }}</h4>
+                            @if($p->unread_count > 0 && ! $isActive)
+                            <span class="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center" title="Unread messages">{{ $p->unread_count }}</span>
+                            @endif
                         </div>
                         <p class="text-xs text-on-surface-variant truncate">{{ $p->email }}</p>
                     </div>
@@ -157,7 +160,9 @@
         <div class="flex-1 p-sm md:p-md overflow-y-auto custom-scrollbar flex flex-col gap-4 md:gap-6" id="chat-messages">
             @forelse($messages as $msg)
                 @php
-                    $isSender = $msg->sender_id === auth()->user()->id;
+                    // Shared inbox: every staff reply sits on the staff side; a colleague's shows their name.
+                    $isSender = $msg->sender_id !== $activeChatUser->id;
+                    $byColleague = $isSender && $msg->sender_id !== auth()->id();
                 @endphp
                 @if($isSender)
                 <div class="flex gap-3 max-w-[80%] ml-auto flex-row-reverse">
@@ -194,7 +199,7 @@
                             @endif
                         </div>
                         <div class="flex items-center gap-1 mt-1">
-                            <span class="text-[10px] text-on-surface-variant block">{{ \Carbon\Carbon::parse($msg->created_at)->format('h:i A') }}</span>
+                            <span class="text-[10px] text-on-surface-variant block">@if($byColleague){{ $msg->sender?->name }} &middot; @endif{{ \Carbon\Carbon::parse($msg->created_at)->format('h:i A') }}</span>
                             @if($msg->is_read)
                             <span class="material-symbols-outlined read-status-icon text-sm text-primary" style="font-variation-settings: 'opsz' 14;">done_all</span>
                             @else
@@ -404,8 +409,12 @@
         );
     }
 
+    // isSender: sent by staff (the shared inbox's side). A colleague's message shows their name.
     function renderMessageHtml(msg, isSender) {
         const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const colleague = isSender && msg.sender_id !== currentUserId && msg.sender?.name
+            ? `${escapeHTML(msg.sender.name)} &middot; `
+            : '';
         const isReadIcon = msg.is_read
             ? `<span class="material-symbols-outlined read-status-icon text-sm text-primary" style="font-variation-settings: 'opsz' 14;">done_all</span>`
             : `<span class="material-symbols-outlined read-status-icon text-sm text-on-surface-variant" style="font-variation-settings: 'opsz' 14;">done</span>`;
@@ -456,7 +465,7 @@
                         ${attachmentHtml}
                     </div>
                     <div class="flex items-center gap-1 mt-1">
-                        <span class="text-[10px] text-on-surface-variant block">${time}</span>
+                        <span class="text-[10px] text-on-surface-variant block">${colleague}${time}</span>
                         ${isReadIcon}
                     </div>
                 </div>
@@ -587,21 +596,19 @@
     function subscribeToChat() {
         if (!activeChatUserId || !window.Echo) return;
 
-        const conversationId = Math.min(currentUserId, activeChatUserId) + '-' + Math.max(currentUserId, activeChatUserId);
         const typingIndicator = document.getElementById('typing-indicator');
         let typingTimeout = null;
         
-        console.log('[WS] Subscribing to conversation.' + conversationId);
-
-        const channel = window.Echo.private('conversation.' + conversationId);
+        const channel = window.Echo.private('patient-chat.' + activeChatUserId);
 
         channel.listen('MessageSent', (e) => {
                 console.log('[WS] MessageSent event received:', e);
                 // Hide typing indicator when a message arrives
                 if (typingIndicator) typingIndicator.classList.add('hidden');
 
+                // Own messages are already on screen; a colleague's go on the staff side.
                 if (e.message.sender_id !== currentUserId) {
-                    const newMsg = renderMessageHtml(e.message, false);
+                    const newMsg = renderMessageHtml(e.message, e.message.sender_id !== activeChatUserId);
                     
                     if(chatMessages) {
                         appendMessage(newMsg);
@@ -622,8 +629,8 @@
             })
             .listen('MessageRead', (e) => {
                 console.log('[WS] MessageRead event received:', e);
-                // Update all single checks to double checks
-                if (e.readByUserId !== currentUserId) {
+                // Ticks show whether the patient has read the staff's replies.
+                if (e.readByUserId === activeChatUserId) {
                     document.querySelectorAll('.read-status-icon').forEach(icon => {
                         if (icon.textContent.trim() === 'done') {
                             icon.textContent = 'done_all';

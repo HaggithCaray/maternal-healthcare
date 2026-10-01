@@ -49,12 +49,13 @@ class ChatRealtimeTest extends TestCase
 
         $this->actingAs($this->patient)->postJson('/messaging', ['message' => 'Hello po'])->assertOk();
 
-        $conversation = min($this->midwife->id, $this->patient->id) . '-' . max($this->midwife->id, $this->patient->id);
-        Event::assertDispatched(MessageSent::class, fn (MessageSent $e) => $e->conversationId === $conversation);
+        // Every message goes to the patient's own conversation channel, which all staff can join.
+        Event::assertDispatched(MessageSent::class, fn (MessageSent $e) => $e->patientId === $this->patient->id
+            && $e->broadcastOn()[0]->name === 'private-patient-chat.' . $this->patient->id);
 
-        // Opening the chat marks it read and tells the sender.
+        // Opening the chat marks it read and tells the patient.
         $this->actingAs($this->midwife)->get('/messaging?chat_user_id=' . $this->patient->id)->assertOk();
-        Event::assertDispatched(MessageRead::class);
+        Event::assertDispatched(MessageRead::class, fn (MessageRead $e) => $e->patientId === $this->patient->id && $e->readByUserId === $this->midwife->id);
     }
 
     public function test_chat_header_shows_only_the_live_status(): void
@@ -67,7 +68,7 @@ class ChatRealtimeTest extends TestCase
 
         $this->actingAs($this->patient)->get('/messaging')
             ->assertOk()
-            ->assertSee('id="midwife-status-text"', false)
+            ->assertSee('id="station-status-text"', false)
             ->assertDontSee('Online Support');
     }
 

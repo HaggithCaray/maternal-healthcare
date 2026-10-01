@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -60,11 +61,32 @@ class User extends Authenticatable
     }
 
     /**
-     * The healthcare worker patients message from their portal: the first active staff account.
+     * Account recorded as the receiver of a patient's message. Every staff member sees the whole
+     * conversation (ChatMessage::thread), so this only fills the column; null if no staff is active.
      */
     public static function careTeamContact(): ?self
     {
         return static::where('role', 'admin')->active()->orderBy('id')->first();
+    }
+
+    public function sentMessages(): HasMany
+    {
+        return $this->hasMany(ChatMessage::class, 'sender_id');
+    }
+
+    /**
+     * Unread chat messages for this account. The staff share one inbox: a patient's message is
+     * unread until any staff member opens that conversation. A patient's are unread staff replies.
+     */
+    public function unreadChatCount(): int
+    {
+        if ($this->isAdmin()) {
+            return ChatMessage::where('is_read', false)
+                ->whereHas('sender', fn (Builder $q) => $q->where('role', 'user'))
+                ->count();
+        }
+
+        return ChatMessage::where('receiver_id', $this->id)->where('is_read', false)->count();
     }
 
     /**

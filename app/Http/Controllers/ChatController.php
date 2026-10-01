@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ChatController extends Controller
 {
@@ -27,152 +28,133 @@ class ChatController extends Controller
         }
     }
 
+    /**
+     * The health station's shared inbox: every staff member sees every patient's conversation.
+     */
     protected function adminMessaging(Request $request, User $user)
     {
-        // Patient logins that belong to a patient record (e.g. not a login left over from a child).
-        $patients = User::where('role', 'user')->whereHas('patient')->get();
-        $activePatientId = $request->query('chat_user_id') ?? ($patients->first()?->id ?? null);
-        $activeChatUser = $activePatientId ? User::find($activePatientId) : null;
-
-        $messages = collect();
-        if ($activeChatUser) {
-            $messages = ChatMessage::where(function ($q) use ($user, $activeChatUser) {
-                $q->where('sender_id', $user->id)->where('receiver_id', $activeChatUser->id);
-            })->orWhere(function ($q) use ($user, $activeChatUser) {
-                $q->where('sender_id', $activeChatUser->id)->where('receiver_id', $user->id);
-            })->orderBy('created_at', 'asc')->get();
-
-            $unreadCount = ChatMessage::where('sender_id', $activeChatUser->id)
-                       ->where('receiver_id', $user->id)
-                       ->where('is_read', false)
-                       ->update(['is_read' => true]);
-
-            if ($unreadCount > 0) {
-                $conversationId = min($user->id, $activeChatUser->id) . '-' . max($user->id, $activeChatUser->id);
-                $this->broadcastSafely(fn () => event(new MessageRead($conversationId, $user->id)));
-            }
-        }
+        // Patient logins that belong to a patient record (e.g. not a login left over from a child),
+        // waiting conversations first, then the most recently active.
+        $patients = User::where('role', 'user')
+            ->whereHas('patient')
+            ->withCount(['sentMessages as unread_count' => fn ($q) => $q->where('is_read', false)])
+            ->withMax('sentMessages as last_message_at', 'created_at')
+            ->get()
+            ->sortBy([['unread_count', 'desc'], ['last_message_at', 'desc'], ['name', 'asc']])
+            ->values();
 
         if ($request->isMethod('post')) {
             $request->validate([
                 'message' => 'required_without:file|nullable|string|max:2000',
-                'receiver_id' => 'required|exists:users,id',
-                'file' => 'nullable|file|max:25600|mimes:jpeg,jpg,png,webp,gif,pdf,doc,docx,xls,xlsx,mp4,mov',
+                // Staff write to patients only.
+                'receiver_id' => ['required', Rule::exists('users', 'id')->where('role', 'user')],
+                'file' => self::ATTACHMENT_RULES,
             ]);
 
-            $attachmentPath = null;
-            $attachmentName = null;
-            $attachmentType = null;
-
-            if ($request->hasFile('file')) {
-                $file = $request->file('file');
-                $safeName = Str::uuid() . '.' . $this->safeExtension($file);
-                $attachmentPath = $file->storeAs('attachments', $safeName, 'local');
-                $attachmentName = $file->getClientOriginalName();
-                $attachmentType = $file->getMimeType();
-            }
-
-            $newMessage = ChatMessage::create([
-                'sender_id' => $user->id,
-                'receiver_id' => $request->receiver_id,
-                'message' => $request->message,
-                'is_read' => false,
-                'attachment_path' => $attachmentPath,
-                'attachment_name' => $attachmentName,
-                'attachment_type' => $attachmentType,
-            ]);
-
-            $this->broadcastSafely(fn () => event(new MessageSent($newMessage, min($user->id, $request->receiver_id) . '-' . max($user->id, $request->receiver_id))));
-
-            AuditLog::log('send_chat_message', $newMessage, [
-                'has_attachment' => $attachmentPath !== null,
-                'receiver_id' => $request->receiver_id,
-            ]);
+            $patientId = (int) $request->receiver_id;
+            $newMessage = $this->storeMessage($request, $user, $patientId, $patientId);
 
             if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $newMessage,
-                ]);
+                return response()->json(['success' => true, 'message' => $newMessage]);
             }
 
-            return redirect()->route('messaging', ['chat_user_id' => $request->receiver_id]);
+            return redirect()->route('messaging', ['chat_user_id' => $patientId]);
+        }
+
+        // Conversations are with patient logins only, never another staff account.
+        $activeChatUser = $request->query('chat_user_id')
+            ? User::where('role', 'user')->find((int) $request->query('chat_user_id'))
+            : $patients->first();
+
+        $messages = collect();
+        if ($activeChatUser) {
+            $messages = ChatMessage::thread($activeChatUser->id)->with('sender:id,name,role')->orderBy('created_at')->orderBy('id')->get();
+
+            // Read by any staff member counts for the whole team.
+            $readCount = ChatMessage::where('sender_id', $activeChatUser->id)->where('is_read', false)->update(['is_read' => true]);
+            if ($readCount > 0) {
+                $this->broadcastSafely(fn () => event(new MessageRead($activeChatUser->id, $user->id)));
+            }
         }
 
         return view('messaging', compact('patients', 'activeChatUser', 'messages'));
     }
 
+    /**
+     * A patient's conversation with the health station (all staff, not one person).
+     */
     protected function patientMessaging(Request $request, User $user)
     {
-        $midwife = User::careTeamContact();
-
-        $messages = collect();
-        if ($midwife) {
-            $messages = ChatMessage::where(function ($q) use ($user, $midwife) {
-                $q->where('sender_id', $user->id)->where('receiver_id', $midwife->id);
-            })->orWhere(function ($q) use ($user, $midwife) {
-                $q->where('sender_id', $midwife->id)->where('receiver_id', $user->id);
-            })->orderBy('created_at', 'asc')->get();
-
-            $unreadCount = ChatMessage::where('sender_id', $midwife->id)
-                       ->where('receiver_id', $user->id)
-                       ->where('is_read', false)
-                       ->update(['is_read' => true]);
-
-            if ($unreadCount > 0) {
-                $conversationId = min($user->id, $midwife->id) . '-' . max($user->id, $midwife->id);
-                $this->broadcastSafely(fn () => event(new MessageRead($conversationId, $user->id)));
-            }
-        }
+        // Recorded as the receiver; any staff member can read and answer.
+        $station = User::careTeamContact();
 
         if ($request->isMethod('post')) {
             $request->validate([
                 'message' => 'required_without:file|nullable|string|max:2000',
-                'file' => 'nullable|file|max:25600|mimes:jpeg,jpg,png,webp,gif,pdf,doc,docx,xls,xlsx,mp4,mov',
+                'file' => self::ATTACHMENT_RULES,
             ]);
 
-            if ($midwife) {
-                $attachmentPath = null;
-                $attachmentName = null;
-                $attachmentType = null;
+            if (! $station) {
+                $error = 'Messaging is unavailable: the health station has no active staff account.';
 
-                if ($request->hasFile('file')) {
-                    $file = $request->file('file');
-                    $safeName = Str::uuid() . '.' . $this->safeExtension($file);
-                    $attachmentPath = $file->storeAs('attachments', $safeName, 'local');
-                    $attachmentName = $file->getClientOriginalName();
-                    $attachmentType = $file->getMimeType();
-                }
+                return $request->expectsJson()
+                    ? response()->json(['message' => $error], 503)
+                    : redirect()->route('messaging')->with('error', $error);
+            }
 
-                $newMessage = ChatMessage::create([
-                    'sender_id' => $user->id,
-                    'receiver_id' => $midwife->id,
-                    'message' => $request->message,
-                    'is_read' => false,
-                    'attachment_path' => $attachmentPath,
-                    'attachment_name' => $attachmentName,
-                    'attachment_type' => $attachmentType,
-                ]);
+            $newMessage = $this->storeMessage($request, $user, $station->id, $user->id);
 
-                $this->broadcastSafely(fn () => event(new MessageSent($newMessage, min($user->id, $midwife->id) . '-' . max($user->id, $midwife->id))));
-
-                AuditLog::log('send_chat_message', $newMessage, [
-                    'has_attachment' => $attachmentPath !== null,
-                    'receiver_id' => $midwife->id,
-                ]);
-
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'success' => true,
-                        'message' => $newMessage,
-                    ]);
-                }
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => $newMessage]);
             }
 
             return redirect()->route('messaging');
         }
 
-        return view('patient.messaging', compact('midwife', 'messages'));
+        $messages = ChatMessage::thread($user->id)->with('sender:id,name,role')->orderBy('created_at')->orderBy('id')->get();
+
+        $readCount = ChatMessage::where('receiver_id', $user->id)->where('is_read', false)->update(['is_read' => true]);
+        if ($readCount > 0) {
+            $this->broadcastSafely(fn () => event(new MessageRead($user->id, $user->id)));
+        }
+
+        return view('patient.messaging', compact('station', 'messages'));
+    }
+
+    private const ATTACHMENT_RULES = 'nullable|file|max:25600|mimes:jpeg,jpg,png,webp,gif,pdf,doc,docx,xls,xlsx,mp4,mov';
+
+    /**
+     * Save a message (and its attachment) in the patient's conversation and announce it live.
+     */
+    protected function storeMessage(Request $request, User $sender, int $receiverId, int $patientId): ChatMessage
+    {
+        $attachment = ['attachment_path' => null, 'attachment_name' => null, 'attachment_type' => null];
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $attachment = [
+                'attachment_path' => $file->storeAs('attachments', Str::uuid() . '.' . $this->safeExtension($file), 'local'),
+                'attachment_name' => $file->getClientOriginalName(),
+                'attachment_type' => $file->getMimeType(),
+            ];
+        }
+
+        $message = ChatMessage::create([
+            'sender_id' => $sender->id,
+            'receiver_id' => $receiverId,
+            'message' => $request->message,
+            'is_read' => false,
+        ] + $attachment)->load('sender:id,name,role');
+
+        $this->broadcastSafely(fn () => event(new MessageSent($message, $patientId)));
+
+        AuditLog::log('send_chat_message', $message, [
+            'has_attachment' => $attachment['attachment_path'] !== null,
+            'receiver_id' => $receiverId,
+            'patient_user_id' => $patientId,
+        ]);
+
+        return $message;
     }
 
     /**

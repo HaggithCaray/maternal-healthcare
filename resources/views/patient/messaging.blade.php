@@ -105,16 +105,16 @@
     <section class="flex-1 flex flex-col bg-surface relative">
         <div class="h-16 flex items-center justify-between px-sm md:px-md border-b border-outline-variant/20 bg-surface">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-white shrink-0">
-                    {{ $midwife ? strtoupper(substr($midwife->name, 0, 2)) : 'MW' }}
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shrink-0">
+                    <span class="material-symbols-outlined">local_hospital</span>
                 </div>
                 <div>
-                    <h3 class="font-bold text-sm">{{ $midwife->name ?? 'Brgy Midwife' }}</h3>
+                    <h3 class="font-bold text-sm">Barangay Bicao Health Station</h3>
                     <div class="flex items-center gap-2">
-                        @if($midwife)
-                        <div class="flex items-center gap-1">
-                            <span id="midwife-status-dot" class="w-2 h-2 rounded-full bg-outline-variant"></span>
-                            <span id="midwife-status-text" class="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant">OFFLINE</span>
+                        @if($station)
+                        <div class="flex items-center gap-1" title="Any health worker on duty can answer">
+                            <span id="station-status-dot" class="w-2 h-2 rounded-full bg-outline-variant"></span>
+                            <span id="station-status-text" class="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant">OFFLINE</span>
                         </div>
                         @endif
                     </div>
@@ -208,13 +208,13 @@
                                 @endif
                             @endif
                         </div>
-                        <span class="text-[10px] text-on-surface-variant mt-1 block">{{ \Carbon\Carbon::parse($msg->created_at)->format('h:i A') }}</span>
+                        <span class="text-[10px] text-on-surface-variant mt-1 block">@if($msg->sender){{ $msg->sender->name }} &middot; @endif{{ \Carbon\Carbon::parse($msg->created_at)->format('h:i A') }}</span>
                     </div>
                 </div>
                 @endif
             @empty
             <div data-chat-empty class="my-auto text-center text-on-surface-variant text-body-sm">
-                No chat history found. Send a message to your midwife below!
+                No messages yet. Send a message and a health worker will reply.
             </div>
             @endforelse
 
@@ -310,7 +310,7 @@
         });
     }
 
-    const midwifeId = {{ $midwife ? $midwife->id : 'null' }};
+    const stationAvailable = {{ $station ? 'true' : 'false' }};
     const currentUserId = {{ auth()->user()->id }};
 
     function escapeHTML(str) {
@@ -390,7 +390,7 @@
                         ${msgText}
                         ${attachmentHtml}
                     </div>
-                    <span class="text-[10px] text-on-surface-variant mt-1 block">${time}</span>
+                    <span class="text-[10px] text-on-surface-variant mt-1 block">${msg.sender?.name ? `${escapeHTML(msg.sender.name)} &middot; ` : ''}${time}</span>
                 </div>
             </div>`;
         }
@@ -506,15 +506,12 @@
     }
 
     function subscribeToChat() {
-        if (!midwifeId || !window.Echo) return;
+        if (!stationAvailable || !window.Echo) return;
 
-        const conversationId = Math.min(currentUserId, midwifeId) + '-' + Math.max(currentUserId, midwifeId);
         const typingIndicator = document.getElementById('typing-indicator');
         let typingTimeout = null;
         
-        console.log('[WS] Patient subscribing to conversation.' + conversationId);
-
-        const channel = window.Echo.private('conversation.' + conversationId);
+        const channel = window.Echo.private('patient-chat.' + currentUserId);
 
         channel.listen('MessageSent', (e) => {
                 console.log('[WS] MessageSent event received:', e);
@@ -568,22 +565,20 @@
         }
     }
 
-    const activeUsers = new Set();
+    const onlineStaff = new Set();
 
-    function updateMidwifeStatus() {
-        if (!midwifeId) return;
-        const dot = document.getElementById('midwife-status-dot');
-        const text = document.getElementById('midwife-status-text');
-        if (dot && text) {
-            if (activeUsers.has(parseInt(midwifeId))) {
-                dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
-                text.textContent = 'ACTIVE NOW';
-                text.className = 'text-[10px] uppercase tracking-wider font-bold text-emerald-600';
-            } else {
-                dot.className = 'w-2 h-2 rounded-full bg-outline-variant';
-                text.textContent = 'OFFLINE';
-                text.className = 'text-[10px] uppercase tracking-wider font-bold text-on-surface-variant';
-            }
+    function updateStationStatus() {
+        const dot = document.getElementById('station-status-dot');
+        const text = document.getElementById('station-status-text');
+        if (!dot || !text) return;
+        if (onlineStaff.size > 0) {
+            dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+            text.textContent = 'ACTIVE NOW';
+            text.className = 'text-[10px] uppercase tracking-wider font-bold text-emerald-600';
+        } else {
+            dot.className = 'w-2 h-2 rounded-full bg-outline-variant';
+            text.textContent = 'OFFLINE';
+            text.className = 'text-[10px] uppercase tracking-wider font-bold text-on-surface-variant';
         }
     }
 
@@ -595,18 +590,18 @@
         window.Echo.join('online')
             .here((users) => {
                 console.log('[WS] Users online:', users);
-                users.forEach(u => activeUsers.add(u.id));
-                updateMidwifeStatus();
+                users.filter(u => u.is_staff).forEach(u => onlineStaff.add(u.id));
+                updateStationStatus();
             })
             .joining((user) => {
                 console.log('[WS] User joined:', user);
-                activeUsers.add(user.id);
-                updateMidwifeStatus();
+                if (user.is_staff) onlineStaff.add(user.id);
+                updateStationStatus();
             })
             .leaving((user) => {
                 console.log('[WS] User left:', user);
-                activeUsers.delete(user.id);
-                updateMidwifeStatus();
+                onlineStaff.delete(user.id);
+                updateStationStatus();
             })
             .error((error) => {
                 console.error('[WS] Presence channel error:', error);

@@ -332,21 +332,13 @@ class PatientController extends Controller
         }
         $childrenCount = $children->count();
 
-        $midwife = User::careTeamContact();
-        $recentMessages = collect();
-        if ($midwife) {
-            $unreadMessagesCount = ChatMessage::where('sender_id', $midwife->id)
-                                             ->where('receiver_id', $user->id)
-                                             ->where('is_read', false)
-                                             ->count();
-
-            $recentMessages = ChatMessage::with('sender:id,name')
-                ->where(fn ($q) => $q->where('sender_id', $user->id)->where('receiver_id', $midwife->id))
-                ->orWhere(fn ($q) => $q->where('sender_id', $midwife->id)->where('receiver_id', $user->id))
-                ->latest('id')
-                ->take(3)
-                ->get();
-        }
+        // Her conversation with the health station (replies from any staff member).
+        $unreadMessagesCount = $user->unreadChatCount();
+        $recentMessages = ChatMessage::thread($user->id)
+            ->with('sender:id,name')
+            ->latest('id')
+            ->take(3)
+            ->get();
 
         AuditLog::log('view_patient_portal', $mother);
 
@@ -359,7 +351,6 @@ class PatientController extends Controller
             'overdueVaccinesCount',
             'unreadMessagesCount',
             'recentMessages',
-            'midwife',
             'activity'
         ));
     }

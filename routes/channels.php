@@ -6,15 +6,15 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
-Broadcast::channel('conversation.{conversationId}', function ($user, $conversationId) {
-    $ids = explode('-', $conversationId);
-    return in_array($user->id, $ids);
+// A patient's conversation with the health station: the patient and every staff member.
+Broadcast::channel('patient-chat.{patientId}', function ($user, $patientId) {
+    return (int) $user->id === (int) $patientId || $user->isAdmin();
 });
 
 Broadcast::channel('online', function ($user) {
     return [
         'id' => $user->id,
         'name' => $user->name,
+        'is_staff' => $user->isAdmin(),
     ];
 });
-

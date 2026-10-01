@@ -71,7 +71,7 @@
         </div>
         <div class="flex items-center gap-1 text-on-primary-container font-label-md opacity-80">
             <span class="material-symbols-outlined text-sm">forum</span>
-            <span>From your midwife</span>
+            <span>From the health station</span>
         </div>
         <span class="material-symbols-outlined absolute -right-2 -bottom-2 text-6xl text-on-primary/10">mail</span>
     </div>
@@ -108,7 +108,7 @@
             @endif
         </div>
         <p class="font-label-md text-label-md text-on-surface font-bold">Messages</p>
-        <p class="text-body-sm text-on-surface-variant">Chat with your midwife</p>
+        <p class="text-body-sm text-on-surface-variant">Chat with the health station</p>
     </a>
 </div>
 

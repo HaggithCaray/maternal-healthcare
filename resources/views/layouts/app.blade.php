@@ -67,7 +67,7 @@
     ];
     $navItems = array_filter($allNavItems, fn($item) => $user && in_array($user->role, $item['roles']));
     $currentRoute = request()->route() ? request()->route()->getName() : '';
-    $unreadMessages = $user ? \App\Models\ChatMessage::where('receiver_id', $user->id)->where('is_read', false)->count() : 0;
+    $unreadMessages = $user ? $user->unreadChatCount() : 0;
 @endphp
 
 <div class="fixed inset-0 bg-inverse-surface/40 z-40 opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden" id="sidebar-overlay" onclick="toggleSidebar()"></div>

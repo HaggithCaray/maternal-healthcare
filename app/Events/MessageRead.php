@@ -13,27 +13,26 @@ class MessageRead implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $conversationId;
+    public $patientId;
     public $readByUserId;
 
     /**
-     * Create a new event instance.
+     * @param  int  $patientId  the patient whose conversation was read
+     * @param  int  $readByUserId  the patient (read the staff's replies) or a staff member (read the patient's messages)
      */
-    public function __construct($conversationId, $readByUserId)
+    public function __construct($patientId, $readByUserId)
     {
-        $this->conversationId = $conversationId;
+        $this->patientId = $patientId;
         $this->readByUserId = $readByUserId;
     }
 
     /**
-     * Get the channels the event should broadcast on.
-     *
      * @return array<int, Channel>
      */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('conversation.' . $this->conversationId),
+            new PrivateChannel('patient-chat.' . $this->patientId),
         ];
     }
 }

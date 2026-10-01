@@ -14,26 +14,25 @@ class MessageSent implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $message;
-    public $conversationId;
+    public $patientId;
 
     /**
-     * Create a new event instance.
+     * @param  \App\Models\ChatMessage  $message  sent with its sender (id, name, role) loaded
+     * @param  int  $patientId  the patient whose conversation this belongs to
      */
-    public function __construct($message, $conversationId)
+    public function __construct($message, $patientId)
     {
         $this->message = $message;
-        $this->conversationId = $conversationId;
+        $this->patientId = $patientId;
     }
 
     /**
-     * Get the channels the event should broadcast on.
-     *
      * @return array<int, Channel>
      */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('conversation.' . $this->conversationId),
+            new PrivateChannel('patient-chat.' . $this->patientId),
         ];
     }
 }

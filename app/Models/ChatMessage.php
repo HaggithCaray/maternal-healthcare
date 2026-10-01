@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +45,15 @@ class ChatMessage extends Model
     public function getAttachmentUrlAttribute(): ?string
     {
         return $this->attachment_path ? route('messaging.attachment', $this) : null;
+    }
+
+    /**
+     * A patient's conversation with the health station: everything the patient sent and every
+     * reply any staff member sent them. Patients only write to staff and staff only to patients.
+     */
+    public function scopeThread(Builder $query, int $patientUserId): Builder
+    {
+        return $query->where(fn (Builder $q) => $q->where('sender_id', $patientUserId)->orWhere('receiver_id', $patientUserId));
     }
 
     public function sender(): BelongsTo
