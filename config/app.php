@@ -65,12 +65,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | will be used by the PHP date and date-time functions.
+    |
+    | Philippine time, so "today" for a visit, measurement or vaccine dose is
+    | the clinic's day. Stored date-times are wall-clock text in this zone;
+    | migration 2026_10_01_000000 moved the ones written under UTC.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Manila',
 
     /*
     |--------------------------------------------------------------------------

@@ -2,6 +2,12 @@
 
 ## Key Config Files
 
+### config/app.php: timezone
+- **Timezone:** `Asia/Manila`. "Today" for a visit, measurement or vaccine dose is the clinic's day. Under the old `UTC` setting, anything entered before 8am was dated the previous day
+- Date-times (`created_at`, `sent_at`, `last_login_at`, …) are stored as Philippine wall-clock time. Date-only fields (visit date, dose date, birthday, LMP) are calendar days
+- Migration `2026_10_01_000000_store_timestamps_in_philippine_time` moved date-times written under UTC forward 8 hours (Manila has no daylight saving). On MySQL it only touches this app's database. Run `php artisan migrate` right after updating, before entering new data
+- Visit or dose dates recorded before the change are not corrected: an entry made between midnight and 8am may show the previous day
+
 ### config/database.php
 - **Default:** MySQL (env: `DB_CONNECTION`)
 - **MySQL:** host 127.0.0.1, port 3306, charset utf8mb4, strict mode enabled
