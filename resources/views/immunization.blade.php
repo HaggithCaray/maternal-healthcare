@@ -36,6 +36,7 @@
             <div>
                 <h3 class="font-headline-sm text-headline-sm text-primary">{{ $patient->first_name }} {{ $patient->last_name }}</h3>
                 <p class="text-outline font-label-md">ID: BCHC-{{ $patient->created_at->format('Y') }}-{{ sprintf('%03d', $patient->id) }} &bull; {{ (int) \Carbon\Carbon::parse($patient->dob)->diffInMonths(\Carbon\Carbon::now()) }} Months Old</p>
+                @include('partials.allergies', ['allergies' => $childRecord?->allergies])
             </div>
             <div class="flex gap-2 flex-wrap">
                 @php

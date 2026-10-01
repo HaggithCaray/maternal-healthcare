@@ -325,6 +325,10 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="md:col-span-2 flex flex-col gap-xs">
+                        <label class="font-label-md text-label-md text-on-surface-variant">Known Allergies</label>
+                        <textarea name="allergies" maxlength="1000" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Medicine, food or vaccine allergies..." rows="2">{{ old('allergies', $patient->childRecord->allergies) }}</textarea>
+                    </div>
                 </div>
                 <div class="mt-md">
                     <label class="font-label-md text-label-md text-on-surface-variant mb-xs block">Newborn Screenings</label>

@@ -16,6 +16,7 @@
                 @include('partials.growth.status-badge', ['status' => $latestGrowth?->status])
             </div>
             <p class="text-body-md text-on-surface-variant mt-xs">Age: {{ (int) \Carbon\Carbon::parse($patient->dob)->diffInMonths(\Carbon\Carbon::now()) }} Months &bull; {{ $patient->gender }} &bull; Patient ID: #BC-{{ $patient->created_at->format('Y') }}-{{ sprintf('%03d', $patient->id) }}</p>
+            @include('partials.allergies', ['allergies' => $childRecord?->allergies])
         </div>
     </div>
     <a href="{{ route('patient.portal') }}" class="flex-1 md:flex-initial px-md py-sm border border-primary text-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-xs hover:bg-primary/5 transition-all">

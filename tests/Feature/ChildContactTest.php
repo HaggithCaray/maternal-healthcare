@@ -140,6 +140,40 @@ class ChildContactTest extends TestCase
         $this->assertSame('09171111111', SmsMessage::sole()->phone_number);
     }
 
+    public function test_searching_records_by_the_mothers_phone_finds_her_children(): void
+    {
+        $this->actingAs($this->midwife)->post('/register', $this->childForm());
+
+        $this->actingAs($this->midwife)->get('/records?search=1111111')
+            ->assertOk()
+            ->assertSee('Ana')
+            ->assertSee('Nico');
+    }
+
+    public function test_a_childs_allergies_are_recorded_and_shown_on_its_pages(): void
+    {
+        $this->actingAs($this->midwife)->post('/register', $this->childForm(['allergies' => 'Penicillin']))
+            ->assertSessionHasNoErrors();
+        $child = $this->child();
+        $this->assertSame('Penicillin', $child->childRecord->allergies);
+
+        $this->actingAs($this->midwife)->get("/immunization?id={$child->id}")->assertOk()->assertSee('Allergies: Penicillin');
+        $this->actingAs($this->midwife)->get("/growth?id={$child->id}")->assertOk()->assertSee('Allergies: Penicillin');
+
+        $this->actingAs($this->midwife)->put("/patients/{$child->id}", $this->editForm(['allergies' => 'Penicillin, eggs']))
+            ->assertSessionHasNoErrors();
+        $this->assertSame('Penicillin, eggs', $child->childRecord->fresh()->allergies);
+    }
+
+    public function test_a_mothers_allergies_are_shown_on_her_prenatal_page(): void
+    {
+        $this->mother->maternalRecord->update(['allergies' => 'Sulfa drugs']);
+
+        $this->actingAs($this->midwife)->get("/maternal?id={$this->mother->id}")
+            ->assertOk()
+            ->assertSee('Allergies: Sulfa drugs');
+    }
+
     // --- Edit Patient -----------------------------------------------------------------------
 
     protected function editForm(array $overrides = []): array

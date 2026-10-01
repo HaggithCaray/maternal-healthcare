@@ -40,7 +40,9 @@ class PatientController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  // A child linked to its mother uses her phone number.
+                  ->orWhereHas('childRecord.mother', fn ($mother) => $mother->where('phone', 'like', "%{$search}%"));
             });
         }
 
@@ -215,6 +217,7 @@ class PatientController extends Controller
                     'has_vitamin_k' => $request->boolean('has_vitamin_k'),
                     'has_bcg_at_birth' => $request->boolean('has_bcg_at_birth'),
                     'has_hepb_at_birth' => $request->boolean('has_hepb_at_birth'),
+                    'allergies' => $request->allergies,
                 ]);
 
                 // Keep the BCG / Hepatitis B birth doses in line with the "at birth" checkboxes.

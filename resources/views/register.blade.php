@@ -264,6 +264,10 @@
                             </div>
                             <p class="text-xs text-on-surface-variant">Uncheck a dose the baby did not receive; it will stay on the schedule as due.</p>
                         </div>
+                        <div class="md:col-span-2 flex flex-col gap-xs">
+                            <label class="{{ $label }}">Known Allergies</label>
+                            <textarea name="allergies" maxlength="1000" class="{{ $input }}" placeholder="Medicine, food or vaccine allergies..." rows="2">{{ old('allergies') }}</textarea>
+                        </div>
                     </div>
                 </div>
 

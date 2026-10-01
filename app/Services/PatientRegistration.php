@@ -230,6 +230,7 @@ class PatientRegistration
             'delivery_type' => $data['delivery_type'] ?? 'Normal',
             'has_bcg_at_birth' => filter_var($data['has_bcg_at_birth'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'has_hepb_at_birth' => filter_var($data['has_hepb_at_birth'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'allergies' => $data['allergies'] ?? null,
         ]);
 
         // A birth measurement only when both values were actually recorded.

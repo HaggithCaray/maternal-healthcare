@@ -25,7 +25,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'has_eye_prophylaxis',
     'has_vitamin_k',
     'has_bcg_at_birth',
-    'has_hepb_at_birth'
+    'has_hepb_at_birth',
+    'allergies'
 ])]
 class ChildRecord extends Model
 {
