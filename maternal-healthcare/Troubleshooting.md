@@ -2,6 +2,14 @@
 
 ## Common Issues
 
+### Signed Out When Another User Signs In
+**Symptom:** Signing in as one user signs out another user who is already signed in
+**Causes:**
+- **Same browser:** a browser holds one sign-in per site, so a second login in another tab or window replaces the first. Use a different browser or a private window for the second account
+- **Another Laravel app on localhost:** browsers share `localhost` cookies across ports. Apps using the default `laravel-session` cookie used to overwrite this app's sign-in. This app now uses its own cookie, `maternal-health-session` (`config/session.php`, `SESSION_COOKIE`)
+- **Intended sign-outs:** a password change, a staff password reset, or deactivating the account signs that user out everywhere
+**Note:** after the cookie name changed, everyone has to sign in once more.
+
 ### View Cache Not Updating
 **Symptom:** Blade template changes not reflected in browser
 **Fix:**

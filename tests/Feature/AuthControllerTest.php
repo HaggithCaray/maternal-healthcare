@@ -26,6 +26,19 @@ class AuthControllerTest extends TestCase
     }
 
     /**
+     * The sign-in cookie has this app's own name, so another Laravel app on localhost
+     * (which defaults to "laravel-session") can't overwrite it.
+     */
+    public function test_sign_in_uses_this_apps_own_session_cookie(): void
+    {
+        config(['session.driver' => 'cookie']); // the test default ("array") sets no cookie
+
+        $this->get('/')
+            ->assertCookie('maternal-health-session')
+            ->assertCookieMissing('laravel-session');
+    }
+
+    /**
      * Test login endpoint throttles repeated attempts for the same email+IP.
      */
     public function test_login_is_rate_limited_after_repeated_attempts(): void

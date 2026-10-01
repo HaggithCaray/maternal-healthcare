@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Str;
-
 return [
 
     /*
@@ -122,15 +120,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may change the name of the session cookie that is created by
-    | the framework. Typically, you should not need to change this value
-    | since doing so does not grant a meaningful security improvement.
+    | the framework.
+    |
+    | Browsers share localhost cookies across ports, so another Laravel app on
+    | this machine using the default "laravel-session" would overwrite this
+    | app's sign-in (and the reverse). This app uses its own name.
     |
     */
 
-    'cookie' => env(
-        'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
-    ),
+    'cookie' => env('SESSION_COOKIE', 'maternal-health-session'),
 
     /*
     |--------------------------------------------------------------------------
