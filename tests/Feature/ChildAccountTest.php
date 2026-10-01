@@ -144,10 +144,10 @@ class ChildAccountTest extends TestCase
 
     public function test_registration_form_hides_the_email_for_a_child(): void
     {
-        $this->actingAs($this->midwife)->get('/register')
-            ->assertOk()
-            ->assertSee('data-maternal-only', false)
-            ->assertSee("A child doesn't get a login", false);
+        // The email (her portal login) is only in the mother's part of the form.
+        $html = $this->actingAs($this->midwife)->get('/register')->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/<div class="flex flex-col gap-xs" data-maternal-only>\s*<label[^>]*>Email Address<\/label>/', $html);
     }
 
     // --- Cleanup of logins made before this fix -----------------------------------------------

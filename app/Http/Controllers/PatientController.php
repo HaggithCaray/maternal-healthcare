@@ -148,7 +148,8 @@ class PatientController extends Controller
         $isChild = $patient->registration_type === 'Child';
 
         // Same rules as registration, so an edit can't store what the form would have refused.
-        $request->validate(Arr::except(PatientRegistration::rules(), ['registration_type', 'barangay', 'email']) + [
+        $request->validate(Arr::except(PatientRegistration::rules(), ['registration_type', 'barangay', 'email', ...Patient::CONTACT_FIELDS])
+            + PatientRegistration::contactRules($isChild) + [
             // The email is also the portal login, so it must not belong to another account.
             // Children have no login (the form doesn't show the field), so theirs is left as is.
             'email' => $isChild ? 'exclude' : ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($patient->user_id)],
@@ -160,18 +161,21 @@ class PatientController extends Controller
             'has_vitamin_k' => 'nullable|boolean',
         ]);
 
-        DB::transaction(function () use ($request, $patient, $isChild) {
+        // A child linked to a mother shows her current contact details, so it keeps no copy.
+        $followsMother = $isChild && $request->filled('mother_id');
+
+        DB::transaction(function () use ($request, $patient, $isChild, $followsMother) {
             $patient->update([
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'dob' => $request->dob,
                 'gender' => $request->gender,
-                'phone' => $request->phone,
+                'phone' => $followsMother ? null : $request->phone,
                 'email' => $isChild ? $patient->email : $request->email,
-                'address' => $request->address,
-                'occupation' => $request->occupation,
-                'emergency_contact_name' => $request->emergency_contact_name,
-                'emergency_contact_phone' => $request->emergency_contact_phone,
+                'address' => $followsMother ? null : $request->address,
+                'occupation' => $isChild ? null : $request->occupation,
+                'emergency_contact_name' => $followsMother ? null : $request->emergency_contact_name,
+                'emergency_contact_phone' => $followsMother ? null : $request->emergency_contact_phone,
                 'status' => $request->status,
             ]);
 

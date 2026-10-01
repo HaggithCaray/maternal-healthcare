@@ -149,10 +149,12 @@
                             </label>
                         </div>
                     </div>
+                    @if($patient->registration_type !== 'Child')
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Occupation</label>
-                        <input name="occupation" value="{{ old('occupation', $patient->occupation) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Housewife, Teacher, Vendor" type="text">
+                        <input name="occupation" value="{{ old('occupation', $patient->occupation) }}" maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. Housewife, Teacher, Vendor" type="text">
                     </div>
+                    @endif
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Status *</label>
                         <select name="status" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base cursor-pointer">
@@ -170,12 +172,29 @@
                     <h2 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Contact & Location</h2>
                     <p class="text-body-sm text-on-surface-variant">Ensure we have the correct information to reach the patient in case of emergencies.</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                @php
+                    $isChild = $patient->registration_type === 'Child';
+                    // A child's own stored values, not the mother's details shown in their place.
+                    $own = fn (string $field) => $isChild ? $patient->getRawOriginal($field) : $patient->{$field};
+                @endphp
+                @if($isChild)
+                <div id="motherContactNote" class="{{ old('mother_id', $patient->childRecord?->mother_id) ? '' : 'hidden' }} p-md mb-md bg-primary-container/15 border border-primary/20 rounded-xl flex items-start gap-sm">
+                    <span class="material-symbols-outlined text-primary">family_restroom</span>
+                    <p class="text-body-sm text-on-surface">
+                        This child uses the linked mother's address, phone and emergency contact, so they stay up to date when her record changes.
+                        @if($patient->childRecord?->mother)
+                        <a href="{{ route('patients.edit', $patient->childRecord->mother) }}" class="text-primary font-bold hover:underline">Edit {{ $patient->childRecord->mother->first_name }}'s record</a> to change them.
+                        @endif
+                        To enter a parent or guardian's details instead, set the mother to "not registered" under Child Details.
+                    </p>
+                </div>
+                @endif
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-md {{ $isChild && old('mother_id', $patient->childRecord?->mother_id) ? 'hidden' : '' }}" id="contactFields">
                     <div class="flex flex-col gap-xs">
-                        <label class="font-label-md text-label-md text-on-surface-variant">Phone Number *</label>
+                        <label class="font-label-md text-label-md text-on-surface-variant">{{ $isChild ? 'Parent / Guardian Phone' : 'Phone Number' }} *</label>
                         <div class="flex">
                             <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-outline bg-surface-container text-on-surface-variant text-sm">+63</span>
-                            <input name="phone" value="{{ old('phone', $patient->phone) }}" required class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
+                            <input name="phone" value="{{ old('phone', $own('phone')) }}" required maxlength="30" class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
                         </div>
                     </div>
                     @if($patient->registration_type !== 'Child')
@@ -186,19 +205,19 @@
                     @endif
                     <div class="md:col-span-2 flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Permanent Address *</label>
-                        <textarea name="address" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="House number, Street, Purok..." rows="3">{{ old('address', $patient->address) }}</textarea>
+                        <textarea name="address" required maxlength="500" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="House number, Street, Purok..." rows="3">{{ old('address', $own('address')) }}</textarea>
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Barangay</label>
                         <input class="w-full rounded-lg border-outline bg-surface-container text-on-surface-variant px-sm py-base" readonly value="{{ $patient->barangay }}" type="text">
                     </div>
                     <div class="flex flex-col gap-xs">
-                        <label class="font-label-md text-label-md text-on-surface-variant">Emergency Contact Person *</label>
-                        <input name="emergency_contact_name" value="{{ old('emergency_contact_name', $patient->emergency_contact_name) }}" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Name of Relative" type="text">
+                        <label class="font-label-md text-label-md text-on-surface-variant">{{ $isChild ? 'Parent / Guardian Name' : 'Emergency Contact Person' }} *</label>
+                        <input name="emergency_contact_name" value="{{ old('emergency_contact_name', $own('emergency_contact_name')) }}" required maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="{{ $isChild ? 'Who looks after the child' : 'Name of Relative' }}" type="text">
                     </div>
                     <div class="flex flex-col gap-xs">
-                        <label class="font-label-md text-label-md text-on-surface-variant">Emergency Contact Phone *</label>
-                        <input name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $patient->emergency_contact_phone) }}" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Phone of emergency contact" type="tel">
+                        <label class="font-label-md text-label-md text-on-surface-variant">{{ $isChild ? 'Other Contact Phone' : 'Emergency Contact Phone *' }}</label>
+                        <input name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $own('emergency_contact_phone')) }}" @unless($isChild) required @endunless maxlength="30" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Phone of emergency contact" type="tel">
                     </div>
                 </div>
             </div>
@@ -356,5 +375,20 @@
             this.classList.remove('text-on-surface-variant');
         });
     });
+
+    // A child linked to a mother uses her contact details: hide (and don't send) the child's own.
+    const motherSelect = document.querySelector('select[name="mother_id"]');
+    const contactFields = document.getElementById('contactFields');
+    const motherContactNote = document.getElementById('motherContactNote');
+    if (motherSelect && contactFields && motherContactNote) {
+        const syncContact = () => {
+            const followsMother = motherSelect.value !== '';
+            contactFields.classList.toggle('hidden', followsMother);
+            motherContactNote.classList.toggle('hidden', !followsMother);
+            contactFields.querySelectorAll('input, textarea').forEach((field) => { field.disabled = followsMother; });
+        };
+        motherSelect.addEventListener('change', syncContact);
+        syncContact();
+    }
 </script>
 @endpush

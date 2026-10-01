@@ -55,18 +55,15 @@ class PatientRegistration
             'last_name' => 'required|string|max:255',
             'dob' => 'required|date|before_or_equal:today',
             'gender' => 'required|in:Female,Male',
-            'phone' => 'required|string|max:30',
+            ...self::contactRules(),
             'email' => ['nullable', 'email', 'max:255', function (string $attribute, mixed $value, \Closure $fail) {
                 // Otherwise the patient record would be linked to (and log in as) a staff user.
                 if (User::where('email', $value)->where('role', '!=', 'user')->exists()) {
                     $fail('This email belongs to a staff account and cannot be used for a patient.');
                 }
             }],
-            'address' => 'required|string|max:500',
             'barangay' => 'nullable|string|max:100',
             'occupation' => 'nullable|string|max:255',
-            'emergency_contact_name' => 'required|string|max:255',
-            'emergency_contact_phone' => 'required|string|max:30',
             'registration_type' => 'required|in:Maternal,Child',
 
             // Maternal
@@ -91,6 +88,36 @@ class PatientRegistration
     }
 
     /**
+     * Phone, address and emergency contact. A mother must give them. A child linked to a registered
+     * mother uses hers (Patient::contactMother), so they are optional; for a child without a linked
+     * mother they are the parent or guardian's (name, phone and address required).
+     *
+     * @param  bool|null  $child  whether the patient is a child; null when the submitted
+     *                            registration_type decides (registration form and offline sync)
+     * @return array<string, list<string>>
+     */
+    public static function contactRules(?bool $child = null): array
+    {
+        $required = match ($child) {
+            null => ['required_if:registration_type,Maternal', 'required_without:mother_id'],
+            true => ['required_without:mother_id'],
+            false => ['required'],
+        };
+        $requiredForMother = match ($child) {
+            null => ['required_if:registration_type,Maternal'],
+            true => [],
+            false => ['required'],
+        };
+
+        return [
+            'phone' => ['nullable', 'string', 'max:30', ...$required],
+            'address' => ['nullable', 'string', 'max:500', ...$required],
+            'emergency_contact_name' => ['nullable', 'string', 'max:255', ...$required],
+            'emergency_contact_phone' => ['nullable', 'string', 'max:30', ...$requiredForMother],
+        ];
+    }
+
+    /**
      * Register a validated patient.
      *
      * @return array{patient: Patient, temporaryPassword: ?string} temporaryPassword is set when a portal login was created
@@ -101,6 +128,14 @@ class PatientRegistration
         // the child record's mother link. An email entered for a child is not kept.
         if ($data['registration_type'] === 'Child') {
             $data['email'] = null;
+            $data['occupation'] = null;
+
+            // Linked to a registered mother: her current contact details are shown, so keep no copy.
+            if (! empty($data['mother_id'])) {
+                foreach (Patient::CONTACT_FIELDS as $field) {
+                    $data[$field] = null;
+                }
+            }
         }
 
         return DB::transaction(function () use ($data) {
@@ -112,13 +147,13 @@ class PatientRegistration
                 'last_name' => $data['last_name'],
                 'dob' => $data['dob'],
                 'gender' => $data['gender'],
-                'phone' => $data['phone'],
+                'phone' => $data['phone'] ?? null,
                 'email' => $data['email'] ?? null,
-                'address' => $data['address'],
+                'address' => $data['address'] ?? null,
                 'barangay' => $data['barangay'] ?? 'Bicao',
                 'occupation' => $data['occupation'] ?? null,
-                'emergency_contact_name' => $data['emergency_contact_name'],
-                'emergency_contact_phone' => $data['emergency_contact_phone'],
+                'emergency_contact_name' => $data['emergency_contact_name'] ?? null,
+                'emergency_contact_phone' => $data['emergency_contact_phone'] ?? null,
                 'registration_type' => $data['registration_type'],
                 'status' => 'Active',
             ]);
