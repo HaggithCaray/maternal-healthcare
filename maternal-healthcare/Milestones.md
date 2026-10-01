@@ -80,12 +80,12 @@ The project is now split into two repos:
 - [x] **Phase 6**: PHI Compliance & Audit Logging Engine
 - [x] **Phase 7**: Multi-Entity Offline Form Auto-Queuing UI
 
-## Upcoming
-- Phase 8: Multi-Barangay Support & Federation
-- Phase 9: Biometric / Smartcard Field Authentication
+All planned phases are complete. The system serves a single site, Barangay Bicao Health Station.
 
 ## Descoped
 - ~~Data Export (PDF/CSV) for DOH Reports~~ — dropped from the roadmap, not needed
+- ~~Multi-Barangay Support & Federation~~ — dropped; the system is for Bicao Health Station only
+- ~~Biometric / Smartcard Field Authentication~~ — dropped; was only an idea, not a requirement
 
 ---
 
