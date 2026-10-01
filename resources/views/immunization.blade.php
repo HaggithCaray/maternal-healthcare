@@ -138,7 +138,8 @@
                                 <span class="px-2 py-1 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold rounded-md uppercase">GIVEN</span>
                                 @else
                                     @if(auth()->user()->role === 'admin')
-                                    <form method="POST" action="{{ route('immunization', ['id' => $patient->id]) }}" class="inline">
+                                    <form method="POST" action="{{ route('immunization', ['id' => $patient->id]) }}" class="inline"
+                                        data-offline-type="immunization_update" data-offline-label="{{ $v->vaccine_name }} dose {{ $v->dose_number }}" data-offline-once>
                                         @csrf
                                         <input type="hidden" name="immunization_id" value="{{ $v->id }}">
                                         <button type="submit" class="px-2 py-1 bg-primary text-on-primary text-[10px] font-bold rounded-md uppercase hover:bg-primary/95 transition-all">Mark Given</button>

@@ -125,13 +125,31 @@ class SyncController extends Controller
     }
 
     /**
+     * The day an offline entry was made. Devices send the moment of entry (recorded_at, an ISO 8601
+     * instant), which is dated in the app's timezone exactly as an online entry made then would be.
+     */
+    private function entryDate(array $data, string $dateField): string
+    {
+        if (!empty($data['recorded_at'])) {
+            return Carbon::parse($data['recorded_at'])->setTimezone(config('app.timezone'))->toDateString();
+        }
+
+        return $data[$dateField] ?? Carbon::now()->format('Y-m-d');
+    }
+
+    /**
      * Create a patient from offline registration data (same rules and records as the web form).
      */
     private function createPatient(array $data): void
     {
         $this->validateItem($data, PatientRegistration::rules());
 
-        app(PatientRegistration::class)->register($data);
+        $patient = app(PatientRegistration::class)->register($data)['patient'];
+
+        AuditLog::log('create_patient', $patient, [
+            'registration_type' => $patient->registration_type,
+            'source' => 'offline_sync',
+        ]);
     }
 
     /**
@@ -141,10 +159,12 @@ class SyncController extends Controller
     {
         $this->validateItem($data, [
             'maternal_record_id' => 'required|exists:maternal_records,id',
+            'recorded_at' => 'nullable|date|before:tomorrow',
             'date' => 'nullable|date|before_or_equal:today',
             'weight_kg' => 'required|numeric|min:25|max:250',
             'bp' => ['required', 'string', 'regex:/^\s*\d{2,3}\s*\/\s*\d{2,3}\s*$/'],
             'fetal_heart_rate' => 'nullable|integer|min:50|max:250',
+            'notes' => 'nullable|string|max:5000',
         ]);
 
         $record = MaternalRecord::findOrFail($data['maternal_record_id']);
@@ -152,10 +172,10 @@ class SyncController extends Controller
 
         // Status, risk flags and next visit are derived by MaternalCheckup on save; age of gestation
         // too when an LMP is on file (otherwise a field estimate such as "24w 2d" is kept).
-        MaternalCheckup::create([
+        $checkup = MaternalCheckup::create([
             'maternal_record_id' => $record->id,
             'visit_number' => $visitNumber,
-            'date' => $data['date'] ?? Carbon::now()->format('Y-m-d'),
+            'date' => $this->entryDate($data, 'date'),
             'weight_kg' => $data['weight_kg'],
             'bp' => preg_replace('/\s+/', '', $data['bp']),
             'age_of_gestation' => $data['age_of_gestation'] ?? null,
@@ -163,6 +183,13 @@ class SyncController extends Controller
             'attendant' => auth()->user()->name,
             'notes' => $data['notes'] ?? null,
             'next_visit_date' => $data['next_visit_date'] ?? null,
+        ]);
+
+        AuditLog::log('create_maternal_checkup', $checkup, [
+            'patient_id' => $record->patient_id,
+            'visit_number' => $visitNumber,
+            'status' => $checkup->status,
+            'source' => 'offline_sync',
         ]);
     }
 
@@ -173,6 +200,7 @@ class SyncController extends Controller
     {
         $this->validateItem($data, [
             'child_record_id' => 'required|exists:child_records,id',
+            'recorded_at' => 'nullable|date|before:tomorrow',
             'date' => 'nullable|date|before_or_equal:today',
             'weight_kg' => 'required|numeric|min:0.5|max:100',
             'height_cm' => 'required|numeric|min:20|max:200',
@@ -181,26 +209,51 @@ class SyncController extends Controller
         $childRecord = ChildRecord::findOrFail($data['child_record_id']);
 
         // Age in months, WHO z-scores and status are derived by GrowthMeasurement on save.
-        GrowthMeasurement::create([
+        $measurement = GrowthMeasurement::create([
             'child_record_id' => $childRecord->id,
-            'date' => $data['date'] ?? Carbon::now()->format('Y-m-d'),
+            'date' => $this->entryDate($data, 'date'),
             'age_months' => $data['age_months'] ?? 0,
             'weight_kg' => $data['weight_kg'],
             'height_cm' => $data['height_cm'],
         ]);
+
+        AuditLog::log('create_growth_measurement', $measurement, [
+            'child_record_id' => $childRecord->id,
+            'status' => $measurement->status,
+            'source' => 'offline_sync',
+        ]);
     }
 
     /**
-     * Update an immunization record from offline data.
+     * Mark a vaccine dose as given from offline data.
      */
     private function updateImmunization(array $data): void
     {
+        $this->validateItem($data, [
+            'immunization_id' => 'required|exists:immunizations,id',
+            'recorded_at' => 'nullable|date|before:tomorrow',
+            'given_date' => 'nullable|date|before_or_equal:today',
+            'remarks' => 'nullable|string|max:500',
+        ]);
+
         $immunization = Immunization::findOrFail($data['immunization_id']);
+
+        // Already recorded (online, or by another device while this one was offline): keep that record.
+        if ($immunization->status === 'Given') {
+            return;
+        }
+
         $immunization->update([
             'status' => 'Given',
-            'given_date' => $data['given_date'] ?? Carbon::now()->format('Y-m-d'),
+            'given_date' => $this->entryDate($data, 'given_date'),
             'administered_by' => auth()->user()->name,
             'remarks' => $data['remarks'] ?? 'Administered offline during field visit',
+        ]);
+
+        AuditLog::log('administer_vaccine', $immunization, [
+            'vaccine' => $immunization->vaccine_name,
+            'dose' => $immunization->dose_number,
+            'source' => 'offline_sync',
         ]);
     }
 }

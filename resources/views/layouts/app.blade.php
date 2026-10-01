@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+@if(auth()->user()?->isAdmin())
+<meta name="offline-user-id" content="{{ auth()->id() }}">
+@endif
 <meta name="theme-color" content="#005eb8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">

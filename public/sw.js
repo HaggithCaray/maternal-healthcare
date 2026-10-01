@@ -3,7 +3,11 @@
  * Provides offline caching and background sync support.
  *
  * Privacy: patient pages are never cached. Only the registration form (needed offline) is kept,
- * in its own cache that is deleted at logout and whenever the login page opens.
+ * in its own cache that is deleted at logout and whenever the login page opens. Visit logs, growth
+ * metrics and vaccine doses entered on a patient page that was open when the connection dropped
+ * are queued by offline.js instead.
+ *
+ * Any change to this file reinstalls the worker, which re-fetches PRECACHE_URLS (e.g. offline.html).
  */
 
 // Bump when cached pages or assets change shape.

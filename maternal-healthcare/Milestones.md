@@ -42,6 +42,8 @@ The project is now split into two repos:
 - [x] Background sync
 - [x] Offline patient registration
 - [x] Multi-entity offline batch sync (`/api/sync/batch`) for checkups, growth, and vaccines
+- [x] Offline queuing UI for prenatal visit logs, growth metrics and vaccine doses (on a patient page already open when the connection drops)
+- [x] Queued entries tagged with the midwife who entered them and dated from when they were entered, not when they sync
 
 ## Milestone: Analytics & Reporting
 - [x] Dashboard KPIs
@@ -76,9 +78,7 @@ The project is now split into two repos:
 - [x] **Phase 4**: Security Hardening, Policies & Pentest Remediation
 - [x] **Phase 5**: Domain Controller & Form Request Architectural Refactoring
 - [x] **Phase 6**: PHI Compliance & Audit Logging Engine
-
-## In Progress
-- Phase 7: Multi-Entity Offline Form Auto-Queuing UI (checkup/growth/immunization forms still require a live connection; only patient registration queues offline today)
+- [x] **Phase 7**: Multi-Entity Offline Form Auto-Queuing UI
 
 ## Upcoming
 - Phase 8: Multi-Barangay Support & Federation

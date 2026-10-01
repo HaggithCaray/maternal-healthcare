@@ -232,4 +232,164 @@ class SyncAndRegistrationTest extends TestCase
         $this->assertSame('Scheduled', Immunization::where('vaccine_name', 'BCG')->sole()->status);
         $this->assertSame(0, GrowthMeasurement::count());
     }
+
+    // --- Phase 7: visit logs, growth metrics and vaccine doses entered offline -----------------
+
+    protected function maternalRecord(): MaternalRecord
+    {
+        $patient = Patient::create($this->patientData() + ['barangay' => 'Bicao', 'status' => 'Active']);
+
+        return MaternalRecord::create(['patient_id' => $patient->id, 'lmp' => '2026-03-01']);
+    }
+
+    protected function childRecord(): ChildRecord
+    {
+        $child = Patient::create($this->childData(['dob' => '2026-02-10']) + ['barangay' => 'Bicao', 'status' => 'Active']);
+
+        return ChildRecord::create(['patient_id' => $child->id, 'birth_weight_kg' => 3.0, 'birth_height_cm' => 50.0]);
+    }
+
+    protected function scheduledDose(ChildRecord $childRecord, array $overrides = []): Immunization
+    {
+        return Immunization::create(array_merge([
+            'child_record_id' => $childRecord->id,
+            'vaccine_name' => 'Pentavalent (DPT-HepB-Hib)',
+            'dose_number' => 1,
+            'scheduled_date' => '2026-03-24',
+            'status' => 'Scheduled',
+        ], $overrides));
+    }
+
+    public function test_offline_visit_is_dated_when_it_was_entered_not_when_it_synced(): void
+    {
+        $record = $this->maternalRecord();
+
+        $this->sync([['id' => 1, 'uuid' => '77777777-7777-4777-8777-777777777777', 'type' => 'maternal_checkup', 'data' => [
+            'maternal_record_id' => $record->id, 'weight_kg' => 61.5, 'bp' => '110/70', 'notes' => 'Field visit',
+            'recorded_at' => '2026-08-18T03:15:00.000Z',
+        ]]])->assertJson(['success' => true, 'synced_ids' => [1]]);
+
+        $checkup = MaternalCheckup::sole();
+        $this->assertSame('2026-08-18', Carbon::parse($checkup->date)->toDateString());
+        $this->assertSame('Midwife Rosa', $checkup->attendant);
+        $this->assertSame('Field visit', $checkup->notes);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'create_maternal_checkup',
+            'model_id' => $checkup->id,
+            'user_id' => $this->adminUser->id,
+        ]);
+    }
+
+    public function test_entry_date_follows_the_app_timezone(): void
+    {
+        config(['app.timezone' => 'Asia/Manila']);
+        $record = $this->maternalRecord();
+
+        // 23:30 UTC on the 19th is 07:30 on the 20th in the Philippines.
+        $this->sync([['id' => 1, 'uuid' => '88888888-8888-4888-8888-888888888888', 'type' => 'maternal_checkup', 'data' => [
+            'maternal_record_id' => $record->id, 'weight_kg' => 61.5, 'bp' => '110/70',
+            'recorded_at' => '2026-08-19T23:30:00.000Z',
+        ]]])->assertJson(['success' => true]);
+
+        $this->assertSame('2026-08-20', Carbon::parse(MaternalCheckup::sole()->date)->toDateString());
+    }
+
+    public function test_entries_dated_in_the_future_are_rejected(): void
+    {
+        $record = $this->maternalRecord();
+
+        $this->sync([['id' => 1, 'uuid' => '99999999-9999-4999-8999-999999999999', 'type' => 'maternal_checkup', 'data' => [
+            'maternal_record_id' => $record->id, 'weight_kg' => 61.5, 'bp' => '110/70',
+            'recorded_at' => '2026-08-25T03:00:00.000Z',
+        ]]])->assertJson(['success' => false, 'synced_ids' => []]);
+
+        $this->assertSame(0, MaternalCheckup::count());
+    }
+
+    public function test_offline_growth_measurement_is_dated_and_aged_from_when_it_was_entered(): void
+    {
+        $childRecord = $this->childRecord();
+
+        $this->sync([['id' => 4, 'uuid' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'type' => 'child_growth', 'data' => [
+            'child_record_id' => $childRecord->id, 'weight_kg' => 6.8, 'height_cm' => 64.0,
+            'recorded_at' => '2026-07-12T02:00:00.000Z',
+        ]]])->assertJson(['success' => true, 'synced_ids' => [4]]);
+
+        $measurement = GrowthMeasurement::sole();
+        $this->assertSame('2026-07-12', Carbon::parse($measurement->date)->toDateString());
+        $this->assertSame(5, $measurement->age_months);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'create_growth_measurement', 'model_id' => $measurement->id]);
+    }
+
+    public function test_offline_vaccine_dose_is_recorded_with_the_entry_date(): void
+    {
+        $dose = $this->scheduledDose($this->childRecord());
+
+        $this->sync([['id' => 6, 'uuid' => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'type' => 'immunization_update', 'data' => [
+            'immunization_id' => $dose->id, 'recorded_at' => '2026-08-19T01:00:00.000Z',
+        ]]])->assertJson(['success' => true, 'synced_ids' => [6]]);
+
+        $dose->refresh();
+        $this->assertSame('Given', $dose->status);
+        $this->assertSame('2026-08-19', Carbon::parse($dose->given_date)->toDateString());
+        $this->assertSame('Midwife Rosa', $dose->administered_by);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'administer_vaccine', 'model_id' => $dose->id]);
+    }
+
+    public function test_offline_vaccine_dose_does_not_overwrite_one_already_recorded(): void
+    {
+        $dose = $this->scheduledDose($this->childRecord(), [
+            'status' => 'Given', 'given_date' => '2026-08-10', 'administered_by' => 'Midwife Elena',
+        ]);
+
+        // Still reported as synced, so the device stops retrying it.
+        $this->sync([['id' => 6, 'uuid' => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'type' => 'immunization_update', 'data' => [
+            'immunization_id' => $dose->id, 'recorded_at' => '2026-08-19T01:00:00.000Z',
+        ]]])->assertJson(['success' => true, 'synced_ids' => [6]]);
+
+        $dose->refresh();
+        $this->assertSame('2026-08-10', Carbon::parse($dose->given_date)->toDateString());
+        $this->assertSame('Midwife Elena', $dose->administered_by);
+    }
+
+    public function test_offline_vaccine_item_must_name_an_existing_dose(): void
+    {
+        $this->sync([['id' => 6, 'uuid' => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'type' => 'immunization_update', 'data' => [
+            'immunization_id' => 999,
+        ]]])->assertJson(['success' => false, 'synced_ids' => []]);
+    }
+
+    public function test_clinical_forms_are_marked_for_offline_queueing(): void
+    {
+        $record = $this->maternalRecord();
+        $childRecord = $this->childRecord();
+        $dose = $this->scheduledDose($childRecord);
+
+        $this->actingAs($this->adminUser)->get('/maternal?id=' . $record->patient_id)
+            ->assertOk()
+            ->assertSee('<meta name="offline-user-id" content="' . $this->adminUser->id . '">', false)
+            ->assertSee('data-offline-type="maternal_checkup"', false)
+            ->assertSee('data-offline-context=\'{"maternal_record_id":' . $record->id . '}\'', false);
+
+        $this->actingAs($this->adminUser)->get('/growth?id=' . $childRecord->patient_id)
+            ->assertOk()
+            ->assertSee('data-offline-type="child_growth"', false)
+            ->assertSee('data-offline-context=\'{"child_record_id":' . $childRecord->id . '}\'', false);
+
+        $this->actingAs($this->adminUser)->get('/immunization?id=' . $childRecord->patient_id)
+            ->assertOk()
+            ->assertSee('data-offline-type="immunization_update"', false)
+            ->assertSee('name="immunization_id" value="' . $dose->id . '"', false);
+    }
+
+    public function test_patients_get_no_offline_sync_identity(): void
+    {
+        $patientUser = User::create([
+            'name' => 'Ana Reyes', 'email' => 'ana@example.com', 'password' => Hash::make('secret123'), 'role' => 'user',
+        ]);
+
+        $this->actingAs($patientUser)->get('/portal')
+            ->assertOk()
+            ->assertDontSee('offline-user-id', false);
+    }
 }

@@ -99,7 +99,7 @@
 </div>
 
 <!-- Add Prenatal Visit Modal -->
-<div id="visitModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+<div id="visitModal" data-modal class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
     <div class="bg-surface-container-lowest rounded-xl max-w-md w-full p-lg soft-shadow border border-outline-variant/20 relative">
         <div class="flex justify-between items-center mb-md">
             <h4 class="font-headline-sm text-on-surface">Add Prenatal Visit Log</h4>
@@ -107,12 +107,13 @@
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
-        <form method="POST" action="{{ route('maternal', ['id' => $patient->id]) }}">
+        <form method="POST" action="{{ route('maternal', ['id' => $patient->id]) }}"
+            @if($record) data-offline-type="maternal_checkup" data-offline-label="Prenatal visit" data-offline-context='@json(['maternal_record_id' => $record->id])' @endif>
             @csrf
             <div class="space-y-md">
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-md text-on-surface-variant">Weight (kg) *</label>
-                    <input name="weight_kg" required step="0.1" class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm focus:border-primary" placeholder="e.g. 68.2" type="number">
+                    <input name="weight_kg" required step="0.1" min="25" max="250" class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm focus:border-primary" placeholder="e.g. 68.2" type="number">
                 </div>
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-md text-on-surface-variant">Blood Pressure *</label>

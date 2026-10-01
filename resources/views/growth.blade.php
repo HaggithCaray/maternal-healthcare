@@ -91,7 +91,7 @@
 </div>
 
 <!-- Log New Metrics Modal -->
-<div id="metricsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+<div id="metricsModal" data-modal class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
     <div class="bg-surface-container-lowest rounded-xl max-w-md w-full p-lg soft-shadow border border-outline-variant/20 relative">
         <div class="flex justify-between items-center mb-md">
             <h4 class="font-headline-sm text-on-surface">Log Growth Metrics</h4>
@@ -99,16 +99,17 @@
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
-        <form method="POST" action="{{ route('growth', ['id' => $patient->id]) }}">
+        <form method="POST" action="{{ route('growth', ['id' => $patient->id]) }}"
+            @if($childRecord) data-offline-type="child_growth" data-offline-label="Growth measurement" data-offline-context='@json(['child_record_id' => $childRecord->id])' @endif>
             @csrf
             <div class="space-y-md">
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-md text-on-surface-variant">Weight (kg) *</label>
-                    <input name="weight_kg" required step="0.1" class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm focus:border-primary" placeholder="e.g. 11.5" type="number">
+                    <input name="weight_kg" required step="0.1" min="0.5" max="100" class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm focus:border-primary" placeholder="e.g. 11.5" type="number">
                 </div>
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-md text-on-surface-variant">Height (cm) *</label>
-                    <input name="height_cm" required step="0.1" class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm focus:border-primary" placeholder="e.g. 82.4" type="number">
+                    <input name="height_cm" required step="0.1" min="20" max="200" class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm focus:border-primary" placeholder="e.g. 82.4" type="number">
                 </div>
             </div>
             <div class="mt-lg flex justify-end gap-sm">

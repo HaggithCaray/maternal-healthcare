@@ -29,7 +29,22 @@ function outboxStore(db, mode) {
     return db.transaction(OUTBOX_STORE, mode).objectStore(OUTBOX_STORE);
 }
 
-function getPendingItems() {
+/*
+ * Staff member signed in on this page (only staff can sync). Items are tagged with who entered
+ * them and only synced by that person, so a visit logged by one midwife on a shared tablet is
+ * never recorded under the next one to sign in.
+ */
+function currentUserId() {
+    const id = document.querySelector('meta[name="offline-user-id"]')?.getAttribute('content');
+    return id ? Number(id) : null;
+}
+
+// Items queued before entries were tagged have no owner; any staff member may sync those.
+function isOwnItem(item) {
+    return item.user_id == null || item.user_id === currentUserId();
+}
+
+function getAllPendingItems() {
     return openDb().then((db) =>
         new Promise((resolve, reject) => {
             const items = [];
@@ -53,21 +68,12 @@ function getPendingItems() {
     );
 }
 
+function getPendingItems() {
+    return getAllPendingItems().then((items) => items.filter(isOwnItem));
+}
+
 function countPendingItems() {
-    return openDb().then((db) =>
-        new Promise((resolve, reject) => {
-            const request = outboxStore(db, 'readonly').index('status').count(IDBKeyRange.only('pending'));
-            request.onsuccess = () => {
-                const count = request.result;
-                db.close();
-                resolve(count);
-            };
-            request.onerror = () => {
-                db.close();
-                reject(request.error);
-            };
-        })
-    );
+    return getPendingItems().then((items) => items.length);
 }
 
 function addOutboxItem(item) {
@@ -170,13 +176,12 @@ function generateUuid() {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-function queuePatientRegistration(formData) {
-    const data = formDataToObject(formData);
-
+function queueItem(type, data) {
     return addOutboxItem({
         uuid: generateUuid(),
-        type: 'patient_registration',
+        type,
         status: 'pending',
+        user_id: currentUserId(),
         created_at: new Date().toISOString(),
         data,
     }).then(() => {
@@ -187,6 +192,10 @@ function queuePatientRegistration(formData) {
             syncPending();
         }
     });
+}
+
+function queuePatientRegistration(formData) {
+    return queueItem('patient_registration', formDataToObject(formData));
 }
 
 /* ---------------------------------- Sync ---------------------------------- */
@@ -207,7 +216,7 @@ async function refreshCsrfToken() {
 }
 
 async function postToServer(items, token) {
-    return fetch('/api/sync/patients', {
+    return fetch('/api/sync/batch', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -236,6 +245,10 @@ function syncPending() {
 }
 
 async function runSync() {
+    if (currentUserId() === null) {
+        return;
+    }
+
     let items;
     try {
         items = await getPendingItems();
@@ -278,6 +291,13 @@ async function runSync() {
             await deleteOutboxItems(syncedIds);
             showToast(`Synced ${syncedIds.length} record(s) to the server.`);
         }
+
+        // Rejected items stay queued and are retried; say so rather than failing silently.
+        const errors = body.errors ?? [];
+        if (errors.length > 0) {
+            console.warn('Items rejected by server:', errors);
+            showToast(`${errors.length} saved record(s) could not be synced: ${errors[0]}`, 'error');
+        }
     } else {
         console.warn('Sync rejected by server:', response.status);
     }
@@ -306,7 +326,7 @@ function buildBanner() {
         'font-family:Inter,sans-serif', 'box-shadow:0 2px 6px rgba(0,0,0,0.1)',
         'display:none',
     ].join(';');
-    banner.textContent = "You're offline. New registrations will be saved on this device and synced automatically.";
+    banner.textContent = "You're offline. Registrations, visit logs, growth metrics and vaccine doses entered now are saved on this device and synced automatically.";
     document.body.prepend(banner);
 }
 
@@ -317,6 +337,10 @@ function updateOfflineBanner() {
 }
 
 function updateOfflineBadge() {
+    if (currentUserId() === null) {
+        return;
+    }
+
     countPendingItems()
         .then((count) => {
             let badge = document.getElementById('pending-sync-badge');
@@ -343,22 +367,37 @@ function updateOfflineBadge() {
         .catch(() => {});
 }
 
-function showToast(message) {
+function toastStack() {
+    let stack = document.getElementById('offline-toast-stack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'offline-toast-stack';
+        stack.style.cssText = [
+            'position:fixed', 'bottom:16px', 'right:16px', 'z-index:9999',
+            'display:flex', 'flex-direction:column', 'align-items:flex-end', 'gap:8px',
+        ].join(';');
+        document.body.appendChild(stack);
+    }
+    return stack;
+}
+
+function showToast(message, kind = 'success') {
+    const isError = kind === 'error';
     const toast = document.createElement('div');
+    toast.setAttribute('role', isError ? 'alert' : 'status');
     toast.style.cssText = [
-        'position:fixed', 'bottom:16px', 'right:16px', 'z-index:9999',
-        'background:#146f00', 'color:#ffffff', 'padding:12px 20px',
-        'border-radius:10px', 'font-size:14px', 'font-weight:500',
+        `background:${isError ? '#ba1a1a' : '#146f00'}`, 'color:#ffffff', 'padding:12px 20px',
+        'border-radius:10px', 'font-size:14px', 'font-weight:500', 'max-width:min(420px, calc(100vw - 32px))',
         'font-family:Inter,sans-serif', 'box-shadow:0 4px 12px rgba(0,0,0,0.25)',
         'transition:opacity 0.3s',
     ].join(';');
     toast.textContent = message;
-    document.body.appendChild(toast);
+    toastStack().appendChild(toast);
 
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
-    }, 4000);
+    }, isError ? 8000 : 4000);
 }
 
 /* ---------------------------------- Registration form ---------------------------------- */
@@ -384,8 +423,58 @@ function setupRegistrationForm() {
             })
             .catch((error) => {
                 console.error('Failed to queue offline registration:', error);
-                showToast('Failed to save offline. Please try again.');
+                showToast('Failed to save offline. Please try again.', 'error');
             });
+    });
+}
+
+/* ---------------------------------- Clinical entry forms ---------------------------------- */
+
+/*
+ * Forms marked data-offline-type="<sync item type>" are queued instead of submitted while offline.
+ * data-offline-context holds JSON merged into the item (e.g. which record it belongs to);
+ * data-offline-label names the entry in messages; data-offline-once locks the form after queueing.
+ * Patient pages are not cached, so this covers a page that was open when the connection dropped.
+ */
+function setupOfflineForms() {
+    document.querySelectorAll('form[data-offline-type]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            if (navigator.onLine) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const data = formDataToObject(new FormData(form));
+            delete data._token;
+            delete data._method;
+            Object.assign(data, JSON.parse(form.dataset.offlineContext || '{}'), {
+                // The server dates the entry from this moment, not from when it syncs.
+                recorded_at: new Date().toISOString(),
+            });
+
+            const label = form.dataset.offlineLabel || 'Entry';
+
+            queueItem(form.dataset.offlineType, data)
+                .then(() => {
+                    showToast(`${label} saved on this device. It will sync when you reconnect.`);
+                    if (form.hasAttribute('data-offline-once')) {
+                        form.querySelectorAll('button[type="submit"]').forEach((button) => {
+                            button.disabled = true;
+                            button.textContent = 'Queued';
+                            button.title = 'Saved on this device; syncs when back online';
+                            button.style.opacity = '0.6';
+                        });
+                    } else {
+                        form.reset();
+                        form.closest('[data-modal]')?.classList.add('hidden');
+                    }
+                })
+                .catch((error) => {
+                    console.error(`Failed to queue offline ${form.dataset.offlineType}:`, error);
+                    showToast('Failed to save offline. Please try again.', 'error');
+                });
+        });
     });
 }
 
@@ -396,6 +485,12 @@ function initOfflineSupport() {
     updateOfflineBanner();
     updateOfflineBadge();
     setupRegistrationForm();
+    setupOfflineForms();
+
+    // Entries can be left over from an earlier visit (browser closed while offline); send them now.
+    if (navigator.onLine) {
+        syncPending();
+    }
 
     window.addEventListener('online', () => {
         updateOfflineBanner();
