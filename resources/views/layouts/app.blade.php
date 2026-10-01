@@ -7,6 +7,10 @@
 @if(auth()->user()?->isAdmin())
 <meta name="offline-user-id" content="{{ auth()->id() }}">
 @endif
+@auth
+<meta name="chat-user-id" content="{{ auth()->id() }}">
+<meta name="chat-role" content="{{ auth()->user()->isAdmin() ? 'staff' : 'patient' }}">
+@endauth
 <meta name="theme-color" content="#005eb8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -93,8 +97,8 @@
                href="{{ route($item['route']) }}" onclick="if(window.innerWidth < 1024) toggleSidebar()">
                 <span class="material-symbols-outlined" data-icon="{{ $item['icon'] }}">{{ $item['icon'] }}</span>
                 <span class="font-label-md text-label-md">{{ $item['label'] }}</span>
-                @if($item['route'] === 'messaging' && $unreadMessages > 0)
-                <span class="ml-auto bg-primary text-on-primary text-[10px] px-1.5 py-0.5 rounded-full" aria-label="{{ $unreadMessages }} unread">{{ $unreadMessages }}</span>
+                @if($item['route'] === 'messaging')
+                <span data-unread-count class="ml-auto bg-primary text-on-primary text-[10px] px-1.5 py-0.5 rounded-full {{ $unreadMessages > 0 ? '' : 'hidden' }}" aria-label="{{ $unreadMessages }} unread">{{ $unreadMessages }}</span>
                 @endif
             </a>
         @endforeach
@@ -118,11 +122,9 @@
             </form>
             @endif
             <div class="flex items-center gap-xs md:gap-sm">
-                <a href="{{ route('messaging') }}" class="p-2 rounded-full hover:bg-surface-variant transition-colors relative" title="{{ $unreadMessages > 0 ? $unreadMessages . ' unread message' . ($unreadMessages === 1 ? '' : 's') : 'No unread messages' }}">
+                <a href="{{ route('messaging') }}" data-unread-link class="p-2 rounded-full hover:bg-surface-variant transition-colors relative" title="{{ $unreadMessages > 0 ? $unreadMessages . ' unread message' . ($unreadMessages === 1 ? '' : 's') : 'No unread messages' }}">
                     <span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
-                    @if($unreadMessages > 0)
-                    <span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
-                    @endif
+                    <span data-unread-dot class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full {{ $unreadMessages > 0 ? '' : 'hidden' }}"></span>
                 </a>
                 <div class="relative group">
                     <div class="flex items-center gap-sm cursor-pointer hover:opacity-80 transition-opacity" onclick="document.getElementById('user-menu').classList.toggle('hidden');document.getElementById('chevron-icon')?.classList.toggle('rotate-180')">

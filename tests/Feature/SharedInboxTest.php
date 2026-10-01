@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Events\MessageRead;
+use App\Events\StaffInboxUpdated;
 use App\Models\ChatMessage;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -129,6 +132,71 @@ class SharedInboxTest extends TestCase
         $this->assertSame(0, ChatMessage::count());
     }
 
+    // --- Live inbox badges -------------------------------------------------------------------
+
+    public function test_a_patients_message_updates_every_staff_page(): void
+    {
+        Event::fake([StaffInboxUpdated::class]);
+
+        $this->actingAs($this->ana)->postJson('/messaging', ['message' => 'Hello'])->assertOk();
+
+        Event::assertDispatched(StaffInboxUpdated::class, fn (StaffInboxUpdated $e) => $e->patientId === $this->ana->id
+            && $e->patientUnread === 1 && $e->totalUnread === 1
+            && $e->broadcastOn()[0]->name === 'private-staff-inbox');
+    }
+
+    public function test_a_staff_reply_does_not_change_the_staff_inbox(): void
+    {
+        Event::fake([StaffInboxUpdated::class]);
+
+        $this->actingAs($this->rosa)->post('/messaging', ['message' => 'Kumusta?', 'receiver_id' => $this->ana->id]);
+
+        Event::assertNotDispatched(StaffInboxUpdated::class);
+    }
+
+    public function test_a_message_seen_live_is_marked_read_for_the_team(): void
+    {
+        $this->actingAs($this->ana)->postJson('/messaging', ['message' => 'Hello']);
+        Event::fake([StaffInboxUpdated::class, MessageRead::class]);
+
+        $this->actingAs($this->elena)->postJson('/messaging/read', ['patient_id' => $this->ana->id])
+            ->assertOk()
+            ->assertJson(['unread' => 0]);
+
+        $this->assertTrue(ChatMessage::sole()->is_read);
+        Event::assertDispatched(MessageRead::class, fn (MessageRead $e) => $e->patientId === $this->ana->id && $e->readByUserId === $this->elena->id);
+        Event::assertDispatched(StaffInboxUpdated::class, fn (StaffInboxUpdated $e) => $e->patientUnread === 0 && $e->totalUnread === 0);
+    }
+
+    public function test_a_patient_marks_live_replies_read(): void
+    {
+        $this->actingAs($this->rosa)->post('/messaging', ['message' => 'Kumusta?', 'receiver_id' => $this->ana->id]);
+
+        $this->actingAs($this->ana)->postJson('/messaging/read')->assertOk()->assertJson(['unread' => 0]);
+
+        $this->assertTrue(ChatMessage::sole()->is_read);
+    }
+
+    public function test_staff_mark_only_patient_conversations_read(): void
+    {
+        $this->actingAs($this->rosa)->postJson('/messaging/read', ['patient_id' => $this->elena->id])
+            ->assertUnprocessable();
+    }
+
+    public function test_unread_badges_are_always_on_the_page_for_live_updates(): void
+    {
+        $this->actingAs($this->rosa)->get('/dashboard')
+            ->assertOk()
+            ->assertSee('<meta name="chat-role" content="staff">', false)
+            ->assertSee('data-unread-count class="ml-auto bg-primary text-on-primary text-[10px] px-1.5 py-0.5 rounded-full hidden"', false)
+            ->assertSee('data-unread-dot class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full hidden"', false);
+
+        $this->actingAs($this->ana)->postJson('/messaging', ['message' => 'Hello']);
+
+        $this->actingAs($this->rosa)->get('/dashboard')
+            ->assertSee('aria-label="1 unread">1</span>', false);
+    }
+
     public function test_only_the_patient_and_staff_can_listen_to_a_conversation(): void
     {
         config([
@@ -149,5 +217,13 @@ class SharedInboxTest extends TestCase
         $auth($this->ana)->assertOk();
         $auth($this->elena)->assertOk();
         $auth($this->patientLogin('Bea Cruz', 'bea@example.com'))->assertForbidden();
+
+        // The inbox counts are for staff only.
+        $inbox = fn (User $user) => $this->actingAs($user)->postJson('/broadcasting/auth', [
+            'channel_name' => 'private-staff-inbox',
+            'socket_id' => '1234.1234',
+        ]);
+        $inbox($this->rosa)->assertOk();
+        $inbox($this->ana)->assertForbidden();
     }
 }

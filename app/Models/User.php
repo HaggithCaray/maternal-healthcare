@@ -81,9 +81,7 @@ class User extends Authenticatable
     public function unreadChatCount(): int
     {
         if ($this->isAdmin()) {
-            return ChatMessage::where('is_read', false)
-                ->whereHas('sender', fn (Builder $q) => $q->where('role', 'user'))
-                ->count();
+            return ChatMessage::unreadFromPatientsCount();
         }
 
         return ChatMessage::where('receiver_id', $this->id)->where('is_read', false)->count();

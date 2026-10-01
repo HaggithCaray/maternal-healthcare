@@ -11,6 +11,11 @@ Broadcast::channel('patient-chat.{patientId}', function ($user, $patientId) {
     return (int) $user->id === (int) $patientId || $user->isAdmin();
 });
 
+// Unread counts for the shared inbox, so every staff page keeps its badges current.
+Broadcast::channel('staff-inbox', function ($user) {
+    return $user->isAdmin();
+});
+
 Broadcast::channel('online', function ($user) {
     return [
         'id' => $user->id,

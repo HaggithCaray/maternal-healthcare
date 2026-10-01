@@ -505,6 +505,28 @@
         });
     }
 
+    // Replies that arrive while the chat is open (and visible) are read.
+    let unseenWhileHidden = false;
+    function markConversationRead() {
+        if (document.visibilityState !== 'visible') {
+            unseenWhileHidden = true;
+            return;
+        }
+        unseenWhileHidden = false;
+        fetch('{{ route('messaging.read') }}', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+        }).catch(() => {});
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && unseenWhileHidden) {
+            markConversationRead();
+        }
+    });
+
     function subscribeToChat() {
         if (!stationAvailable || !window.Echo) return;
 
@@ -519,6 +541,7 @@
                 if (typingIndicator) typingIndicator.classList.add('hidden');
 
                 if (e.message.sender_id !== currentUserId) {
+                    markConversationRead();
                     const newMsg = renderMessageHtml(e.message, false);
                     
                     if(chatMessages) {

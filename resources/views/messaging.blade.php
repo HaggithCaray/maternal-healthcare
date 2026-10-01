@@ -115,7 +115,7 @@
             @php
                 $isActive = $activeChatUser && $activeChatUser->id === $p->id;
             @endphp
-            <a href="{{ route('messaging', ['chat_user_id' => $p->id]) }}" data-patient-id="{{ $p->id }}" class="block px-md py-4 {{ $isActive ? 'bg-primary-container/20 border-l-4 border-primary' : 'hover:bg-surface-variant/30' }} cursor-pointer transition-colors">
+            <a href="{{ route('messaging', ['chat_user_id' => $p->id]) }}" data-patient-id="{{ $p->id }}" data-active="{{ $isActive ? 1 : 0 }}" class="block px-md py-4 {{ $isActive ? 'bg-primary-container/20 border-l-4 border-primary' : 'hover:bg-surface-variant/30' }} cursor-pointer transition-colors">
                 <div class="flex gap-3">
                     <div class="relative w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-primary border-2 border-primary-container shrink-0">
                         {{ strtoupper(substr($p->name, 0, 2)) }}
@@ -125,7 +125,7 @@
                         <div class="flex justify-between items-center gap-2 mb-0.5">
                             <h4 class="font-bold text-sm truncate">{{ $p->name }}</h4>
                             @if($p->unread_count > 0 && ! $isActive)
-                            <span class="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center" title="Unread messages">{{ $p->unread_count }}</span>
+                            <span data-patient-unread class="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center" title="Unread messages">{{ $p->unread_count }}</span>
                             @endif
                         </div>
                         <p class="text-xs text-on-surface-variant truncate">{{ $p->email }}</p>
@@ -593,6 +593,30 @@
         });
     }
 
+    // The open conversation counts as read only while this tab is actually being looked at.
+    let unseenWhileHidden = false;
+    function markConversationRead() {
+        if (document.visibilityState !== 'visible') {
+            unseenWhileHidden = true;
+            return;
+        }
+        unseenWhileHidden = false;
+        fetch('{{ route('messaging.read') }}', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: JSON.stringify({ patient_id: activeChatUserId }),
+        }).catch(() => {});
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && unseenWhileHidden) {
+            markConversationRead();
+        }
+    });
+
     function subscribeToChat() {
         if (!activeChatUserId || !window.Echo) return;
 
@@ -605,6 +629,10 @@
                 console.log('[WS] MessageSent event received:', e);
                 // Hide typing indicator when a message arrives
                 if (typingIndicator) typingIndicator.classList.add('hidden');
+
+                if (e.message.sender_id === activeChatUserId) {
+                    markConversationRead();
+                }
 
                 // Own messages are already on screen; a colleague's go on the staff side.
                 if (e.message.sender_id !== currentUserId) {

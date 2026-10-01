@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\MessageRead;
 use App\Events\MessageSent;
+use App\Events\StaffInboxUpdated;
 use App\Models\AuditLog;
 use App\Models\ChatMessage;
 use App\Models\User;
@@ -70,11 +71,7 @@ class ChatController extends Controller
         if ($activeChatUser) {
             $messages = ChatMessage::thread($activeChatUser->id)->with('sender:id,name,role')->orderBy('created_at')->orderBy('id')->get();
 
-            // Read by any staff member counts for the whole team.
-            $readCount = ChatMessage::where('sender_id', $activeChatUser->id)->where('is_read', false)->update(['is_read' => true]);
-            if ($readCount > 0) {
-                $this->broadcastSafely(fn () => event(new MessageRead($activeChatUser->id, $user->id)));
-            }
+            $this->markReadByStaff($activeChatUser->id, $user);
         }
 
         return view('messaging', compact('patients', 'activeChatUser', 'messages'));
@@ -113,12 +110,62 @@ class ChatController extends Controller
 
         $messages = ChatMessage::thread($user->id)->with('sender:id,name,role')->orderBy('created_at')->orderBy('id')->get();
 
-        $readCount = ChatMessage::where('receiver_id', $user->id)->where('is_read', false)->update(['is_read' => true]);
-        if ($readCount > 0) {
-            $this->broadcastSafely(fn () => event(new MessageRead($user->id, $user->id)));
-        }
+        $this->markReadByPatient($user);
 
         return view('patient.messaging', compact('station', 'messages'));
+    }
+
+    /**
+     * Mark the open conversation read when messages arrive live (the page is already showing them).
+     */
+    public function markRead(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->isAdmin()) {
+            $data = $request->validate([
+                'patient_id' => ['required', Rule::exists('users', 'id')->where('role', 'user')],
+            ]);
+            $this->markReadByStaff((int) $data['patient_id'], $user);
+        } else {
+            $this->markReadByPatient($user);
+        }
+
+        return response()->json(['success' => true, 'unread' => $user->unreadChatCount()]);
+    }
+
+    /**
+     * A staff member saw the patient's messages: they are read for the whole team.
+     */
+    protected function markReadByStaff(int $patientId, User $staff): void
+    {
+        $read = ChatMessage::where('sender_id', $patientId)->where('is_read', false)->update(['is_read' => true]);
+
+        if ($read > 0) {
+            $this->broadcastSafely(fn () => event(new MessageRead($patientId, $staff->id)));
+            $this->announceInbox($patientId);
+        }
+    }
+
+    protected function markReadByPatient(User $patient): void
+    {
+        $read = ChatMessage::where('receiver_id', $patient->id)->where('is_read', false)->update(['is_read' => true]);
+
+        if ($read > 0) {
+            $this->broadcastSafely(fn () => event(new MessageRead($patient->id, $patient->id)));
+        }
+    }
+
+    /**
+     * Update the unread badges on every open staff page.
+     */
+    protected function announceInbox(int $patientId): void
+    {
+        $this->broadcastSafely(fn () => event(new StaffInboxUpdated(
+            $patientId,
+            ChatMessage::where('sender_id', $patientId)->where('is_read', false)->count(),
+            ChatMessage::unreadFromPatientsCount(),
+        )));
     }
 
     private const ATTACHMENT_RULES = 'nullable|file|max:25600|mimes:jpeg,jpg,png,webp,gif,pdf,doc,docx,xls,xlsx,mp4,mov';
@@ -147,6 +194,9 @@ class ChatController extends Controller
         ] + $attachment)->load('sender:id,name,role');
 
         $this->broadcastSafely(fn () => event(new MessageSent($message, $patientId)));
+        if ($sender->id === $patientId) {
+            $this->announceInbox($patientId);
+        }
 
         AuditLog::log('send_chat_message', $message, [
             'has_attachment' => $attachment['attachment_path'] !== null,

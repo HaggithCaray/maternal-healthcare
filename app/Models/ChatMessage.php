@@ -56,6 +56,16 @@ class ChatMessage extends Model
         return $query->where(fn (Builder $q) => $q->where('sender_id', $patientUserId)->orWhere('receiver_id', $patientUserId));
     }
 
+    /**
+     * Messages from patients that no staff member has read yet (the shared inbox).
+     */
+    public static function unreadFromPatientsCount(): int
+    {
+        return static::where('is_read', false)
+            ->whereHas('sender', fn (Builder $q) => $q->where('role', 'user'))
+            ->count();
+    }
+
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');

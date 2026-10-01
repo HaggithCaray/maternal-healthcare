@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     // Real-Time Chat & Patient Communication
     Route::match(['get', 'post'], '/messaging', [ChatController::class, 'messaging'])->name('messaging')->middleware('throttle:chat');
     Route::get('/messaging/attachments/{message}', [ChatController::class, 'attachment'])->name('messaging.attachment');
+    Route::post('/messaging/read', [ChatController::class, 'markRead'])->name('messaging.read');
 
     // Own account
     Route::get('/account/password', [AccountController::class, 'editPassword'])->name('account.password');
