@@ -72,10 +72,6 @@ function getPendingItems() {
     return getAllPendingItems().then((items) => items.filter(isOwnItem));
 }
 
-function countPendingItems() {
-    return getPendingItems().then((items) => items.length);
-}
-
 function addOutboxItem(item) {
     return openDb().then((db) =>
         new Promise((resolve, reject) => {
@@ -99,6 +95,37 @@ function deleteOutboxItems(ids) {
             const tx = db.transaction(OUTBOX_STORE, 'readwrite');
             const store = tx.objectStore(OUTBOX_STORE);
             ids.forEach((id) => store.delete(id));
+            tx.oncomplete = () => {
+                db.close();
+                resolve();
+            };
+            tx.onerror = () => {
+                db.close();
+                reject(tx.error);
+            };
+        })
+    );
+}
+
+// Record why the server refused items (by outbox id); they stay queued and are retried.
+function markItemsRejected(rejected) {
+    return openDb().then((db) =>
+        new Promise((resolve, reject) => {
+            const tx = db.transaction(OUTBOX_STORE, 'readwrite');
+            const store = tx.objectStore(OUTBOX_STORE);
+            rejected.forEach(({ id, reason }) => {
+                const request = store.get(id);
+                request.onsuccess = () => {
+                    if (request.result) {
+                        store.put({
+                            ...request.result,
+                            last_error: reason,
+                            failed_attempts: (request.result.failed_attempts ?? 0) + 1,
+                            last_attempt_at: new Date().toISOString(),
+                        });
+                    }
+                };
+            });
             tx.oncomplete = () => {
                 db.close();
                 resolve();
@@ -176,10 +203,11 @@ function generateUuid() {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-function queueItem(type, data) {
+function queueItem(type, data, label = null) {
     return addOutboxItem({
         uuid: generateUuid(),
         type,
+        label,
         status: 'pending',
         user_id: currentUserId(),
         created_at: new Date().toISOString(),
@@ -195,7 +223,10 @@ function queueItem(type, data) {
 }
 
 function queuePatientRegistration(formData) {
-    return queueItem('patient_registration', formDataToObject(formData));
+    const data = formDataToObject(formData);
+    const name = [data.first_name, data.last_name].filter(Boolean).join(' ');
+
+    return queueItem('patient_registration', data, name ? `Registration of ${name}` : null);
 }
 
 /* ---------------------------------- Sync ---------------------------------- */
@@ -292,12 +323,14 @@ async function runSync() {
             showToast(`Synced ${syncedIds.length} record(s) to the server.`);
         }
 
-        // Rejected items stay queued and are retried; say so rather than failing silently.
-        const errors = body.errors ?? [];
-        if (errors.length > 0) {
-            console.warn('Items rejected by server:', errors);
-            showToast(`${errors.length} saved record(s) could not be synced: ${errors[0]}`, 'error');
+        // Rejected items stay queued and are retried; keep the reason and say so rather than failing silently.
+        const rejected = (body.rejected ?? []).filter((item) => item.id != null);
+        if (rejected.length > 0) {
+            console.warn('Items rejected by server:', rejected);
+            await markItemsRejected(rejected).catch(() => {});
+            showToast(`${rejected.length} saved record(s) could not be synced. Tap the sync badge to see why.`, 'error');
         }
+        refreshSyncPanel();
     } else {
         console.warn('Sync rejected by server:', response.status);
     }
@@ -341,31 +374,165 @@ function updateOfflineBadge() {
         return;
     }
 
-    countPendingItems()
-        .then((count) => {
+    getPendingItems()
+        .then((items) => {
             let badge = document.getElementById('pending-sync-badge');
-            if (count > 0) {
-                if (!badge) {
-                    badge = document.createElement('div');
-                    badge.id = 'pending-sync-badge';
-                    badge.style.cssText = [
-                        'position:fixed', 'bottom:16px', 'left:16px', 'z-index:9998',
-                        'background:#005eb8', 'color:#ffffff', 'padding:10px 16px',
-                        'border-radius:999px', 'font-size:13px', 'font-weight:600',
-                        'font-family:Inter,sans-serif', 'box-shadow:0 4px 12px rgba(0,0,0,0.2)',
-                        'display:flex', 'align-items:center', 'gap:8px',
-                    ].join(';');
-                    badge.innerHTML = `<span>&#128260;</span> <span id="pending-sync-count"></span>`;
-                    document.body.appendChild(badge);
-                }
-                document.getElementById('pending-sync-count').textContent =
-                    `${count} record(s) waiting to sync`;
-            } else if (badge) {
-                badge.remove();
+            if (items.length === 0) {
+                badge?.remove();
+                closeSyncPanel();
+                return;
             }
+
+            if (!badge) {
+                badge = document.createElement('button');
+                badge.type = 'button';
+                badge.id = 'pending-sync-badge';
+                badge.title = 'See the entries saved on this device';
+                badge.addEventListener('click', openSyncPanel);
+                badge.innerHTML = '<span aria-hidden="true">&#128260;</span> <span id="pending-sync-count"></span>';
+                document.body.appendChild(badge);
+            }
+
+            // Red when the server refused something: someone needs to look at it.
+            const failing = items.filter((item) => item.last_error).length;
+            badge.style.cssText = [
+                'position:fixed', 'bottom:16px', 'left:16px', 'z-index:9998', 'border:none', 'cursor:pointer',
+                `background:${failing ? '#ba1a1a' : '#005eb8'}`, 'color:#ffffff', 'padding:10px 16px',
+                'border-radius:999px', 'font-size:13px', 'font-weight:600',
+                'font-family:Inter,sans-serif', 'box-shadow:0 4px 12px rgba(0,0,0,0.2)',
+                'display:flex', 'align-items:center', 'gap:8px',
+            ].join(';');
+            document.getElementById('pending-sync-count').textContent =
+                `${items.length} record(s) waiting to sync${failing ? ` · ${failing} need attention` : ''}`;
         })
         .catch(() => {});
 }
+
+/* ---------------------------------- Saved entries panel ---------------------------------- */
+
+const TYPE_LABELS = {
+    patient_registration: 'Patient registration',
+    maternal_checkup: 'Prenatal visit',
+    child_growth: 'Growth measurement',
+    immunization_update: 'Vaccine dose',
+};
+
+function element(tag, styles = [], text = null) {
+    const el = document.createElement(tag);
+    el.style.cssText = styles.join(';');
+    if (text !== null) {
+        el.textContent = text;
+    }
+    return el;
+}
+
+function panelButton(text, primary) {
+    const button = element('button', [
+        'border:none', 'border-radius:8px', 'padding:8px 14px', 'font-size:13px', 'font-weight:600', 'cursor:pointer',
+        primary ? 'background:#005eb8;color:#ffffff' : 'background:#f1f3f8;color:#3f4a5a',
+    ], text);
+    button.type = 'button';
+    return button;
+}
+
+function closeSyncPanel() {
+    document.getElementById('sync-panel')?.remove();
+}
+
+function refreshSyncPanel() {
+    if (document.getElementById('sync-panel')) {
+        openSyncPanel();
+    }
+}
+
+/*
+ * Entries saved on this device that haven't reached the server: what they are, when they were made
+ * and, if the server refused one, why. A refused entry can be discarded once it's been re-entered.
+ */
+async function openSyncPanel() {
+    const items = await getPendingItems().catch(() => []);
+    closeSyncPanel();
+    if (items.length === 0) {
+        return;
+    }
+
+    const overlay = element('div', [
+        'position:fixed', 'inset:0', 'z-index:10000', 'background:rgba(0,0,0,0.45)',
+        'display:flex', 'align-items:center', 'justify-content:center', 'padding:16px',
+    ]);
+    overlay.id = 'sync-panel';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Entries saved on this device');
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+            closeSyncPanel();
+        }
+    });
+
+    const panel = element('div', [
+        'background:#ffffff', 'border-radius:12px', 'width:100%', 'max-width:520px', 'max-height:80vh', 'overflow:auto',
+        'padding:20px', 'font-family:Inter,sans-serif', 'color:#1a1c20', 'box-shadow:0 12px 32px rgba(0,0,0,0.25)',
+    ]);
+
+    const header = element('div', ['display:flex', 'justify-content:space-between', 'align-items:center', 'gap:12px']);
+    header.append(element('h2', ['font-size:18px', 'font-weight:700', 'margin:0'], 'Saved on this device'));
+    const close = panelButton('Close', false);
+    close.addEventListener('click', closeSyncPanel);
+    header.append(close);
+    panel.append(header);
+    panel.append(element('p', ['font-size:13px', 'color:#5a6372', 'margin:6px 0 14px'],
+        'These entries have not reached the server yet. They are sent automatically when the connection is back.'));
+
+    items.forEach((item) => {
+        const row = element('div', [
+            'border:1px solid ' + (item.last_error ? '#f2b8b5' : '#e1e5ec'), 'border-radius:10px', 'padding:12px',
+            'margin-bottom:10px', item.last_error ? 'background:#fff4f3' : 'background:#f8fafd',
+        ]);
+        row.append(element('p', ['font-weight:600', 'font-size:14px', 'margin:0'], item.label || TYPE_LABELS[item.type] || item.type));
+        row.append(element('p', ['font-size:12px', 'color:#5a6372', 'margin:2px 0 0'],
+            `${TYPE_LABELS[item.type] ?? 'Entry'} · saved ${new Date(item.created_at).toLocaleString()}`));
+
+        if (item.last_error) {
+            row.append(element('p', ['font-size:13px', 'color:#ba1a1a', 'margin:8px 0 0'], `Not accepted: ${item.last_error}`));
+            row.append(element('p', ['font-size:12px', 'color:#5a6372', 'margin:4px 0 0'],
+                "It will keep being retried. If it can't be fixed, enter it again on the patient's page and discard this copy."));
+        }
+
+        const discard = panelButton('Discard', false);
+        discard.style.marginTop = '10px';
+        discard.addEventListener('click', async () => {
+            if (!window.confirm('Discard this entry? It has not reached the server and will be lost.')) {
+                return;
+            }
+            await deleteOutboxItems([item.id]).catch(() => {});
+            updateOfflineBadge();
+            refreshSyncPanel();
+        });
+        row.append(discard);
+        panel.append(row);
+    });
+
+    const retry = panelButton(navigator.onLine ? 'Try again now' : 'Offline: will retry when connected', true);
+    retry.disabled = !navigator.onLine;
+    retry.style.width = '100%';
+    retry.addEventListener('click', () => {
+        retry.disabled = true;
+        retry.textContent = 'Sending...';
+        syncPending().finally(refreshSyncPanel);
+    });
+    panel.append(retry);
+
+    overlay.append(panel);
+    document.body.append(overlay);
+    close.focus();
+}
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        closeSyncPanel();
+    }
+});
 
 function toastStack() {
     let stack = document.getElementById('offline-toast-stack');
@@ -455,7 +622,7 @@ function setupOfflineForms() {
 
             const label = form.dataset.offlineLabel || 'Entry';
 
-            queueItem(form.dataset.offlineType, data)
+            queueItem(form.dataset.offlineType, data, form.dataset.offlineLabel || null)
                 .then(() => {
                     showToast(`${label} saved on this device. It will sync when you reconnect.`);
                     if (form.hasAttribute('data-offline-once')) {

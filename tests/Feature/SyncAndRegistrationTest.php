@@ -359,6 +359,42 @@ class SyncAndRegistrationTest extends TestCase
         ]]])->assertJson(['success' => false, 'synced_ids' => []]);
     }
 
+    public function test_each_rejected_item_comes_back_with_a_reason_the_midwife_can_act_on(): void
+    {
+        $record = $this->maternalRecord();
+
+        $response = $this->sync([
+            ['id' => 11, 'uuid' => 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'type' => 'maternal_checkup', 'data' => [
+                'maternal_record_id' => $record->id, 'weight_kg' => 61, 'bp' => 'high',
+            ]],
+            ['id' => 12, 'uuid' => 'ffffffff-ffff-4fff-8fff-ffffffffffff', 'type' => 'immunization_update', 'data' => [
+                'immunization_id' => 999,
+            ]],
+            ['id' => 13, 'uuid' => '12345678-1234-4234-8234-123456789012', 'type' => 'maternal_checkup', 'data' => [
+                'maternal_record_id' => $record->id, 'weight_kg' => 61, 'bp' => '110/70',
+            ]],
+        ])->assertJson(['success' => false, 'synced_ids' => [13]]);
+
+        $rejected = collect($response->json('rejected'))->keyBy('id');
+        $this->assertSame([11, 12], $rejected->keys()->all());
+        $this->assertStringContainsString('bp', strtolower($rejected[11]['reason']));
+        $this->assertSame('immunization_update', $rejected[12]['type']);
+        $this->assertSame('This vaccine dose no longer exists on the server.', $rejected[12]['reason']);
+        $this->assertCount(2, $response->json('errors'));
+    }
+
+    public function test_a_server_fault_is_not_shown_to_the_device(): void
+    {
+        // A record that disappears mid-sync, or a database error, must not leak internals.
+        $response = $this->sync([['id' => 21, 'uuid' => '21212121-2121-4121-8121-212121212121', 'type' => 'unknown_type', 'data' => []]]);
+        $this->assertSame('Unknown item type: unknown_type', $response->json('rejected.0.reason'));
+
+        $reason = (fn (\Throwable $e) => $this->reason($e))->call(app(\App\Http\Controllers\SyncController::class),
+            new \Illuminate\Database\QueryException('mysql', 'select * from secrets', [], new \Exception('SQLSTATE[42S02]')));
+        $this->assertStringNotContainsString('select', $reason);
+        $this->assertStringContainsString('server error', $reason);
+    }
+
     public function test_clinical_forms_are_marked_for_offline_queueing(): void
     {
         $record = $this->maternalRecord();

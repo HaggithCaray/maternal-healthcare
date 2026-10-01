@@ -44,7 +44,8 @@ Modal forms close and reset after queuing (the modal needs `data-modal`). Field 
 2. Sync runs when the connection returns (`online` event), when Background Sync fires, and on every page load while online
 3. Only entries made by the signed-in staff member are sent, so on a shared tablet a visit is never recorded under the next midwife who signs in. Patients never sync
 4. `POST /api/sync/batch`; on a 419 the CSRF token is refreshed once and the request retried
-5. Synced items are removed from the device. Rejected items stay queued, are retried, and are reported in a red toast
+5. Synced items are removed from the device. Rejected items stay queued and are retried; the server returns a reason for each (`rejected: [{id, type, reason}]`), which is kept on the entry
+6. The badge turns red ("N need attention") when an entry was refused. Tapping it opens **Saved on this device**: every queued entry with what it is, when it was saved and why it was refused, plus **Try again now** and **Discard** (after confirming; the entry is lost)
 
 ## API Sync Endpoint
 ```
@@ -83,7 +84,6 @@ POST /api/sync/batch   (staff only)
 - **Toasts:** green when an entry is queued or synced, red when the server rejects an entry
 
 ## Known limits
-- A rejected entry (for example, its patient record was deleted) is retried on every sync. There is no screen yet to review or discard it
 - Offline is detected with `navigator.onLine`. Wi-Fi with no internet can look "online", in which case the normal submit fails and the offline page is shown
 
 ## Related Pages

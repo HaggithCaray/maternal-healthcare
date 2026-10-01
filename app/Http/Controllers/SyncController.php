@@ -11,6 +11,7 @@ use App\Models\MaternalRecord;
 use App\Models\SyncReceipt;
 use App\Services\PatientRegistration;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,7 @@ class SyncController extends Controller
         $syncedIds = [];
         $duplicates = 0;
         $errors = [];
+        $rejected = [];
 
         foreach ($request->input('items') as $item) {
             $item = is_array($item) ? $item : [];
@@ -87,10 +89,10 @@ class SyncController extends Controller
                         $syncedIds[] = $clientId;
                     }
                 } else {
-                    $errors[] = "Item {$clientId} [{$type}]: " . $e->getMessage();
+                    $this->reject($errors, $rejected, $clientId, $type, $this->reason($e));
                 }
             } catch (\Throwable $e) {
-                $errors[] = "Item {$clientId} [{$type}]: " . $e->getMessage();
+                $this->reject($errors, $rejected, $clientId, $type, $this->reason($e));
             }
         }
 
@@ -107,7 +109,33 @@ class SyncController extends Controller
             'synced_ids' => $syncedIds,
             'duplicates' => $duplicates,
             'errors' => $errors,
+            // Per item, so the device can show why each entry is still waiting.
+            'rejected' => $rejected,
         ]);
+    }
+
+    private function reject(array &$errors, array &$rejected, mixed $clientId, mixed $type, string $reason): void
+    {
+        $errors[] = "Item {$clientId} [{$type}]: {$reason}";
+        $rejected[] = ['id' => $clientId, 'type' => $type, 'reason' => $reason];
+    }
+
+    /**
+     * A reason the person who made the entry can act on; server faults are logged, not shown.
+     */
+    private function reason(\Throwable $e): string
+    {
+        if ($e instanceof ModelNotFoundException) {
+            return 'The patient record this entry belongs to no longer exists.';
+        }
+
+        if ($e instanceof \RuntimeException && ! $e instanceof \Illuminate\Database\QueryException) {
+            return $e->getMessage();
+        }
+
+        report($e);
+
+        return 'It could not be saved because of a server error. Please try again later.';
     }
 
     /**
@@ -115,7 +143,12 @@ class SyncController extends Controller
      */
     private function validateItem(array $data, array $rules): void
     {
-        $validator = Validator::make($data, $rules);
+        $validator = Validator::make($data, $rules, [
+            // Shown to the midwife on the device, so say what happened rather than which id failed.
+            'maternal_record_id.exists' => "The mother's prenatal record no longer exists.",
+            'child_record_id.exists' => "The child's record no longer exists.",
+            'immunization_id.exists' => 'This vaccine dose no longer exists on the server.',
+        ]);
 
         if ($validator->fails()) {
             throw new \RuntimeException(
