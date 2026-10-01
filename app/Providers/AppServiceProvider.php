@@ -35,9 +35,32 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(\App\Models\Immunization::class, \App\Policies\ImmunizationPolicy::class);
         Gate::policy(\App\Models\ChatMessage::class, \App\Policies\ChatMessagePolicy::class);
 
-        RateLimiter::for('login', function (Request $request) {
-            $key = Str::lower((string) $request->input('email')) . '|' . $request->ip();
-            return Limit::perMinute(5)->by($key);
+        RateLimiter::for('login', fn (Request $request) => [
+            Limit::perMinute(5)->by('account:' . Str::lower((string) $request->input('email')) . '|' . $request->ip()),
+            // One address trying a password against many accounts.
+            Limit::perMinute(20)->by('ip:' . $request->ip()),
+        ]);
+
+        // The current-password check would otherwise let a stolen session guess the real password.
+        RateLimiter::for('password-change', fn (Request $request) => Limit::perMinute(5)->by((string) $request->user()?->id));
+
+        // Only sending is limited; opening the chat is not.
+        RateLimiter::for('chat', function (Request $request) {
+            if (! $request->isMethod('post')) {
+                return Limit::none();
+            }
+
+            $id = (string) $request->user()?->id;
+
+            return array_values(array_filter([
+                Limit::perMinute(20)->by("messages:{$id}"),
+                // Attachments can be 25 MB each; cap how much one account can upload.
+                $request->hasFile('file') ? Limit::perHour(30)->by("uploads:{$id}") : null,
+            ]));
         });
+
+        RateLimiter::for('sms', fn (Request $request) => $request->isMethod('post')
+            ? Limit::perMinute(10)->by((string) $request->user()?->id)
+            : Limit::none());
     }
 }

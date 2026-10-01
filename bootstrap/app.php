@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -35,4 +36,21 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // A rate limit says how long to wait; forms go back to the page with that message
+        // instead of showing a bare "429 Too Many Requests" page.
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            $seconds = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+            $wait = $seconds >= 120 ? ceil($seconds / 60) . ' minutes' : $seconds . ' seconds';
+            $message = "Too many attempts. Please wait {$wait} and try again.";
+
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json(['message' => $message], 429, $e->getHeaders());
+            }
+
+            return back()
+                ->withInput($request->except(['password', 'password_confirmation', 'current_password', 'file']))
+                ->withErrors(['throttle' => $message])
+                ->with('error', $message);
+        });
     })->create();

@@ -56,6 +56,8 @@ The project is now split into two repos:
 - [x] Built and registered Laravel Model Policies (`PatientPolicy`, `MaternalRecordPolicy`, `ChildRecordPolicy`, `ImmunizationPolicy`, `ChatMessagePolicy`)
 - [x] Fortified chat file upload pipeline (MIME whitelisting, UUID hashing, 25MB file size limit)
 - [x] Implemented PHI/PII Audit Logging engine (`audit_logs` table and logging hooks)
+- [x] Rate limits: login (5/min per account and address, 20/min per address), own password change (5/min), chat sending (20/min; attachments 30/hour), SMS sending (10/min). A blocked form shows a "please wait" message instead of an error page
+- [x] Edit Patient validated with the same rules as registration; "Mark Given" validated and never overwrites a dose already recorded
 
 ## Milestone: Domain Architecture Refactoring
 - [x] Deconstructed 730+ line `PageController` God Controller into focused domain controllers:
@@ -65,7 +67,7 @@ The project is now split into two repos:
   - `SmsGatewayController`
   - `ChatController`
   - `ReportController`
-- [x] Extracted 9 reusable Form Request validation classes (`app/Http/Requests/`)
+- [x] Validation inside each controller action; registration, Edit Patient and offline sync share `PatientRegistration::rules()` (the Form Request classes created during the refactor were never wired in and have been removed)
 - [x] Refactored [routes/web.php](file:///c:/maternal-health-care/routes/web.php) to bind directly to domain controllers
 - [x] Comprehensive test suite expanded and 100% passing (47 tests, 227 assertions)
 
@@ -76,7 +78,7 @@ The project is now split into two repos:
 - [x] **Phase 2**: Edit Patient Functionality
 - [x] **Phase 3**: Architecture Update (Docker → XAMPP)
 - [x] **Phase 4**: Security Hardening, Policies & Pentest Remediation
-- [x] **Phase 5**: Domain Controller & Form Request Architectural Refactoring
+- [x] **Phase 5**: Domain Controller Architectural Refactoring
 - [x] **Phase 6**: PHI Compliance & Audit Logging Engine
 - [x] **Phase 7**: Multi-Entity Offline Form Auto-Queuing UI
 

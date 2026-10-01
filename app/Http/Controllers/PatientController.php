@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\RegisterPatientRequest;
-use App\Http\Requests\UpdatePatientRequest;
 use App\Models\AuditLog;
 use App\Models\ChildRecord;
 use App\Models\GrowthMeasurement;
@@ -16,6 +14,7 @@ use App\Services\PatientRegistration;
 use App\Services\PrenatalAssessment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
@@ -146,26 +145,16 @@ class PatientController extends Controller
     {
         $this->authorize('update', $patient);
 
-        $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'dob' => 'required|date',
-            'gender' => 'required|string',
-            'phone' => 'required|string',
+        // Same rules as registration, so an edit can't store what the form would have refused.
+        $request->validate(Arr::except(PatientRegistration::rules(), ['registration_type', 'barangay', 'email']) + [
             // The email is also the portal login, so it must not belong to another account.
-            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($patient->user_id)],
-            'address' => 'required|string',
-            'emergency_contact_name' => 'required|string',
-            'emergency_contact_phone' => 'required|string',
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($patient->user_id)],
             'status' => 'required|string|in:Active,Due for Visit,High Risk,Completed',
-            'mother_id' => ['nullable', $this->maternalPatientRule()],
-            'birth_plan_facility' => 'nullable|string|max:255',
-            'birth_plan_attendant' => 'nullable|string|max:255',
-            'lmp' => 'nullable|date|before_or_equal:today',
-            'gravida' => 'nullable|integer|min:0|max:30',
-            'para' => 'nullable|integer|min:0|max:30',
-            'birth_type' => ['nullable', Rule::in(PatientRegistration::BIRTH_TYPES)],
-            'delivery_type' => ['nullable', Rule::in(PatientRegistration::DELIVERY_TYPES)],
+            'head_circumference_cm' => 'nullable|numeric|min:20|max:60',
+            'has_newborn_screening' => 'nullable|boolean',
+            'has_hearing_screening' => 'nullable|boolean',
+            'has_eye_prophylaxis' => 'nullable|boolean',
+            'has_vitamin_k' => 'nullable|boolean',
         ]);
 
         DB::transaction(function () use ($request, $patient) {
@@ -293,14 +282,6 @@ class PatientController extends Controller
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'last_name']);
-    }
-
-    /**
-     * Validation rule: the given id must be a registered maternal patient.
-     */
-    protected function maternalPatientRule()
-    {
-        return Rule::exists('patients', 'id')->where('registration_type', 'Maternal');
     }
 
     /**

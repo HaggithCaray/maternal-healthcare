@@ -456,8 +456,14 @@
                 },
                 body: formData
             })
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
+            .then(async response => {
+                if (!response.ok) {
+                    // Show the server's reason (rate limit, file too large, ...) when it gives one.
+                    const body = await response.json().catch(() => ({}));
+                    const error = new Error(`Send failed with status ${response.status}`);
+                    error.userMessage = body.message;
+                    throw error;
+                }
                 return response.json();
             })
             .then(data => {
@@ -481,7 +487,7 @@
             })
             .catch(error => {
                 console.error('Error sending message:', error);
-                showToast('Failed to send message. Please try again.', 'error');
+                showToast(error.userMessage || 'Failed to send message. Please try again.', 'error');
             })
             .finally(() => {
                 textarea.disabled = false;

@@ -41,18 +41,18 @@ Route::middleware('auth')->group(function () {
 
     // SMS Gateway Center (exposes gateway credentials and every patient's phone number)
     Route::middleware('role:admin')->group(function () {
-        Route::match(['get', 'post'], '/sms', [SmsGatewayController::class, 'sms'])->name('sms');
+        Route::match(['get', 'post'], '/sms', [SmsGatewayController::class, 'sms'])->name('sms')->middleware('throttle:sms');
         Route::post('/sms/settings', [SmsGatewayController::class, 'updateSmsSettings'])->name('sms.settings');
         Route::get('/sms/status', [SmsGatewayController::class, 'testSmsGatewayConnection'])->name('sms.status');
     });
 
     // Real-Time Chat & Patient Communication
-    Route::match(['get', 'post'], '/messaging', [ChatController::class, 'messaging'])->name('messaging');
+    Route::match(['get', 'post'], '/messaging', [ChatController::class, 'messaging'])->name('messaging')->middleware('throttle:chat');
     Route::get('/messaging/attachments/{message}', [ChatController::class, 'attachment'])->name('messaging.attachment');
 
     // Own account
     Route::get('/account/password', [AccountController::class, 'editPassword'])->name('account.password');
-    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update')->middleware('throttle:password-change');
 
     // Reporting & Administration
     Route::get('/reports', [ReportController::class, 'reports'])->name('reports')->middleware('role:admin');

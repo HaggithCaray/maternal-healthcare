@@ -1,7 +1,7 @@
 # Senior Engineering & Pentest Assessment: Pros, Cons, and Action Plan
 
 > [!NOTE]
-> **REMEDIATION STATUS**: The architectural refactoring, pentest vulnerability fixes, Model Policies, Form Requests, secure provisioning, Audit Logging, and Batch Sync engine have been fully implemented and verified against the comprehensive automated test suite.
+> **REMEDIATION STATUS**: The architectural refactoring, pentest vulnerability fixes, Model Policies, input validation, secure provisioning, Audit Logging, and Batch Sync engine have been fully implemented and verified against the comprehensive automated test suite.
 
 ---
 
@@ -45,8 +45,8 @@ This system provides maternal and child health tracking for the Barangay Bicao H
 ### B. Architectural Debt (REMEDIATED)
 1. **God Controller Deconstructed**:
    * Divided into `PatientController`, `MaternalRecordController`, `ChildHealthController`, `SmsGatewayController`, `ChatController`, `ReportController`, and `SyncController`.
-2. **Form Requests Extracted**:
-   * Reusable Form Request validation classes created under `app/Http/Requests/`.
+2. **Validation**:
+   * Input is validated inside each controller action. Form Request classes were created under `app/Http/Requests/` but never wired in, so they were removed; registration, Edit Patient and offline sync now share `PatientRegistration::rules()`.
 3. **PWA & Offline Synchronization Engine**:
    * Expanded `/api/sync/batch` to process patients, checkups, growth records, and immunization updates within atomic database transactions.
 
@@ -83,8 +83,8 @@ graph TD
   - `ReportController` (KPIs, analytics, admin panel)
 - [x] **Cleaned Up [routes/web.php](file:///c:/maternal-health-care/routes/web.php)**:
   - Mapped all routes directly to dedicated domain controllers.
-- [x] **Extracted Form Requests**:
-  - Created Form Request validation classes in `app/Http/Requests/` (`RegisterPatientRequest`, `UpdatePatientRequest`, `StoreMaternalCheckupRequest`, `StoreImmunizationRequest`, `StoreGrowthMeasurementRequest`, `SendSmsRequest`, `UpdateSmsSettingsRequest`, `StoreChatMessageRequest`, `SyncBatchRequest`).
+- [x] **Validation**:
+  - Form Request classes were created in `app/Http/Requests/` but no controller used them; they were removed. Validation lives in each controller action, with registration, Edit Patient and offline sync sharing `PatientRegistration::rules()`.
 
 ### Phase 3: PWA & Offline Synchronization (P1) — [COMPLETED]
 - [x] **Service Worker (`public/sw.js`) & Manifest (`public/manifest.json`)**:

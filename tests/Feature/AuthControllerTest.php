@@ -45,11 +45,14 @@ class AuthControllerTest extends TestCase
             ])->assertSessionHasErrors('email');
         }
 
-        $this->post('/', [
+        // Blocked even with the right password, and sent back to the form with a "please wait" message.
+        $this->from('/')->post('/', [
             'email' => 'throttle@example.com',
-            'password' => 'wrong-password',
+            'password' => 'password123',
             'role' => 'user',
-        ])->assertStatus(429);
+        ])->assertRedirect('/')->assertSessionHasErrors('throttle');
+
+        $this->assertGuest();
     }
 
     /**

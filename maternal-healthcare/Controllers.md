@@ -1,6 +1,6 @@
 # Controllers Architecture
 
-This application uses dedicated domain controllers adhering to the Single Responsibility Principle (SRP), supplemented by Form Requests, Model Policies, and Audit Logging.
+This application uses dedicated domain controllers adhering to the Single Responsibility Principle (SRP), supplemented by Model Policies, rate limits and Audit Logging. Input is validated inside each controller action; registration, Edit Patient and offline sync share `PatientRegistration::rules()`.
 
 ## AuthController
 **File:** `app/Http/Controllers/AuthController.php`

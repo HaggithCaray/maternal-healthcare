@@ -150,8 +150,18 @@ class ChildHealthController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        $request->validate([
+            'immunization_id' => 'required|integer',
+            'remarks' => 'nullable|string|max:255',
+        ]);
+
         $immunization = Immunization::find($request->immunization_id);
         if ($immunization) {
+            // Recorded already (e.g. by another midwife, or this page was out of date): keep that record.
+            if ($immunization->status === 'Given') {
+                return back()->with('warning', "{$immunization->vaccine_name} dose {$immunization->dose_number} was already recorded as given; nothing was changed.");
+            }
+
             $immunization->update([
                 'status' => 'Given',
                 'given_date' => Carbon::now()->format('Y-m-d'),
