@@ -80,10 +80,10 @@
 <aside class="h-screen w-64 fixed left-0 top-0 bg-surface-container-low shadow-xs flex flex-col py-md px-sm z-50 transition-transform duration-300 -translate-x-full lg:translate-x-0" id="sidebar">
     <div class="flex items-center justify-between mb-lg px-sm">
         <div>
-            <div class="flex items-center gap-3 mb-3 select-none">
+            {{-- <div class="flex items-center gap-3 mb-3 select-none">
                 <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo" class="w-10 h-10 object-contain rounded-full shadow-xs bg-white border border-outline-variant/20">
                 <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo" class="w-10 h-10 object-contain rounded-full shadow-xs bg-white border border-outline-variant/20">
-            </div>
+            </div> --}}
             <h1 class="font-headline-sm text-headline-sm font-bold text-primary leading-tight">Maternal Health Hub</h1>
             <p class="text-label-sm font-label-md text-on-surface-variant">Maternal &amp; Child Care</p>
         </div>
