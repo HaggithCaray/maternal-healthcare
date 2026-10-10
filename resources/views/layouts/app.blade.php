@@ -47,13 +47,14 @@
 <body class="bg-background text-on-surface {{ request()->routeIs('messaging') ? 'overflow-hidden h-screen h-dvh' : '' }}">
 
 {{-- Background Watermark Overlay --}}
-<div class="no-print fixed inset-0 flex items-center justify-center pointer-events-none opacity-[0.08] z-0 select-none p-6">
-    <div class="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-32">
-        <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo Watermark" class="w-[45vw] h-[45vw] md:w-[35vw] md:h-[35vw] max-w-[220px] max-h-[220px] md:max-w-[500px] md:max-h-[500px] aspect-square object-cover rounded-full grayscale">
-        <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo Watermark" class="w-[45vw] h-[45vw] md:w-[35vw] md:h-[35vw] max-w-[220px] max-h-[220px] md:max-w-[500px] md:max-h-[500px] aspect-square object-cover rounded-full grayscale">
+{{--
+    <div class="no-print fixed inset-0 flex items-center justify-center pointer-events-none opacity-[0.08] z-0 select-none p-6">
+        <div class="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-32">
+            <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo Watermark" class="w-[45vw] h-[45vw] md:w-[35vw] md:h-[35vw] max-w-[220px] max-h-[220px] md:max-w-[500px] md:max-h-[500px] aspect-square object-cover rounded-full grayscale">
+            <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo Watermark" class="w-[45vw] h-[45vw] md:w-[35vw] md:h-[35vw] max-w-[220px] max-h-[220px] md:max-w-[500px] md:max-h-[500px] aspect-square object-cover rounded-full grayscale">
+        </div>
     </div>
-</div>
-
+--}}    
 @php
     $user = auth()->user();
     $allNavItems = [

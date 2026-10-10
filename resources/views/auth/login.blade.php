@@ -121,10 +121,11 @@
                   <path d="M 480,260 L 485,270 L 495,272 L 487,279 L 490,289 L 480,282 L 470,289 L 473,279 L 465,272 L 475,270 Z" fill="#fbbf24" opacity="0.9" transform="scale(0.4) translate(680, 220)"/>
                 </svg>
             </div>
-            <div class="flex justify-center items-center gap-4 mb-4 select-none">
+            {{-- <div class="flex justify-center items-center gap-4 mb-4 select-none">
                 <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo" class="w-16 h-16 object-contain rounded-full shadow-md bg-white border border-outline-variant/30">
                 <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo" class="w-16 h-16 object-contain rounded-full shadow-md bg-white border border-outline-variant/30">
             </div>
+            --}}
             <h1 class="font-headline-lg text-headline-lg text-primary mb-sm">Maternal Health Hub</h1>
             <p class="font-body-lg text-body-lg text-on-surface-variant">Dedicated to the well-being of mothers and children in our community with professional, modern care.</p>
             <div class="mt-xl flex flex-wrap justify-center gap-sm">
