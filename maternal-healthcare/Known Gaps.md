@@ -23,13 +23,12 @@
 | 9 | No production deployment story | XAMPP + artisan serve only; no supervisor/nginx/HTTPS doc |
 | 10 | Only `UserFactory` | No factories for Patient/Child/Maternal models |
 | ~~11~~ | ~~Doc drift~~ | **Resolved** — vault synced with the postpartum/export/reminder/backup work: test counts (252 / 1,129), new services, routes, schema and the backup/scheduler setup |
-| 12 | Scheduler not armed on the server | The schedule is defined (`php artisan schedule:list`) but Windows still needs the Task Scheduler task from the README, or nothing runs |
+| ~~12~~ | ~~Scheduler not armed on the server~~ | **Resolved** — Windows task "Maternal Health Hub scheduler" created 2026-10-15: SYSTEM, every minute, test run exited 0. CLI one-liner documented in the README; GUI steps were already there |
 
 ## Suggested priority
 
-1. Create the Task Scheduler task so reminders and backups actually fire (README, "Scheduled jobs") — until then, `reminders:send` and `backup:run` only run by hand
-2. Wire up delete/archive (#1)
-3. GitHub Actions test runner (#8)
+1. Wire up delete/archive (#1)
+2. GitHub Actions test runner (#8)
 
 ## Related Pages
 

@@ -192,6 +192,20 @@ or, so it also runs after a reboot, let Windows Task Scheduler wake it every min
 `schedule:run` executes whatever is due that minute and exits, so a task every minute is the
 normal way to drive Laravel's scheduler without cron.
 
+**Fast path (one command instead of the dialog)** — run in an *elevated* prompt, replacing the
+artisan path with yours:
+
+```bat
+schtasks /create /tn "Maternal Health Hub scheduler" /tr "C:\xampp\php\php.exe C:\maternal-health-care\artisan schedule:run" /sc daily /st 00:00 /ri 1 /du 9999:59 /ru SYSTEM /rl highest /f
+```
+
+Notes:
+- The task runs as **SYSTEM**, so it fires even when nobody is logged in.
+- Force a run with `schtasks /run /tn "Maternal Health Hub scheduler"`; check
+  `schtasks /query /tn "Maternal Health Hub scheduler" /fo list /v` — `Last Result: 0` means
+  it executed cleanly. A task created this way can only be inspected from an elevated prompt
+  (otherwise *Access is denied*).
+
 ### Backups
 
 ```bash
