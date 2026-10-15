@@ -50,8 +50,13 @@ class MaternalRecordController extends Controller
 
         AuditLog::log('view_maternal_record', $patient);
 
+        // List of maternal patients for the admin-only "switch mother" dropdown.
+        $maternalPatients = auth()->user()->role === 'admin'
+            ? Patient::where('registration_type', 'Maternal')->orderBy('last_name')->orderBy('first_name')->get(['id', 'first_name', 'last_name'])
+            : collect();
+
         $view = auth()->user()->role === 'user' ? 'patient.maternal' : 'maternal';
-        return view($view, compact('patient', 'record', 'checkups', 'latestCheckup', 'gestationalDays', 'riskFactors'));
+        return view($view, compact('patient', 'record', 'checkups', 'latestCheckup', 'gestationalDays', 'riskFactors', 'maternalPatients'));
     }
 
     /**

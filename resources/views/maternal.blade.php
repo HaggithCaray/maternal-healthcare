@@ -26,7 +26,32 @@
             @include('partials.allergies', ['allergies' => $record?->allergies])
         </div>
     </div>
-    <div class="flex gap-sm w-full md:w-auto">
+    <div class="flex gap-sm w-full md:w-auto flex-wrap">
+        @if(auth()->user()->role === 'admin' && $maternalPatients->count())
+        <div class="relative" id="mother-switcher">
+            <button type="button" onclick="toggleMotherSwitcher()" class="w-full md:w-auto px-md py-sm border border-outline-variant rounded-lg font-label-md text-label-md text-primary flex items-center justify-center gap-2 hover:bg-surface-variant transition-colors whitespace-nowrap">
+                <span class="material-symbols-outlined text-[18px]">swap_horiz</span>
+                Switch Mother
+                <span class="material-symbols-outlined text-[18px] transition-transform" id="mother-switcher-chevron">expand_more</span>
+            </button>
+            <div id="mother-switcher-menu" class="hidden absolute right-0 top-full mt-2 w-72 bg-surface-container-lowest rounded-xl soft-drop-shadow border border-outline-variant/20 z-50 p-sm">
+                <input type="text" id="mother-switcher-search" oninput="filterMothers(this.value)" placeholder="Search mothers..." class="w-full mb-sm px-md py-sm bg-surface-container border border-outline-variant/50 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary text-sm outline-hidden">
+                <ul id="mother-switcher-list" class="max-h-64 overflow-y-auto">
+                    @foreach($maternalPatients as $m)
+                    <li>
+                        <a href="{{ route('maternal', ['id' => $m->id]) }}" data-name="{{ strtolower($m->first_name . ' ' . $m->last_name) }}" class="mother-option block px-md py-sm rounded-lg text-sm {{ $m->id === $patient->id ? 'bg-primary-container/30 text-primary font-bold' : 'text-on-surface hover:bg-surface-variant/50' }} transition-colors">
+                            {{ $m->first_name }} {{ $m->last_name }}
+                            @if($m->id === $patient->id)
+                            <span class="material-symbols-outlined text-[16px] align-middle">check</span>
+                            @endif
+                        </a>
+                    </li>
+                    @endforeach
+                </ul>
+                <p id="mother-switcher-empty" class="hidden px-md py-sm text-sm text-on-surface-variant text-center">No mothers found.</p>
+            </div>
+        </div>
+        @endif
         @if(auth()->user()->role === 'admin')
         <button onclick="toggleModal(true)" class="grow md:flex-initial px-md py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 transition-transform active:scale-95 whitespace-nowrap">
             <span class="material-symbols-outlined text-[18px]">add</span>
@@ -127,7 +152,7 @@
                 </div>
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-md text-on-surface-variant">Clinical Notes</label>
-                    <textarea name="notes" class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm focus:border-primary" placeholder="Observe for swelling, check vitamins..." rows="3"></textarea>
+                    <textarea name="notes" maxlength="5000" class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm focus:border-primary" placeholder="Observe for swelling, check vitamins..." rows="3"></textarea>
                 </div>
             </div>
             <div class="mt-lg flex justify-end gap-sm">
@@ -143,6 +168,41 @@
     function toggleModal(show) {
         document.getElementById('visitModal').classList.toggle('hidden', !show);
     }
+
+    function toggleMotherSwitcher() {
+        const menu = document.getElementById('mother-switcher-menu');
+        const chevron = document.getElementById('mother-switcher-chevron');
+        const search = document.getElementById('mother-switcher-search');
+        const opening = menu.classList.contains('hidden');
+        menu.classList.toggle('hidden');
+        chevron.classList.toggle('rotate-180', opening);
+        if (opening) {
+            search.value = '';
+            filterMothers('');
+            search.focus();
+        }
+    }
+
+    function filterMothers(term) {
+        const q = term.toLowerCase().trim();
+        const options = document.querySelectorAll('.mother-option');
+        let visible = 0;
+        options.forEach(opt => {
+            const match = opt.dataset.name.includes(q);
+            opt.parentElement.classList.toggle('hidden', !match);
+            if (match) visible++;
+        });
+        document.getElementById('mother-switcher-empty').classList.toggle('hidden', visible > 0);
+    }
+
+    // Close the switcher when clicking anywhere outside it.
+    document.addEventListener('click', function (e) {
+        const switcher = document.getElementById('mother-switcher');
+        if (switcher && !switcher.contains(e.target)) {
+            document.getElementById('mother-switcher-menu')?.classList.add('hidden');
+            document.getElementById('mother-switcher-chevron')?.classList.remove('rotate-180');
+        }
+    });
 
     document.querySelectorAll('table tbody tr').forEach(row => {
         row.addEventListener('click', () => {
