@@ -15,22 +15,23 @@
 | File | Purpose |
 |------|---------|
 | `dashboard.blade.php` | KPI cards, vaccination schedule, recent activity, health tips |
-| `records.blade.php` | Patient records table with search/filter, Quick Actions dropdown |
+| `records.blade.php` | Patient records table with search/filter, Quick Actions dropdown, **Export CSV** button (carries the current filters) |
 | `register.blade.php` | 5-step registration wizard |
-| `maternal.blade.php` | Maternal record: OB history, checkup timeline, add checkup form |
+| `maternal.blade.php` | Maternal record: OB history, checkup timeline, add checkup form, postpartum section (visits + DOH 48h/1w/2w/6w schedule) |
 | `growth.blade.php` | Growth tracking: chart, history table, add measurement form |
 | `immunization.blade.php` | Immunization timeline with status badges, mark-as-given form |
-| `sms.blade.php` | SMS gateway settings, send form, message history log |
+| `sms.blade.php` | SMS gateway settings (incl. the **Automated reminders** switch), send form, message history log |
 | `messaging.blade.php` | Chat: patient sidebar + unread badges, message bubbles, file attachments |
-| `reports.blade.php` | Analytics: registration trends, vaccine compliance (note: "Export Report" button in the UI is a non-functional placeholder — PDF/CSV export was descoped, see [[Milestones]]) |
+| `reports.blade.php` | Analytics: registration trends, vaccine compliance, maternal care stats; export dropdown (CSV: summary, prenatal, postpartum, immunizations — admin, audit-logged) |
 | `admin.blade.php` | System info, user management table |
+| `partials/maternal/postpartum.blade.php` | Shared postpartum UI: admin log modal + patient read-only schedule, included by both maternal views |
 
 ## Patient Views
 | File | Purpose |
 |------|---------|
 | `patient/portal.blade.php` | Patient home: summary cards, module cards |
-| `patient/edit.blade.php` | Edit form: personal info, contact, maternal/child details |
-| `patient/maternal.blade.php` | Read-only maternal record view |
+| `patient/edit.blade.php` | Edit form: personal info, contact, maternal/child details (incl. delivery date) |
+| `patient/maternal.blade.php` | Read-only maternal record view (prenatal checkups + postpartum schedule) |
 | `patient/growth.blade.php` | Read-only growth chart and measurements |
 | `patient/immunization.blade.php` | Read-only immunization timeline |
 | `patient/messaging.blade.php` | Chat with midwife (patient perspective) |

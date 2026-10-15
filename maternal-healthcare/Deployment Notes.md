@@ -31,10 +31,18 @@ encrypted session cookies, log level, config cache). See the README section "Bef
 - Vite-compiled assets (CSS/JS)
 - Cache stored in database
 
-### Backup
-- MySQL database dumps
-- SMS settings in `storage/app/sms_settings.json`
-- Chat attachments in `storage/app/private/attachments/` (not publicly served)
+### Scheduler and backups
+- Laravel's schedule (`routes/console.php`) drives two jobs: `reminders:send` at 8:00 AM and
+  `backup:run` at 2:00 AM (Asia/Manila). **On Windows nothing runs the schedule by itself** —
+  create the Task Scheduler task from the README ("Scheduled jobs") or neither job fires.
+  `php artisan schedule:list` shows what is due; `schedule:work` runs it in a console.
+- `backup:run` writes one dated zip to `storage/app/backups` holding the database dump,
+  `storage/app` (encrypted SMS settings + chat attachments) and `.env`; backups older than
+  30 days are pruned. Copy the zips off the machine regularly — same-disk backups only
+  protect against mistakes. `php artisan app:go-live-check` warns when the newest is over
+  two days old.
+- The MySQL dump uses `mysqldump`, autodetected from PATH and then the XAMPP location; set
+  `MYSQLDUMP_BINARY` in .env for any other install.
 
 ### Scaling
 - Reverb supports Redis-backed scaling (disabled by default)

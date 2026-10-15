@@ -22,7 +22,7 @@
 | 8 | No CI | 252 tests, no `.github/workflows` |
 | 9 | No production deployment story | XAMPP + artisan serve only; no supervisor/nginx/HTTPS doc |
 | 10 | Only `UserFactory` | No factories for Patient/Child/Maternal models |
-| 11 | Doc drift | Vault notes still say "47 tests, 227 assertions" |
+| ~~11~~ | ~~Doc drift~~ | **Resolved** — vault synced with the postpartum/export/reminder/backup work: test counts (252 / 1,129), new services, routes, schema and the backup/scheduler setup |
 | 12 | Scheduler not armed on the server | The schedule is defined (`php artisan schedule:list`) but Windows still needs the Task Scheduler task from the README, or nothing runs |
 
 ## Suggested priority
@@ -30,7 +30,6 @@
 1. Create the Task Scheduler task so reminders and backups actually fire (README, "Scheduled jobs") — until then, `reminders:send` and `backup:run` only run by hand
 2. Wire up delete/archive (#1)
 3. GitHub Actions test runner (#8)
-4. Refresh stale test counts in [[Senior Review - Pros Cons and Roadmap]] and [[Milestones]] (#11)
 
 ## Related Pages
 

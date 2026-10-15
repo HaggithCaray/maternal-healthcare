@@ -48,12 +48,17 @@
 | `SMS_GATEWAY_URL` | (empty) | SMS gateway URL |
 | `SMS_GATEWAY_USER` | (empty) | SMS gateway username |
 | `SMS_GATEWAY_PASSWORD` | (empty) | SMS gateway password |
+| `MYSQLDUMP_BINARY` | (empty) | Path to `mysqldump.exe` for `backup:run` when it is not on PATH (XAMPP is autodetected at `C:\xampp\mysql\bin\`) |
 
 ## SMS Settings Storage
-Runtime-configured via admin panel, stored in:
+Runtime-configured via the SMS page (admin), stored in:
 ```
 storage/app/sms_settings.json
 ```
+The file is **encrypted at rest** (Laravel `Crypt`) — never plain JSON. It holds the gateway
+`url` / `username` / `password` plus `reminders_enabled` (the Automated reminders switch, off
+by default). A plaintext legacy file is re-encrypted the first time it is read. Because the
+file is the only copy of the credentials, losing it means re-entering them in the UI.
 
 ## AppServiceProvider
 Forces HTTPS when behind reverse proxy:

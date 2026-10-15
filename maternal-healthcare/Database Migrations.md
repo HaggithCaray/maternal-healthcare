@@ -1,6 +1,6 @@
 # Database Migrations
 
-13 migration files in `database/migrations/`.
+24 migration files in `database/migrations/`.
 
 ## Tables
 
@@ -111,7 +111,7 @@ Standard Laravel jobs, job_batches, failed_jobs tables.
 | head_circumference_cm | decimal | nullable |
 | status | varchar | default 'Normal' |
 
-### sms_messages (2026_07_05_000007)
+### sms_messages (2026_07_05_000007 + 2026_10_15_000002)
 | Column | Type | Notes |
 |--------|------|-------|
 | id | bigint PK | auto |
@@ -121,6 +121,7 @@ Standard Laravel jobs, job_batches, failed_jobs tables.
 | status | varchar | default 'Pending' |
 | sent_at | timestamp | nullable |
 | type | varchar | default 'Reminder' |
+| dedupe_key | varchar nullable, unique | added 2026_10_15 — one automated reminder per thing (`vaccine:{id}`, `nextvisit:{id}`, `postpartum:{id}`); NULL for manual sends |
 
 ### chat_messages (2026_07_05_000008 + 2026_07_09 alter)
 | Column | Type | Notes |
@@ -133,6 +134,23 @@ Standard Laravel jobs, job_batches, failed_jobs tables.
 | attachment_path | varchar | nullable, added in alter |
 | attachment_name | varchar | nullable, added in alter |
 | attachment_type | varchar | nullable, added in alter |
+
+### postpartum_visits (2026_10_15_000001)
+Mirrors `maternal_checkups` for the weeks after delivery; derived columns are filled by the
+model's saving hook (see `PostpartumAssessment`):
+| Column | Type | Notes |
+|--------|------|-------|
+| id | bigint PK | auto |
+| maternal_record_id | bigint FK | → maternal_records.id, cascade |
+| date | date | visit date |
+| weight_kg | decimal | nullable |
+| bp | varchar | nullable — same thresholds as prenatal (≥140/90, severe ≥160/110) |
+| days_postpartum | int | derived from `maternal_records.delivery_date` |
+| attendant | varchar | nullable |
+| status | varchar | default 'Healthy' — derived: Healthy / Monitor / High Risk |
+| risk_flags | json | nullable, derived; High Risk escalates the patient's status |
+| notes | text | nullable |
+| next_visit_date | date | nullable — DOH schedule: 48h, 1w, 2w, 6w |
 
 ## Related Pages
 - [[Entity Relationships]]

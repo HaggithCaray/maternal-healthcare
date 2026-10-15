@@ -4,66 +4,44 @@
 - **Framework:** PHPUnit 12.5+ (via Laravel)
 - **Test database:** SQLite in-memory (default)
 - **Run command:** `php artisan test`
+- **Status:** 252 tests, 1,129 assertions — all passing
 
 ## Test Files
 
-### tests/Unit/ExampleTest.php
-| Test | Description |
-|------|-------------|
-| `test_that_true_is_true` | Basic sanity check |
+### Overview
+| File | Tests | Covers |
+|------|-------|--------|
+| `tests/Unit/ExampleTest.php` | 1 | Sanity check |
+| `tests/Feature/AuthControllerTest.php` | 9 | Login, logout, dashboard statistics |
+| `tests/Feature/PageControllerTest.php` | 28 | Records, registration, edit patient, maternal/growth/immunization pages, SMS send/settings/status, messaging, admin panel |
+| `tests/Feature/SyncControllerTest.php` | 7 | Offline sync endpoints: token, batch, per-item errors |
+| `tests/Feature/SyncAndRegistrationTest.php` | 26 | `PatientRegistration` service, offline patient/checkup/growth/vaccine sync incl. postpartum visits |
+| `tests/Feature/DomainControllersTest.php` | 10 | Patient, maternal, child, SMS and report controllers |
+| `tests/Feature/RecordsAndReportsTest.php` | 10 | Records filters and stats, reports page, maternal care figures |
+| `tests/Feature/ClinicalAssessmentTest.php` | 19 | Gestational age derivation, prenatal risk flags, WHO z-scores |
+| `tests/Feature/PostpartumAndExportTest.php` | 14 | Postpartum visits, DOH schedule, risk escalation + all CSV exports |
+| `tests/Feature/RemindersTest.php` | 8 | Automated SMS reminders: off switch, dedupe, retry, visit windows |
+| `tests/Feature/BackupTest.php` | 6 | Backup zip contents, replayable dump, pruning, command, go-live warning |
+| `tests/Feature/AccessHardeningTest.php` | 15 | Staff-only SMS center, role gates, 403s |
+| `tests/Feature/RateLimitAndValidationTest.php` | 11 | Rate limits and server-side validation |
+| `tests/Feature/AccountManagementTest.php` | 16 | Admin user management, password changes |
+| `tests/Feature/ChildAccountTest.php` | 11 | Child-linked accounts and portal rules |
+| `tests/Feature/ChildContactTest.php` | 14 | Child contact details resolving to the mother |
+| `tests/Feature/PrivacyAndFamilyTest.php` | 9 | Family links and privacy |
+| `tests/Feature/SharedInboxTest.php` | 14 | Shared inbox and messaging flows |
+| `tests/Feature/ChatRealtimeTest.php` | 3 | Reverb events and channel authorization |
+| `tests/Feature/RealContentTest.php` | 9 | Seed content sanity |
+| `tests/Feature/GoLiveTest.php` | 7 | `app:go-live-check` output |
+| `tests/Feature/PhilippineTimeTest.php` | 4 | Asia/Manila dating rules |
+| `tests/Feature/ExampleTest.php` | 1 | Route smoke test |
+| **Total** | **252** | |
 
-### tests/Feature/AuthControllerTest.php (7 tests)
-| Test | Description |
-|------|-------------|
-| `test_login_form_can_be_rendered` | GET `/` shows login form |
-| `test_admin_can_login_successfully` | Admin login → `/dashboard` |
-| `test_user_can_login_successfully` | Patient login → `/portal` |
-| `test_user_cannot_login_with_invalid_credentials` | Wrong password fails |
-| `test_user_cannot_login_with_incorrect_role` | Role mismatch fails |
-| `test_user_can_logout` | Logout invalidates session |
-| `test_admin_can_view_dashboard_with_statistics` | Dashboard counts correct |
-
-### tests/Feature/PageControllerTest.php (22 tests)
-| Test | Description |
-|------|-------------|
-| `test_guest_cannot_access_protected_routes` | 10 routes redirect to login |
-| `test_guest_cannot_access_edit_patient` | Edit patient redirects |
-| `test_admin_can_access_records_page` | Records page with correct stats |
-| `test_admin_can_filter_and_search_records` | Search by name, filter by type |
-| `test_admin_can_view_registration_form` | GET `/register` renders form |
-| `test_admin_can_register_maternal_patient_with_user` | Full maternal registration |
-| `test_admin_can_register_child_patient` | Full child registration + immunizations |
-| `test_admin_can_view_edit_form_for_maternal_patient` | Edit form loads (200) |
-| `test_admin_can_view_edit_form_for_child_patient` | Edit form loads (200) |
-| `test_admin_can_update_maternal_patient` | Updates patient + maternal record |
-| `test_admin_can_update_child_patient` | Updates patient + child record |
-| `test_maternal_page_access_and_records` | Role-aware maternal view |
-| `test_admin_can_add_maternal_checkup` | Admin creates checkup |
-| `test_admin_can_add_growth_measurement` | Admin creates growth entry |
-| `test_admin_can_update_immunization_status` | Mark vaccine as Given |
-| `test_admin_can_send_sms_success` | SMS sent via mocked gateway |
-| `test_admin_can_send_sms_failure` | SMS failure recorded |
-| `test_admin_can_update_sms_settings` | Settings saved to JSON |
-| `test_admin_can_check_sms_status` | Gateway status check |
-| `test_messaging_flows` | Full send/read/reply cycle |
-| `test_messaging_ajax_flows` | Same via JSON API |
-| `test_message_with_image_upload` | Image attachment |
-| `test_message_with_document_upload` | PDF attachment |
-| `test_message_with_large_video_upload` | 15MB video |
-| `test_admin_can_access_admin_panel` | Admin sees admin page |
-| `test_user_cannot_access_admin_panel` | 403 for regular users |
-| `test_online_presence_channel_authorization` | Presence channel auth |
-
-### tests/Feature/SyncControllerTest.php (5 tests)
-| Test | Description |
-|------|-------------|
-| `test_guests_cannot_access_sync_endpoints` | Unauth blocked |
-| `test_token_endpoint_returns_csrf_token` | Returns token JSON |
-| `test_non_admin_cannot_sync_registrations` | 403 for non-admin |
-| `test_admin_can_sync_maternal_registration` | Sync creates maternal |
-| `test_admin_can_sync_child_registration` | Sync creates child |
-| `test_invalid_item_is_reported_as_error` | Error returned, no DB insert |
-| `test_multiple_items_are_synced` | Batch sync works |
+### The three newest files
+| File | Tests | What they prove |
+|------|-------|-----------------|
+| `PostpartumAndExportTest.php` | 14 | 48h/1w/2w/6w schedule derivation from the delivery date, High Risk escalation, offline `postpartum_visit` sync, and every CSV export (filters honoured, UTF-8 BOM, formula-injection escaping, audit-log entry per export) |
+| `RemindersTest.php` | 8 | Nothing is sent until the switch is ticked; a `Sent` reminder is never repeated; a `Failed` one retries without duplicating the row; today/tomorrow/overdue windows for prenatal and postpartum |
+| `BackupTest.php` | 6 | The zip holds database + `.env` + `storage/app` but never nests itself; the SQLite dump replays into a working database (including `ALTER`-added columns); backups older than 30 days are pruned; command success **and** failure paths |
 
 ## Running Tests
 ```bash
@@ -80,9 +58,11 @@ php artisan test --filter="PageControllerTest"
 php artisan test --filter="..." -v
 ```
 
-## Known Failure
-- `test_online_presence_channel_authorization` — Fails because `Pusher\Pusher` class is not installed (Reverb uses its own driver). Pre-existing issue unrelated to app code.
+> Tests touching the real SMS gateway settings file (`storage/app/sms_settings.json`) back it
+> up first and restore it in a `finally` block — a test run must never lose the credentials an
+> admin entered. Do not "clean up" that file with a bare `unlink()`.
 
 ## Related Pages
 - [[Setup Guide]]
 - [[Controllers]]
+- [[Milestones]]

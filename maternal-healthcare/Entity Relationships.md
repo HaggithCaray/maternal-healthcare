@@ -9,7 +9,8 @@ User (admin/user)
   └──< Patient (user_id)  [optional link]
         │
         ├── MaternalRecord (1:1)
-        │     └──< MaternalCheckup (1:many)
+        │     ├──< MaternalCheckup (1:many)
+        │     └──< PostpartumVisit (1:many)   ← after delivery (delivery_date)
         │
         ├── ChildRecord (1:1)
         │     ├── mother_id → Patient (the mother)
@@ -56,6 +57,7 @@ User (admin/user)
 | allergies | string | |
 | medical_history | array (JSON) | Hypertension, Diabetes, Asthma, Heart Disease, Anemia, Multiple Births |
 | birth_plan | array (JSON) | |
+| delivery_date | date | added 2026_10_15 — auto-filled from the linked child's birth date at registration; drives the postpartum schedule |
 
 ### MaternalCheckup
 | Field | Type | Notes |
@@ -71,6 +73,20 @@ User (admin/user)
 | status | string | default 'Healthy' |
 | notes | string | |
 | next_visit_date | date | |
+
+### PostpartumVisit
+| Field | Type | Notes |
+|-------|------|-------|
+| maternal_record_id | FK cascade | |
+| date | date | |
+| weight_kg | decimal | |
+| bp | string | same thresholds as prenatal (≥140/90 flagged, ≥160/110 severe) |
+| days_postpartum | int | derived from the record's `delivery_date` on save |
+| attendant | string | |
+| status | string | derived: Healthy / Monitor / High Risk |
+| risk_flags | array (JSON) | derived on save; High Risk escalates the patient's status |
+| notes | string | |
+| next_visit_date | date | DOH schedule: 48h, 1w, 2w, 6w |
 
 ### ChildRecord
 | Field | Type | Notes |
@@ -121,6 +137,7 @@ User (admin/user)
 | status | string | Pending, Sent, Failed |
 | sent_at | datetime | |
 | type | string | default 'Reminder' |
+| dedupe_key | string, unique nullable | one automated reminder per dose/visit; NULL for manual sends |
 
 ### ChatMessage
 | Field | Type | Notes |

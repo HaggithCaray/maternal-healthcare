@@ -15,16 +15,26 @@ Browser ← WebSocket ← Reverb (php artisan reverb:start :8080)
 | Controller | Responsibility |
 |-----------|----------------|
 | `AuthController` | Login/logout, dashboard stats |
-| `PageController` | All page views: records, register, edit, maternal, growth, immunization, SMS, messaging, reports, admin |
+| `PatientController` | Records, registration, edit patient |
+| `MaternalRecordController` | Prenatal checkups + postpartum visits |
+| `ChildHealthController` | Growth measurements, immunization tracking |
+| `SmsGatewayController` | SMS center, gateway settings |
+| `ChatController` | Messaging and attachments |
+| `ReportController` | Reports and maternal care figures |
+| `ExportController` | Streamed CSV exports (audit-logged; clinical logs admin-only) |
 | `SyncController` | Offline sync API endpoint + CSRF token |
 
-### Models (8 total)
+### Models (12 total)
 See [[Entity Relationships]] for full diagram.
 
 ### Services
 | Service | Purpose |
 |---------|---------|
-| `SmsService` | HTTP gateway: send SMS, check status, save settings |
+| `SmsService` | HTTP gateway: send SMS, check status, encrypted settings + reminders switch |
+| `ReminderService` | Daily SMS reminders for due vaccines and visits (`reminders:send`, 8:00 AM) |
+| `BackupService` | Daily backup zips (`backup:run`, 2:00 AM), 30-day retention |
+| `PrenatalAssessment` / `PostpartumAssessment` | Gestational age, risk flags, DOH visit schedules |
+| `PatientRegistration` | Registration rules shared by forms and offline sync |
 
 ### Middleware
 | Middleware | Usage |

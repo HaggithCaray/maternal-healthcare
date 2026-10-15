@@ -26,7 +26,7 @@ This system provides maternal and child health tracking for the Barangay Bicao H
 | **Realtime Integration** | High | Native WebSockets utilizing Laravel Reverb for real-time messaging between midwives and registered patients. |
 | **SMS Gateway Integration** | Solid | Integrates directly with Capcom6 Android SMS Gateway, supporting GSM-7 character/segment calculation and live gateway health testing. |
 | **Audit Compliance** | Compliant | Comprehensive `audit_logs` tracking user actions, IP addresses, user agents, and clinical record events. |
-| **Automated Test Coverage** | 100% Pass | 47 Unit and Feature test suites passing with 227 assertions. |
+| **Automated Test Coverage** | 100% Pass | 252 feature and unit tests passing with 1,129 assertions, covering security hardening, clinical assessment rules, offline sync, postpartum care, CSV exports, SMS reminders and backups. |
 
 ---
 
@@ -59,7 +59,7 @@ graph TD
     A[Phase 1: Security & Auth Remediation] --> B[Phase 2: Controller & Route Refactoring]
     B --> C[Phase 3: Robust PWA & Offline Sync Engine]
     C --> D[Phase 4: PHI Audit Logging & Hardening]
-    D --> E[Phase 5: Full Test Suite Verification - 47/47 Passing]
+    D --> E[Phase 5: Full Test Suite Verification - 252/252 Passing]
 ```
 
 ### Phase 1: Security Remediation (P0) — [COMPLETED]
@@ -100,7 +100,7 @@ graph TD
   - Integrated audit logs across patient registration, record viewing, updates, checkup creation, growth logging, vaccine updates, and SMS dispatches.
 
 ### Phase 5: Verification & Quality Assurance — [COMPLETED]
-- [x] Full automated test suite passes: **47 tests, 227 assertions**.
+- [x] Full automated test suite passes: **252 tests, 1,129 assertions** (47 tests, 227 assertions at the time of the refactoring).
 
 ---
 

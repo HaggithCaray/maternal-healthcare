@@ -69,7 +69,14 @@ The project is now split into two repos:
   - `ReportController`
 - [x] Validation inside each controller action; registration, Edit Patient and offline sync share `PatientRegistration::rules()` (the Form Request classes created during the refactor were never wired in and have been removed)
 - [x] Refactored [routes/web.php](file:///c:/maternal-health-care/routes/web.php) to bind directly to domain controllers
-- [x] Comprehensive test suite expanded and 100% passing (47 tests, 227 assertions)
+- [x] Comprehensive test suite expanded and 100% passing (47 tests at the time; 252 tests, 1,129 assertions today)
+
+## Milestone: Postpartum, Exports, Reminders & Backups
+- [x] Postpartum care tracking: `delivery_date` on maternal records (auto-filled from the linked child's birth date), `postpartum_visits` table, DOH schedule 48h / 1w / 2w / 6w, High Risk escalation, offline sync support
+- [x] CSV export: patient masterlist (honours the Records filters), prenatal/postpartum/immunization logs and the report summary — admin-only and audit-logged (`CsvExporter` streams with UTF-8 BOM and formula-injection escaping)
+- [x] Automated SMS reminders (`reminders:send`, 8:00 AM): due vaccine doses and next prenatal/postpartum visits, deduplicated per visit via `sms_messages.dedupe_key`, failed sends retried; off until **Automated reminders** is ticked in SMS settings
+- [x] Automated backups (`backup:run`, 2:00 AM): one zip in `storage/app/backups` (database dump + `storage/app` + `.env`), 30-day retention, mysqldump autodetect
+- [x] Laravel schedule wired in `routes/console.php` — Windows still needs the Task Scheduler task from the README before anything fires
 
 ---
 
@@ -81,11 +88,11 @@ The project is now split into two repos:
 - [x] **Phase 5**: Domain Controller Architectural Refactoring
 - [x] **Phase 6**: PHI Compliance & Audit Logging Engine
 - [x] **Phase 7**: Multi-Entity Offline Form Auto-Queuing UI
+- [x] **Phase 8**: Postpartum Care, CSV Export, SMS Reminders & Automated Backups
 
 All planned phases are complete. The system serves a single site, Barangay Bicao Health Station.
 
 ## Descoped
-- ~~Data Export (PDF/CSV) for DOH Reports~~ — dropped from the roadmap, not needed
 - ~~Multi-Barangay Support & Federation~~ — dropped; the system is for Bicao Health Station only
 - ~~Biometric / Smartcard Field Authentication~~ — dropped; was only an idea, not a requirement
 

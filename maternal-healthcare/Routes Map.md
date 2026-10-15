@@ -18,6 +18,7 @@
 | Method | URI | Name | Description |
 |--------|-----|------|-------------|
 | GET | `/records` | `records` | Patient records list with search/filter |
+| GET | `/records/export` | `export.patients` | CSV masterlist carrying the current filters (admin via `viewAny`) |
 | GET | `/register` | `register` | Multi-step registration form |
 | POST | `/register` | — | Process registration |
 | GET | `/patients/{patient}/edit` | `patients.edit` | Edit patient form |
@@ -26,8 +27,8 @@
 ### Health Modules
 | Method | URI | Name | Description |
 |--------|-----|------|-------------|
-| GET | `/maternal` | `maternal` | Maternal health records |
-| POST | `/maternal` | — | Add maternal checkup |
+| GET | `/maternal` | `maternal` | Maternal health records + postpartum section |
+| POST | `/maternal` | — | Add prenatal checkup, or a postpartum visit when `visit_type=postpartum` |
 | GET | `/growth` | `growth` | Child growth tracking |
 | POST | `/growth` | — | Add growth measurement |
 | GET | `/immunization` | `immunization` | Immunization timeline |
@@ -38,7 +39,7 @@
 |--------|-----|------|-------------|
 | GET | `/sms` | `sms` | SMS center |
 | POST | `/sms` | — | Send SMS |
-| POST | `/sms/settings` | `sms.settings` | Update gateway settings |
+| POST | `/sms/settings` | `sms.settings` | Update gateway settings + reminders switch |
 | GET | `/sms/status` | `sms.status` | Test gateway connection |
 | GET | `/messaging` | `messaging` | Chat interface |
 | POST | `/messaging` | — | Send message |
@@ -47,6 +48,10 @@
 | Method | URI | Name | Description |
 |--------|-----|------|-------------|
 | GET | `/reports` | `reports` | Analytics & reports |
+| GET | `/reports/export/summary` | `export.summary` | CSV report summary (admin) |
+| GET | `/reports/export/prenatal` | `export.prenatal` | CSV prenatal visit log (admin) |
+| GET | `/reports/export/postpartum` | `export.postpartum` | CSV postpartum visit log (admin) |
+| GET | `/reports/export/immunizations` | `export.immunizations` | CSV immunization log (admin) |
 | GET | `/admin` | `admin` | Admin panel (role:admin) |
 
 ### Patient Portal
@@ -54,11 +59,18 @@
 |--------|-----|------|-------------|
 | GET | `/portal` | `patient.portal` | Patient dashboard |
 
-## API Routes (routes/api.php)
+### Sync helpers (web)
 | Method | URI | Name | Description |
 |--------|-----|------|-------------|
+| GET | `/sync/token` | `sync.token` | CSRF token used by `offline.js` |
+
+## API Routes (routes/api.php)
+All under `web` + `auth` middleware, prefix `/api/sync`:
+| Method | URI | Name | Description |
+|--------|-----|------|-------------|
+| GET | `/api/sync/token` | `api.sync.token` | CSRF token for sync |
 | POST | `/api/sync/patients` | `api.sync.patients` | Offline patient sync |
-| GET | `/sync/token` | `sync.token` | CSRF token for sync |
+| POST | `/api/sync/batch` | `api.sync.batch` | Batch sync: checkups, growth, vaccines, postpartum visits |
 
 ## Broadcast Channels (routes/channels.php)
 | Channel | Type | Auth |
