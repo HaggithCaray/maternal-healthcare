@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\MaternalCheckup;
+use App\Models\MaternalRecord;
 use App\Models\Patient;
+use App\Models\PostpartumVisit;
+use App\Services\PostpartumAssessment;
 use App\Services\PrenatalAssessment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -38,9 +41,14 @@ class MaternalRecordController extends Controller
 
         $record = $patient->maternalRecord;
         $checkups = $record ? $record->checkups : collect();
+        $postpartumVisits = $record ? $record->postpartumVisits()->latest('date')->latest('id')->get() : collect();
 
         // Checkup submission
         if ($request->isMethod('post') && auth()->user()->role === 'admin') {
+            if ($request->input('visit_type') === 'postpartum') {
+                return $this->storePostpartum($request, $patient);
+            }
+
             return $this->storeCheckup($request, $patient);
         }
 
@@ -50,13 +58,16 @@ class MaternalRecordController extends Controller
 
         AuditLog::log('view_maternal_record', $patient);
 
+        // The four routine postnatal visits, each marked Done / Due / Overdue / Upcoming.
+        $postpartumSchedule = $this->postpartumSchedule($record, $postpartumVisits);
+
         // List of maternal patients for the admin-only "switch mother" dropdown.
         $maternalPatients = auth()->user()->role === 'admin'
             ? Patient::where('registration_type', 'Maternal')->orderBy('last_name')->orderBy('first_name')->get(['id', 'first_name', 'last_name'])
             : collect();
 
         $view = auth()->user()->role === 'user' ? 'patient.maternal' : 'maternal';
-        return view($view, compact('patient', 'record', 'checkups', 'latestCheckup', 'gestationalDays', 'riskFactors', 'maternalPatients'));
+        return view($view, compact('patient', 'record', 'checkups', 'latestCheckup', 'gestationalDays', 'riskFactors', 'maternalPatients', 'postpartumVisits', 'postpartumSchedule'));
     }
 
     /**
@@ -112,5 +123,93 @@ class MaternalRecordController extends Controller
         }
 
         return back()->with('success', 'Checkup visit log added successfully!');
+    }
+
+    /**
+     * Store a new postpartum (postnatal) visit for a mother who has delivered.
+     */
+    public function storePostpartum(Request $request, Patient $patient)
+    {
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'weight_kg' => 'required|numeric|min:25|max:250',
+            'bp' => ['required', 'string', 'regex:/^\s*\d{2,3}\s*\/\s*\d{2,3}\s*$/'],
+            'notes' => 'nullable|string|max:5000',
+        ]);
+
+        $record = $patient->maternalRecord;
+        if (! $record) {
+            return back()->with('error', 'No maternal record associated with this patient.');
+        }
+
+        if (! $record->delivery_date) {
+            return back()->with('error', 'No delivery date on file. Record it on the patient edit form before logging postpartum visits.');
+        }
+
+        $visit = PostpartumVisit::create([
+            'maternal_record_id' => $record->id,
+            'date' => Carbon::now()->format('Y-m-d'),
+            'weight_kg' => $request->weight_kg,
+            'bp' => preg_replace('/\s+/', '', $request->bp),
+            'attendant' => auth()->user()->name,
+            'notes' => $request->notes,
+        ]);
+
+        AuditLog::log('create_postpartum_visit', $visit, [
+            'patient_id' => $patient->id,
+            'days_postpartum' => $visit->days_postpartum,
+            'status' => $visit->status,
+        ]);
+
+        if ($visit->status === PrenatalAssessment::HIGH_RISK) {
+            return back()->with('warning', 'Postpartum visit saved and flagged HIGH RISK: ' . implode(' ', array_column($visit->risk_flags, 'message')));
+        }
+
+        return back()->with('success', 'Postpartum visit log added successfully!');
+    }
+
+    /**
+     * The four routine postnatal visits (48 h, 1 w, 2 w, 6 w) with a Done / Due / Overdue /
+     * Upcoming state each, so the mother's postpartum coverage is visible at a glance.
+     *
+     * @return array<int, array{day: int, label: string, dueDate: Carbon, state: string}>
+     */
+    private function postpartumSchedule(?MaternalRecord $record, $postpartumVisits): array
+    {
+        $deliveryDate = $record?->delivery_date;
+
+        return collect(PostpartumAssessment::SCHEDULE_DAYS)->map(function (int $day) use ($deliveryDate, $postpartumVisits) {
+            $dueDate = $deliveryDate ? Carbon::parse($deliveryDate)->addDays($day) : null;
+
+            // A visit "covers" a scheduled check when it falls in the window up to the next
+            // scheduled day (the last one is covered by any visit on or after day 42).
+            $nextDay = PostpartumAssessment::nextScheduledDay($day);
+            $covered = $postpartumVisits->contains(function ($visit) use ($day, $nextDay) {
+                $d = $visit->days_postpartum;
+                if ($d === null) {
+                    return false;
+                }
+
+                return $nextDay === null ? $d >= $day : $d >= $day && $d < $nextDay;
+            });
+
+            $state = match (true) {
+                $covered => 'Done',
+                $dueDate === null => 'Upcoming',
+                Carbon::today()->greaterThan($dueDate) => 'Overdue',
+                Carbon::today()->greaterThanOrEqualTo($dueDate) => 'Due',
+                default => 'Upcoming',
+            };
+
+            return [
+                'day' => $day,
+                'label' => PostpartumAssessment::SCHEDULE_LABELS[$day],
+                'dueDate' => $dueDate,
+                'state' => $state,
+            ];
+        })->all();
     }
 }

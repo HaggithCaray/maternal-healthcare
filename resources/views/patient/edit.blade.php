@@ -235,6 +235,11 @@
                         <input name="lmp" value="{{ old('lmp', $patient->maternalRecord->lmp ? \Carbon\Carbon::parse($patient->maternalRecord->lmp)->format('Y-m-d') : '') }}" data-max-today class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
                     </div>
                     <div class="flex flex-col gap-xs">
+                        <label class="font-label-md text-label-md text-on-surface-variant">Delivery Date</label>
+                        <input name="delivery_date" value="{{ old('delivery_date', $patient->maternalRecord->delivery_date ? \Carbon\Carbon::parse($patient->maternalRecord->delivery_date)->format('Y-m-d') : '') }}" data-max-today class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
+                        <p class="text-xs text-on-surface-variant">Fill in once she has given birth to start postpartum tracking. Leave blank while she is still pregnant.</p>
+                    </div>
+                    <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Gravida</label>
                         <input name="gravida" value="{{ old('gravida', $patient->maternalRecord->gravida) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" placeholder="0" type="number">
                     </div>

@@ -8,6 +8,7 @@ use App\Models\GrowthMeasurement;
 use App\Models\Immunization;
 use App\Models\MaternalCheckup;
 use App\Models\MaternalRecord;
+use App\Models\PostpartumVisit;
 use App\Models\SyncReceipt;
 use App\Services\PatientRegistration;
 use Carbon\Carbon;
@@ -72,6 +73,7 @@ class SyncController extends Controller
                     match ($type) {
                         'patient_registration' => $this->createPatient($data),
                         'maternal_checkup' => $this->createCheckup($data),
+                        'postpartum_visit' => $this->createPostpartum($data),
                         'child_growth' => $this->createGrowth($data),
                         'immunization_update' => $this->updateImmunization($data),
                         default => throw new \RuntimeException("Unknown item type: {$type}"),
@@ -222,6 +224,40 @@ class SyncController extends Controller
             'patient_id' => $record->patient_id,
             'visit_number' => $visitNumber,
             'status' => $checkup->status,
+            'source' => 'offline_sync',
+        ]);
+    }
+
+    /**
+     * Create a postpartum (postnatal) visit from offline data.
+     */
+    private function createPostpartum(array $data): void
+    {
+        $this->validateItem($data, [
+            'maternal_record_id' => 'required|exists:maternal_records,id',
+            'recorded_at' => 'nullable|date|before:tomorrow',
+            'date' => 'nullable|date|before_or_equal:today',
+            'weight_kg' => 'required|numeric|min:25|max:250',
+            'bp' => ['required', 'string', 'regex:/^\s*\d{2,3}\s*\/\s*\d{2,3}\s*$/'],
+            'notes' => 'nullable|string|max:5000',
+        ]);
+
+        $record = MaternalRecord::findOrFail($data['maternal_record_id']);
+
+        // Days postpartum, status, risk flags and next visit are derived by PostpartumVisit on save.
+        $visit = PostpartumVisit::create([
+            'maternal_record_id' => $record->id,
+            'date' => $this->entryDate($data, 'date'),
+            'weight_kg' => $data['weight_kg'],
+            'bp' => preg_replace('/\s+/', '', $data['bp']),
+            'attendant' => auth()->user()->name,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        AuditLog::log('create_postpartum_visit', $visit, [
+            'patient_id' => $record->patient_id,
+            'days_postpartum' => $visit->days_postpartum,
+            'status' => $visit->status,
             'source' => 'offline_sync',
         ]);
     }

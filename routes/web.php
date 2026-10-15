@@ -11,6 +11,7 @@ use App\Http\Controllers\SmsGatewayController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SyncController;
+use App\Http\Controllers\ExportController;
 
 // Public Authentication Routes
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
@@ -26,6 +27,7 @@ Route::middleware('auth')->group(function () {
 
     // Patient & Clinical Directory Management
     Route::get('/records', [PatientController::class, 'records'])->name('records');
+    Route::get('/records/export', [ExportController::class, 'patients'])->name('export.patients');
     Route::match(['get', 'post'], '/register', [PatientController::class, 'register'])->name('register');
     Route::get('/patients/{patient}/edit', [PatientController::class, 'edit'])->name('patients.edit');
     Route::put('/patients/{patient}', [PatientController::class, 'update'])->name('patients.update');
@@ -57,6 +59,15 @@ Route::middleware('auth')->group(function () {
 
     // Reporting & Administration
     Route::get('/reports', [ReportController::class, 'reports'])->name('reports')->middleware('role:admin');
+
+    // CSV exports for MHO reporting. The clinical logs are admin-only; the patient
+    // masterlist export sits with Records and follows the same viewAny permission.
+    Route::middleware('role:admin')->prefix('reports')->name('export.')->group(function () {
+        Route::get('/export/summary', [ExportController::class, 'reportSummary'])->name('summary');
+        Route::get('/export/prenatal', [ExportController::class, 'prenatalVisits'])->name('prenatal');
+        Route::get('/export/postpartum', [ExportController::class, 'postpartumVisits'])->name('postpartum');
+        Route::get('/export/immunizations', [ExportController::class, 'immunizations'])->name('immunizations');
+    });
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/', [AdminController::class, 'index'])->name('admin');

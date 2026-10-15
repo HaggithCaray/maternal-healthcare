@@ -161,6 +161,8 @@ class PatientController extends Controller
             'has_hearing_screening' => 'nullable|boolean',
             'has_eye_prophylaxis' => 'nullable|boolean',
             'has_vitamin_k' => 'nullable|boolean',
+            // Postpartum tracking starts from the delivery date; blank means still pregnant.
+            'delivery_date' => 'nullable|date|before_or_equal:today',
         ]);
 
         // A child linked to a mother shows her current contact details, so it keeps no copy.
@@ -188,6 +190,7 @@ class PatientController extends Controller
                 $patient->maternalRecord->update([
                     'lmp' => $lmp,
                     'edd' => $edd,
+                    'delivery_date' => $request->delivery_date ?: null,
                     'gravida' => $request->gravida ?? $patient->maternalRecord->gravida,
                     'para' => $request->para ?? $patient->maternalRecord->para,
                     'philhealth_number' => $request->philhealth_number,

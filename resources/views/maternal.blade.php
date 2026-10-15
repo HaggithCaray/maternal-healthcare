@@ -113,6 +113,8 @@
                 </table>
             </div>
         </div>
+
+        @include('partials.maternal.postpartum')
     </div>
 
     <div class="md:col-span-4 space-y-md">
@@ -167,6 +169,10 @@
 <script>
     function toggleModal(show) {
         document.getElementById('visitModal').classList.toggle('hidden', !show);
+    }
+
+    function togglePostpartumModal(show) {
+        document.getElementById('postpartumModal')?.classList.toggle('hidden', !show);
     }
 
     function toggleMotherSwitcher() {

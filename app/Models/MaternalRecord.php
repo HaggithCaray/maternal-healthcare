@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'patient_id',
     'lmp',
     'edd',
+    'delivery_date',
     'gravida',
     'para',
     'abortions',
@@ -29,6 +30,7 @@ class MaternalRecord extends Model
         return [
             'lmp' => 'date',
             'edd' => 'date',
+            'delivery_date' => 'date',
             'medical_history' => 'array',
             'birth_plan' => 'array',
         ];
@@ -76,5 +78,10 @@ class MaternalRecord extends Model
     public function checkups(): HasMany
     {
         return $this->hasMany(MaternalCheckup::class)->orderBy('visit_number', 'asc');
+    }
+
+    public function postpartumVisits(): HasMany
+    {
+        return $this->hasMany(PostpartumVisit::class);
     }
 }

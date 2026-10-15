@@ -26,6 +26,19 @@
             </select>
             <noscript><button type="submit" class="px-sm py-xs border border-outline-variant rounded-lg text-label-md">Show</button></noscript>
         </form>
+        <details class="relative">
+            <summary class="list-none bg-surface-container-lowest border border-outline-variant text-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:bg-surface-variant transition-all cursor-pointer whitespace-nowrap">
+                <span class="material-symbols-outlined">download</span>
+                Export CSV
+                <span class="material-symbols-outlined text-[18px]">expand_more</span>
+            </summary>
+            <div class="absolute right-0 top-full mt-2 w-64 bg-surface-container-lowest rounded-xl soft-drop-shadow border border-outline-variant/20 z-40 p-xs">
+                <a href="{{ route('export.summary', ['year' => $year]) }}" class="block px-md py-sm rounded-lg text-sm text-on-surface hover:bg-surface-variant/50 transition-colors">Report summary ({{ $year }})</a>
+                <a href="{{ route('export.prenatal') }}" class="block px-md py-sm rounded-lg text-sm text-on-surface hover:bg-surface-variant/50 transition-colors">Prenatal visit log</a>
+                <a href="{{ route('export.postpartum') }}" class="block px-md py-sm rounded-lg text-sm text-on-surface hover:bg-surface-variant/50 transition-colors">Postpartum visit log</a>
+                <a href="{{ route('export.immunizations') }}" class="block px-md py-sm rounded-lg text-sm text-on-surface hover:bg-surface-variant/50 transition-colors">Immunization dose log</a>
+            </div>
+        </details>
         <button type="button" onclick="window.print()" class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-xs whitespace-nowrap">
             <span class="material-symbols-outlined">print</span>
             Print Report
@@ -82,7 +95,7 @@
     {{-- Prenatal care and immunization follow-up --}}
     <div class="col-span-1 xl:col-span-4 space-y-gutter">
         <div class="bg-surface-container-lowest rounded-xl p-md soft-drop-shadow border border-outline-variant/10">
-            <h4 class="font-headline-sm text-headline-sm mb-md">Prenatal care, {{ $year }}</h4>
+            <h4 class="font-headline-sm text-headline-sm mb-md">Maternal care, {{ $year }}</h4>
             <div class="space-y-sm">
                 <div class="flex items-center justify-between p-sm bg-primary-container/10 rounded-lg">
                     <span class="text-label-md">Prenatal visits logged</span>
@@ -94,6 +107,17 @@
                         Visits flagged High Risk
                     </span>
                     <span class="text-label-md font-bold text-on-surface tabular-nums">{{ number_format($highRiskVisits) }}</span>
+                </div>
+                <div class="flex items-center justify-between p-sm bg-secondary-container/10 rounded-lg">
+                    <span class="text-label-md">Postpartum visits logged</span>
+                    <span class="text-label-md font-bold text-on-surface tabular-nums">{{ number_format($postpartumVisits) }}</span>
+                </div>
+                <div class="flex items-center justify-between p-sm {{ $highRiskPostpartum > 0 ? 'bg-error-container/10' : 'bg-surface-variant/30' }} rounded-lg">
+                    <span class="text-label-md flex items-center gap-xs">
+                        @if($highRiskPostpartum > 0)<span class="material-symbols-outlined text-error text-[18px]" aria-hidden="true">warning</span>@endif
+                        Postpartum visits flagged High Risk
+                    </span>
+                    <span class="text-label-md font-bold text-on-surface tabular-nums">{{ number_format($highRiskPostpartum) }}</span>
                 </div>
             </div>
         </div>

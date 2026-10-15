@@ -71,6 +71,8 @@
                 </table>
             </div>
         </div>
+
+        @include('partials.maternal.postpartum')
     </div>
 
     <div class="md:col-span-4 space-y-md">

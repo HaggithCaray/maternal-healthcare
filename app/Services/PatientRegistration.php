@@ -256,5 +256,16 @@ class PatientRegistration
 
         // Birth doses count as given only when the form says so; otherwise they stay due.
         $child->syncBirthDoses();
+
+        // Best-effort: a mother linked to this newborn has delivered. Record the delivery date
+        // from the child's DOB when none is on file yet, so postpartum tracking can start.
+        // Only fills an empty field — the midwife can still set or correct it on the edit form.
+        if ($child->mother_id) {
+            $motherRecord = MaternalRecord::where('patient_id', $child->mother_id)->first();
+
+            if ($motherRecord && ! $motherRecord->delivery_date) {
+                $motherRecord->update(['delivery_date' => $dob]);
+            }
+        }
     }
 }

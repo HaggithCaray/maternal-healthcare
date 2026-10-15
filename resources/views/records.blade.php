@@ -10,10 +10,16 @@
         <h3 class="font-headline-lg text-headline-lg text-primary">Patient Records</h3>
         <p class="text-on-surface-variant font-body-md">Centralized database for Maternal Health Hub community health tracking.</p>
     </div>
-    <a href="{{ route('register') }}" class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-xs whitespace-nowrap">
-        <span class="material-symbols-outlined">person_add</span>
-        Register New Patient
-    </a>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-sm">
+        <a href="{{ route('export.patients', array_filter(['search' => $search, 'type' => $type, 'status' => $status])) }}" class="border border-outline-variant text-primary bg-surface-container-lowest px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:bg-surface-variant transition-all whitespace-nowrap">
+            <span class="material-symbols-outlined">download</span>
+            Export CSV
+        </a>
+        <a href="{{ route('register') }}" class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:opacity-90 active:scale-95 transition-all shadow-xs whitespace-nowrap">
+            <span class="material-symbols-outlined">person_add</span>
+            Register New Patient
+        </a>
+    </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-4 gap-md mb-xl">

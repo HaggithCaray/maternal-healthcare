@@ -7,6 +7,7 @@ use App\Models\GrowthMeasurement;
 use App\Models\Immunization;
 use App\Models\MaternalCheckup;
 use App\Models\Patient;
+use App\Models\PostpartumVisit;
 use App\Services\PrenatalAssessment;
 use App\Services\WhoGrowthStandards;
 use Carbon\Carbon;
@@ -75,6 +76,10 @@ class ReportController extends Controller
         $prenatalVisits = MaternalCheckup::whereYear('date', $year)->count();
         $highRiskVisits = MaternalCheckup::whereYear('date', $year)->where('status', PrenatalAssessment::HIGH_RISK)->count();
 
+        // Postpartum (postnatal) visits in the selected year
+        $postpartumVisits = PostpartumVisit::whereYear('date', $year)->count();
+        $highRiskPostpartum = PostpartumVisit::whereYear('date', $year)->where('status', PrenatalAssessment::HIGH_RISK)->count();
+
         // Nutritional status of each child at their most recent measurement
         $latestStatuses = GrowthMeasurement::orderByDesc('date')
             ->orderByDesc('id')
@@ -108,6 +113,8 @@ class ReportController extends Controller
             'overdueDoses',
             'prenatalVisits',
             'highRiskVisits',
+            'postpartumVisits',
+            'highRiskPostpartum',
             'nutritionSummary',
             'childrenMeasured'
         ));
