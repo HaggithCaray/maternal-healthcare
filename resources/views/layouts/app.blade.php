@@ -116,12 +116,6 @@
             <h2 class="font-headline-md text-headline-md font-bold text-primary truncate">Maternal &amp; Child Health</h2>
         </div>
         <div class="flex items-center gap-xs md:gap-md">
-            @if($user?->isAdmin())
-            <form method="GET" action="{{ route('records') }}" class="relative group hidden sm:block" role="search">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
-                <input name="search" value="{{ request()->routeIs('records') ? request('search') : '' }}" class="pl-10 pr-4 py-2 bg-surface-container border-none rounded-full w-40 md:w-64 focus:ring-2 focus:ring-primary transition-all" placeholder="Search patients..." type="text" aria-label="Search patients by name or phone">
-            </form>
-            @endif
             <div class="flex items-center gap-xs md:gap-sm">
                 <a href="{{ route('messaging') }}" data-unread-link class="p-2 rounded-full hover:bg-surface-variant transition-colors relative" title="{{ $unreadMessages > 0 ? $unreadMessages . ' unread message' . ($unreadMessages === 1 ? '' : 's') : 'No unread messages' }}">
                     <span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
@@ -168,8 +162,8 @@
     @endif
 </main>
 
-@if(auth()->user()?->role === 'admin' && !request()->routeIs('messaging'))
-<a href="{{ route('register') }}" class="no-print fixed bottom-margin-mobile right-margin-mobile md:bottom-md md:right-md w-14 h-14 bg-primary text-on-primary rounded-full soft-drop-shadow flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-50 group">
+@if(auth()->user()?->role === 'admin' && !request()->routeIs(['messaging', 'register']))
+<a href="{{ route('register') }}" aria-label="Quick patient add" class="no-print fixed bottom-margin-mobile right-margin-mobile md:bottom-md md:right-md w-14 h-14 bg-primary text-on-primary rounded-full soft-drop-shadow flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-50 group">
     <span class="material-symbols-outlined text-[28px]" data-icon="add">add</span>
     <span class="absolute right-16 bg-inverse-surface text-inverse-on-surface px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Quick Patient Add</span>
 </a>
@@ -194,16 +188,6 @@
         sidebar.classList.toggle('translate-x-0');
         overlay.classList.toggle('opacity-0');
         overlay.classList.toggle('pointer-events-none');
-    }
-
-    const searchInput = document.querySelector('header input[type="text"]');
-    if (searchInput) {
-        searchInput.addEventListener('focus', () => {
-            searchInput.parentElement.classList.add('ring-2', 'ring-primary/20');
-        });
-        searchInput.addEventListener('blur', () => {
-            searchInput.parentElement.classList.remove('ring-2', 'ring-primary/20');
-        });
     }
 
     document.addEventListener('click', function (e) {
