@@ -2,8 +2,10 @@
 
 use App\Models\GrowthMeasurement;
 use App\Models\MaternalCheckup;
+use App\Services\ReminderService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
 
 Artisan::command('inspire', function () {
@@ -87,3 +89,24 @@ Artisan::command('app:go-live-check', function () {
 
     return 0;
 })->purpose('List settings that must change before the system is used with real patient data');
+
+Artisan::command('reminders:send', function (ReminderService $reminders) {
+    $result = $reminders->run();
+
+    if (! $result['enabled']) {
+        $this->info('Automated reminders are turned off in the SMS settings — nothing sent.');
+
+        return 0;
+    }
+
+    $this->info("Reminders: sent {$result['sent']}, failed {$result['failed']}, already sent earlier {$result['skipped']}.");
+
+    return 0;
+})->purpose('Text mothers about vaccine doses and prenatal/postpartum visits that are due');
+
+// Nothing runs by itself until something calls schedule:run every minute —
+// cron on Linux, Task Scheduler on this Windows server (see README for the command).
+Schedule::command('reminders:send')
+    ->dailyAt('08:00')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping();

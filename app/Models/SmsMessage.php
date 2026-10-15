@@ -12,7 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'message',
     'status',
     'sent_at',
-    'type'
+    'type',
+    'dedupe_key'
 ])]
 class SmsMessage extends Model
 {

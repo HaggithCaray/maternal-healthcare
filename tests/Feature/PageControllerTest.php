@@ -795,66 +795,74 @@ class PageControllerTest extends TestCase
      */
     public function test_admin_can_update_sms_settings(): void
     {
-        // Clean up setting file if any
+        // The settings file is the real gateway configuration, so hold on to whatever is
+        // in it and put it back afterwards — a test run must never lose the credentials.
         $settingsPath = storage_path('app/sms_settings.json');
-        if (file_exists($settingsPath)) {
-            unlink($settingsPath);
-        }
+        $original = file_exists($settingsPath) ? file_get_contents($settingsPath) : null;
 
-        $response = $this->actingAs($this->adminUser)->post('/sms/settings', [
-            'url' => 'http://192.168.1.50:8080',
-            'username' => 'test-user',
-            'password' => 'test-pass',
-        ]);
+        try {
+            if (file_exists($settingsPath)) {
+                unlink($settingsPath);
+            }
 
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
+            $response = $this->actingAs($this->adminUser)->post('/sms/settings', [
+                'url' => 'http://192.168.1.50:8080',
+                'username' => 'test-user',
+                'password' => 'test-pass',
+                'reminders_enabled' => '1',
+            ]);
 
-        $this->assertFileExists($settingsPath);
+            $response->assertRedirect();
+            $response->assertSessionHas('success');
 
-        $raw = file_get_contents($settingsPath);
-        // Credentials must not be stored in plaintext on disk.
-        $this->assertStringNotContainsString('test-pass', $raw);
-        $this->assertStringNotContainsString('"password"', $raw);
+            $this->assertFileExists($settingsPath);
 
-        $settings = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($raw), true);
-        $this->assertEquals('http://192.168.1.50:8080', $settings['url']);
-        $this->assertEquals('test-user', $settings['username']);
-        $this->assertEquals('test-pass', $settings['password']);
+            $raw = file_get_contents($settingsPath);
+            // Credentials must not be stored in plaintext on disk.
+            $this->assertStringNotContainsString('test-pass', $raw);
+            $this->assertStringNotContainsString('"password"', $raw);
 
-        if (file_exists($settingsPath)) {
-            unlink($settingsPath);
+            $settings = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($raw), true);
+            $this->assertEquals('http://192.168.1.50:8080', $settings['url']);
+            $this->assertEquals('test-user', $settings['username']);
+            $this->assertEquals('test-pass', $settings['password']);
+            // The automated-reminders switch is stored with the rest of the settings.
+            $this->assertTrue($settings['reminders_enabled']);
+        } finally {
+            $original === null ? @unlink($settingsPath) : file_put_contents($settingsPath, $original);
         }
     }
 
     public function test_sms_settings_legacy_plaintext_is_migrated_to_encrypted(): void
     {
         $settingsPath = storage_path('app/sms_settings.json');
-        if (file_exists($settingsPath)) {
-            unlink($settingsPath);
-        }
+        $original = file_exists($settingsPath) ? file_get_contents($settingsPath) : null;
 
-        // Simulate a pre-encryption plaintext settings file.
-        file_put_contents($settingsPath, json_encode([
-            'url' => 'http://192.168.1.50:8080',
-            'username' => 'legacy-user',
-            'password' => 'legacy-pass',
-        ]));
+        try {
+            if (file_exists($settingsPath)) {
+                unlink($settingsPath);
+            }
 
-        $settings = $this->app->make(\App\Services\SmsService::class)->getSettings();
+            // Simulate a pre-encryption plaintext settings file.
+            file_put_contents($settingsPath, json_encode([
+                'url' => 'http://192.168.1.50:8080',
+                'username' => 'legacy-user',
+                'password' => 'legacy-pass',
+            ]));
 
-        $this->assertEquals('http://192.168.1.50:8080', $settings['url']);
-        $this->assertEquals('legacy-user', $settings['username']);
-        $this->assertEquals('legacy-pass', $settings['password']);
+            $settings = $this->app->make(\App\Services\SmsService::class)->getSettings();
 
-        // Reading a legacy file should rewrite it encrypted at rest.
-        $raw = file_get_contents($settingsPath);
-        $this->assertStringNotContainsString('legacy-pass', $raw);
-        $migrated = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($raw), true);
-        $this->assertEquals('legacy-pass', $migrated['password']);
+            $this->assertEquals('http://192.168.1.50:8080', $settings['url']);
+            $this->assertEquals('legacy-user', $settings['username']);
+            $this->assertEquals('legacy-pass', $settings['password']);
 
-        if (file_exists($settingsPath)) {
-            unlink($settingsPath);
+            // Reading a legacy file should rewrite it encrypted at rest.
+            $raw = file_get_contents($settingsPath);
+            $this->assertStringNotContainsString('legacy-pass', $raw);
+            $migrated = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($raw), true);
+            $this->assertEquals('legacy-pass', $migrated['password']);
+        } finally {
+            $original === null ? @unlink($settingsPath) : file_put_contents($settingsPath, $original);
         }
     }
 

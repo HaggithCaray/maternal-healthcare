@@ -156,6 +156,14 @@
                                class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-sm py-2 px-3 bg-surface-container-lowest">
                     </div>
                 </div>
+                <label class="flex items-start gap-xs pt-xs cursor-pointer">
+                    <input type="checkbox" name="reminders_enabled" value="1" class="mt-1 rounded border-outline-variant text-primary focus:ring-primary"
+                           @checked(old('reminders_enabled', $gatewaySettings['reminders_enabled'] ?? false))>
+                    <span>
+                        <span class="font-label-sm text-label-sm text-on-surface-variant block font-bold">Automated reminders</span>
+                        <span class="text-[11px] text-on-surface-variant">Text mothers about vaccine doses and prenatal/postpartum visits that are due, daily at 8:00 AM. Off unless ticked.</span>
+                    </span>
+                </label>
                 <div class="flex gap-xs pt-xs">
                     <button type="submit" class="flex-1 py-2 text-center text-body-sm font-semibold bg-primary text-on-primary rounded-lg hover:opacity-90 transition-all">
                         Save Settings

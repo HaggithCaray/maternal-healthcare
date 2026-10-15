@@ -88,16 +88,20 @@ class SmsGatewayController extends Controller
             'url' => 'required|url',
             'username' => 'nullable|string|max:255',
             'password' => 'nullable|string|max:255',
+            // Sent only when ticked, so an unchecked box reads as "off".
+            'reminders_enabled' => 'boolean',
         ]);
 
         $success = $smsService->saveSettings(
             $request->url,
             $request->username ?? '',
-            $request->password ?? ''
+            $request->password ?? '',
+            $request->boolean('reminders_enabled')
         );
 
         AuditLog::log('update_sms_gateway_settings', null, [
             'url' => $request->url,
+            'reminders_enabled' => $request->boolean('reminders_enabled'),
             'success' => $success,
         ]);
 

@@ -42,7 +42,8 @@ class SmsService
                 $this->saveSettings(
                     $legacy['url'] ?? '',
                     $legacy['username'] ?? '',
-                    $legacy['password'] ?? ''
+                    $legacy['password'] ?? '',
+                    (bool) ($legacy['reminders_enabled'] ?? false)
                 );
                 return $this->normalizeSettings($legacy);
             }
@@ -57,9 +58,10 @@ class SmsService
      * @param string $url
      * @param string $username
      * @param string $password
+     * @param bool $remindersEnabled whether the daily automated reminders may send
      * @return bool
      */
-    public function saveSettings(string $url, string $username, string $password): bool
+    public function saveSettings(string $url, string $username, string $password, bool $remindersEnabled = false): bool
     {
         try {
             // Normalize URL to have no trailing slash
@@ -69,6 +71,7 @@ class SmsService
                 'url' => $url,
                 'username' => $username,
                 'password' => $password,
+                'reminders_enabled' => $remindersEnabled,
             ];
 
             // Ensure parent directory exists
@@ -86,6 +89,15 @@ class SmsService
     }
 
     /**
+     * Whether automated reminders were switched on by the admin. Off unless turned on
+     * in the SMS settings, so installing the system never messages anyone by itself.
+     */
+    public function remindersEnabled(): bool
+    {
+        return (bool) ($this->getSettings()['reminders_enabled'] ?? false);
+    }
+
+    /**
      * Merge stored settings with environment fallbacks.
      *
      * @param array $stored
@@ -97,6 +109,7 @@ class SmsService
             'url' => $stored['url'] ?? env('SMS_GATEWAY_URL', ''),
             'username' => $stored['username'] ?? env('SMS_GATEWAY_USER', ''),
             'password' => $stored['password'] ?? env('SMS_GATEWAY_PASSWORD', ''),
+            'reminders_enabled' => (bool) ($stored['reminders_enabled'] ?? false),
         ];
     }
 
