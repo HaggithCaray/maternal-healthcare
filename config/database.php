@@ -21,6 +21,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | mysqldump binary
+    |--------------------------------------------------------------------------
+    |
+    | Used by php artisan backup:run on MySQL. Leave it empty to autodetect
+    | (first PATH, then the usual XAMPP location), or point it at the file
+    | with MYSQLDUMP_BINARY in .env, e.g. C:\xampp\mysql\bin\mysqldump.exe
+    |
+    */
+
+    'mysqldump_binary' => env('MYSQLDUMP_BINARY', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Database Connections
     |--------------------------------------------------------------------------
     |

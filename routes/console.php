@@ -51,6 +51,16 @@ Artisan::command('app:go-live-check', function () {
         ->filter(fn ($user) => \Illuminate\Support\Facades\Hash::check('password', $user->password))
         ->pluck('email');
 
+    // Newest backup, to warn while the scheduler job is not set up yet or has stopped running.
+    // File names are backup-Y-m-d_His.zip, so sorting them by name sorts them by time.
+    $latestBackup = is_dir(storage_path('app/backups'))
+        ? collect(glob(storage_path('app/backups') . DIRECTORY_SEPARATOR . 'backup-*.zip') ?: [])
+            ->sortBy(fn (string $file) => basename($file))
+            ->last()
+        : null;
+    $backupFresh = $latestBackup !== null
+        && @filemtime($latestBackup) >= now()->subDays(2)->getTimestamp();
+
     // [check, ok?, fail (blocks real use) or warn, how to fix]
     $checks = [
         ['Debug mode is off', ! config('app.debug'), 'fail', 'Set APP_DEBUG=false: error pages otherwise show code, settings and patient data.'],
@@ -65,6 +75,9 @@ Artisan::command('app:go-live-check', function () {
         ['Session data encrypted', (bool) config('session.encrypt'), 'warn', 'Set SESSION_ENCRYPT=true (everyone signs in again once).'],
         ['Log level is not debug', config('logging.channels.' . config('logging.default') . '.level', config('logging.channels.single.level')) !== 'debug', 'warn', 'Set LOG_LEVEL=warning.'],
         ['Configuration is cached', app()->configurationIsCached(), 'warn', 'Run php artisan config:cache after every .env change (php artisan config:clear to undo).'],
+        ['Backups are current', $backupFresh, 'warn',
+            'Run php artisan backup:run and set up the daily schedule (README, "Scheduled jobs"). Newest found: '
+                . ($latestBackup !== null ? basename($latestBackup) : 'none yet') . '.'],
     ];
 
     $failures = 0;
@@ -108,5 +121,24 @@ Artisan::command('reminders:send', function (ReminderService $reminders) {
 // cron on Linux, Task Scheduler on this Windows server (see README for the command).
 Schedule::command('reminders:send')
     ->dailyAt('08:00')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping();
+
+Artisan::command('backup:run', function (\App\Services\BackupService $backup) {
+    try {
+        $path = $backup->run();
+        $this->info("Backup written: {$path}");
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('backup:run failed: ' . $e->getMessage());
+        $this->error('Backup failed: ' . $e->getMessage());
+
+        return 1;
+    }
+
+    return 0;
+})->purpose('Write one zip (database, storage, .env) to storage/app/backups and prune older ones');
+
+Schedule::command('backup:run')
+    ->dailyAt('02:00')
     ->timezone('Asia/Manila')
     ->withoutOverlapping();

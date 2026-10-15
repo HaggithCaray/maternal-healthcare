@@ -161,6 +161,54 @@ npm run build
 - `attachments:make-private` moves chat files uploaded before attachments became private out of the
   public folder. Both are safe to run more than once.
 
+## Scheduled jobs (reminders and backups)
+
+The schedule lives in `routes/console.php` (`php artisan schedule:list` shows it), but nothing
+runs it by itself on Windows. Two jobs rely on it:
+
+| Command | Runs | What it does |
+| --- | --- | --- |
+| `reminders:send` | daily, 8:00 AM | texts mothers about vaccine doses and prenatal/postpartum visits that are due. Nothing is sent until **Automated reminders** is ticked on the SMS page. |
+| `backup:run` | daily, 2:00 AM | one `backup-<date time>.zip` in `storage/app/backups` (database dump, `storage/app` with attachments and SMS settings, and `.env`). Backups older than 30 days are deleted. |
+
+Either keep a console running:
+
+```bash
+php artisan schedule:work
+```
+
+or, so it also runs after a reboot, let Windows Task Scheduler wake it every minute:
+
+1. Open **Task Scheduler** → **Create Task…** (not "Basic Task").
+2. **General**: name it `Maternal Health Hub scheduler`.
+3. **Triggers**: *New…* → *Daily* → 12:00 AM → tick *Repeat task every:* **1 minute** →
+   *For a duration of:* **Indefinitely**.
+4. **Actions**: *New…*
+   - Program/script: `C:\xampp\php\php.exe`
+   - Add arguments: `artisan schedule:run`
+   - Start in: the project folder (the one containing `artisan`)
+5. **Conditions**: untick *Start the task only if the computer is on AC power*.
+
+`schedule:run` executes whatever is due that minute and exits, so a task every minute is the
+normal way to drive Laravel's scheduler without cron.
+
+### Backups
+
+```bash
+php artisan backup:run
+```
+
+- The dump uses **mysqldump**, autodetected from `PATH` and then
+  `C:\xampp\mysql\bin\mysqldump.exe`. For any other install, set it in `.env`
+  (`MYSQLDUMP_BINARY=C:\path\to\mysqldump.exe`) and run `php artisan config:cache`.
+- The zip holds `database.sql.gz`, `.env` and everything under `storage/app` **except** the
+  backups folder itself. Copy the zips off this machine now and then — a backup on the same
+  disk only protects against mistakes, not a dead disk.
+- To restore: unzip, `gunzip database.sql.gz`, `mysql -u root healthcare_db < database.sql`,
+  then put `.env` and `storage/app` back.
+
+`php artisan app:go-live-check` warns when the newest backup is older than two days.
+
 ## Before using it with real patients
 
 The setup above is for development. Before real patient data goes in, run:
@@ -185,7 +233,8 @@ REVERB_APP_SECRET=<random>
 - Give the demo accounts (`health@example.com`, `patient@example.com`) real passwords from
   **Admin**, or deactivate them.
 - After any `.env` change run `php artisan config:cache` (and `npm run build` if a `REVERB_*` value changed).
-- Back up the MySQL database and `storage/app` (SMS settings and chat attachments) regularly.
+- Set up the scheduler (above) so `backup:run` keeps working, and copy the zips out of
+  `storage/app/backups` off this machine now and then.
 
 ## Running the tests
 
