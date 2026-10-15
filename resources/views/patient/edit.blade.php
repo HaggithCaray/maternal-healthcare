@@ -126,15 +126,15 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">First Name *</label>
-                        <input name="first_name" value="{{ old('first_name', $patient->first_name) }}" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="text">
+                        <input name="first_name" value="{{ old('first_name', $patient->first_name) }}" required maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="text">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Last Name *</label>
-                        <input name="last_name" value="{{ old('last_name', $patient->last_name) }}" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="text">
+                        <input name="last_name" value="{{ old('last_name', $patient->last_name) }}" required maxlength="255" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="text">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Date of Birth *</label>
-                        <input name="dob" value="{{ old('dob', $patient->dob ? \Carbon\Carbon::parse($patient->dob)->format('Y-m-d') : '') }}" required class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
+                        <input name="dob" value="{{ old('dob', $patient->dob ? \Carbon\Carbon::parse($patient->dob)->format('Y-m-d') : '') }}" required data-max-today class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Gender *</label>
@@ -232,19 +232,19 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Last Menstrual Period (LMP)</label>
-                        <input name="lmp" value="{{ old('lmp', $patient->maternalRecord->lmp ? \Carbon\Carbon::parse($patient->maternalRecord->lmp)->format('Y-m-d') : '') }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
+                        <input name="lmp" value="{{ old('lmp', $patient->maternalRecord->lmp ? \Carbon\Carbon::parse($patient->maternalRecord->lmp)->format('Y-m-d') : '') }}" data-max-today class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="date">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Gravida</label>
-                        <input name="gravida" value="{{ old('gravida', $patient->maternalRecord->gravida) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" placeholder="0" type="number">
+                        <input name="gravida" value="{{ old('gravida', $patient->maternalRecord->gravida) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" placeholder="0" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Para</label>
-                        <input name="para" value="{{ old('para', $patient->maternalRecord->para) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" placeholder="0" type="number">
+                        <input name="para" value="{{ old('para', $patient->maternalRecord->para) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" placeholder="0" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">PhilHealth Number</label>
-                        <input name="philhealth_number" value="{{ old('philhealth_number', $patient->maternalRecord->philhealth_number) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="XX-XXXXXXXXX-X" type="text">
+                        <input name="philhealth_number" value="{{ old('philhealth_number', $patient->maternalRecord->philhealth_number) }}" maxlength="50" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="XX-XXXXXXXXX-X" type="text">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Planned Place of Delivery</label>
@@ -274,7 +274,7 @@
                 </div>
                 <div class="mt-md">
                     <label class="font-label-md text-label-md text-on-surface-variant mb-xs block">Known Allergies</label>
-                    <textarea name="allergies" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="List any medicine or food allergies..." rows="3">{{ old('allergies', $patient->maternalRecord->allergies) }}</textarea>
+                    <textarea name="allergies" maxlength="1000" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="List any medicine or food allergies..." rows="3">{{ old('allergies', $patient->maternalRecord->allergies) }}</textarea>
                 </div>
             </div>
             @endif
@@ -299,15 +299,15 @@
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Birth Weight (kg)</label>
-                        <input name="birth_weight_kg" value="{{ old('birth_weight_kg', $patient->childRecord->birth_weight_kg) }}" step="0.01" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 3.2" type="number">
+                        <input name="birth_weight_kg" value="{{ old('birth_weight_kg', $patient->childRecord->birth_weight_kg) }}" step="0.01" min="0.3" max="7" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 3.2" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Birth Height (cm)</label>
-                        <input name="birth_height_cm" value="{{ old('birth_height_cm', $patient->childRecord->birth_height_cm) }}" step="0.1" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 50.0" type="number">
+                        <input name="birth_height_cm" value="{{ old('birth_height_cm', $patient->childRecord->birth_height_cm) }}" step="0.1" min="20" max="70" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 50.0" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Head Circumference (cm)</label>
-                        <input name="head_circumference_cm" value="{{ old('head_circumference_cm', $patient->childRecord->head_circumference_cm) }}" step="0.1" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 34.0" type="number">
+                        <input name="head_circumference_cm" value="{{ old('head_circumference_cm', $patient->childRecord->head_circumference_cm) }}" step="0.1" min="20" max="60" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 34.0" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Birth Type</label>
@@ -394,5 +394,11 @@
         motherSelect.addEventListener('change', syncContact);
         syncContact();
     }
+
+    // Dates can't be in the future (date of birth, LMP). Set from this device's clock,
+    // matching the behaviour of the registration form.
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    document.querySelectorAll('input[data-max-today]').forEach((field) => { field.max = today; });
 </script>
 @endpush

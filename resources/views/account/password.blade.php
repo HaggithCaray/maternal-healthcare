@@ -20,7 +20,7 @@
     </div>
     <div class="flex flex-col gap-xs">
         <label for="password" class="font-label-md text-label-md text-on-surface-variant">New password</label>
-        <input id="password" name="password" required minlength="8" autocomplete="new-password" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="password" aria-describedby="password-help">
+        <input id="password" name="password" required minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\d).{8,}$" title="At least 8 characters, with letters and numbers" autocomplete="new-password" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" type="password" aria-describedby="password-help">
         <p id="password-help" class="text-xs text-on-surface-variant">At least 8 characters, with letters and numbers.</p>
         @error('password')<p class="text-xs text-error">{{ $message }}</p>@enderror
     </div>

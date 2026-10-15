@@ -167,7 +167,7 @@
                 <div class="space-y-xs">
                     <label class="block font-label-md text-label-md text-on-surface" for="role">Select Your Role</label>
                     <div class="relative">
-                        <select class="w-full h-12 pl-10 pr-md bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer" id="role" name="role">
+                        <select class="w-full h-12 pl-10 pr-md bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md focus:ring-2 focus:ring-primary focus:border-primary transition-all appearance-none cursor-pointer" id="role" name="role" required>
                             <option value="admin">Healthcare Worker</option>
                             <option value="user">Patient</option>
                         </select>
@@ -177,9 +177,9 @@
                 </div>
 
                 <div class="space-y-xs">
-                    <label class="block font-label-md text-label-md text-on-surface" for="email">Email or Username</label>
+                    <label class="block font-label-md text-label-md text-on-surface" for="email">Email Address</label>
                     <div class="relative">
-                        <input class="w-full h-12 pl-10 pr-md bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="email" type="text" name="email" value="{{ old('email') }}" placeholder="Enter your credentials" required autofocus>
+                        <input class="w-full h-12 pl-10 pr-md bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="email" type="email" name="email" value="{{ old('email') }}" placeholder="name@example.com" autocomplete="username" required autofocus>
                         <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">person</span>
                     </div>
                 </div>
@@ -189,7 +189,7 @@
                         <label class="block font-label-md text-label-md text-on-surface" for="password">Password</label>
                     </div>
                     <div class="relative">
-                        <input class="w-full h-12 pl-10 pr-12 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="password" type="password" name="password" placeholder="••••••••" required>
+                        <input class="w-full h-12 pl-10 pr-12 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="password" type="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
                         <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">lock</span>
                         <button class="absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors" type="button" onclick="togglePassword()">
                             <span class="material-symbols-outlined" id="toggleIcon">visibility</span>
