@@ -21,7 +21,10 @@ This application uses dedicated domain controllers adhering to the Single Respon
 | `register(Request)` | Displays registration form (GET) or delegates to store (POST) |
 | `store(Request)` | Creates Patient + User (with secure randomized credentials) + MaternalRecord/ChildRecord in atomic `DB::transaction` |
 | `edit(Patient)` | Enforces `PatientPolicy`, loads relations, renders `patient.edit` view |
-| `update(Request, Patient)` | Enforces `PatientPolicy`, updates demographic & clinical attributes atomically; validates and saves the maternal `delivery_date` |
+| `update(Request, Patient)` | Enforces `PatientPolicy`, updates demographic & clinical attributes atomically; validates and saves the maternal `delivery_date` (accepts `Archived` so an archived record round-trips) |
+| `archive(Patient)` | Hides a patient from lists, search, dashboard counts and exports (admin, audit-logged); required first step of a permanent delete |
+| `restore(Patient)` | Returns an archived patient to Active (audit-logged) |
+| `destroy(Patient)` | Permanent delete: refuses unless already archived and while linked children exist; removes the linked login + chat history, cascades clinical records, writes a final audit entry after the row is gone |
 | `patientPortal()` | Patient portal view with upcoming/overdue vaccines and unread messages |
 
 ## MaternalRecordController

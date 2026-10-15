@@ -161,6 +161,11 @@
                             @foreach(['Active', 'Due for Visit', 'High Risk', 'Completed'] as $statusOption)
                             <option value="{{ $statusOption }}" {{ old('status', $patient->status) === $statusOption ? 'selected' : '' }}>{{ $statusOption }}</option>
                             @endforeach
+                            {{-- Archived is set from the Records menu, so only an already-archived
+                                 record shows the option — otherwise the save would not round-trip. --}}
+                            @if(old('status', $patient->status) === 'Archived')
+                            <option value="Archived" selected>Archived</option>
+                            @endif
                         </select>
                     </div>
                 </div>

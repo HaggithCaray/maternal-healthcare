@@ -56,11 +56,12 @@ class AuthController extends Controller
             return redirect()->route('patient.portal');
         }
 
-        $totalMothers = \App\Models\Patient::where('registration_type', 'Maternal')->count();
-        $totalChildren = \App\Models\Patient::where('registration_type', 'Child')->count();
+        $totalMothers = \App\Models\Patient::where('registration_type', 'Maternal')->where('status', '!=', 'Archived')->count();
+        $totalChildren = \App\Models\Patient::where('registration_type', 'Child')->where('status', '!=', 'Archived')->count();
         
         $todayVaccinations = \App\Models\Immunization::where('status', 'Scheduled')
             ->whereDate('scheduled_date', \Carbon\Carbon::today())
+            ->whereHas('childRecord.patient', fn ($q) => $q->where('status', '!=', 'Archived'))
             ->count();
             
         $unreadMessages = auth()->user()->unreadChatCount();
@@ -68,13 +69,14 @@ class AuthController extends Controller
         // Get upcoming vaccinations for dashboard list
         $upcomingVaccinations = \App\Models\Immunization::with('childRecord.patient')
             ->where('status', 'Scheduled')
+            ->whereHas('childRecord.patient', fn ($q) => $q->where('status', '!=', 'Archived'))
             ->orderBy('scheduled_date', 'asc')
             ->take(5)
             ->get();
 
         // New registrations in each of the last six months (including this one)
         $firstMonth = \Carbon\Carbon::today()->startOfMonth()->subMonths(5);
-        $registrations = \App\Models\Patient::where('created_at', '>=', $firstMonth)->get(['created_at', 'registration_type']);
+        $registrations = \App\Models\Patient::where('created_at', '>=', $firstMonth)->where('status', '!=', 'Archived')->get(['created_at', 'registration_type']);
         $chartMonths = [];
         foreach (range(0, 5) as $offset) {
             $month = $firstMonth->copy()->addMonths($offset);

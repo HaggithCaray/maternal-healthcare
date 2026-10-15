@@ -225,16 +225,17 @@ class ExportController extends Controller
             $year = $today->year;
         }
 
-        $totalPatients = Patient::count();
-        $maternalCases = Patient::where('registration_type', 'Maternal')->count();
-        $childRecords = Patient::where('registration_type', 'Child')->count();
+        // Same active-caseload rule as the Reports page: archived patients are not counted.
+        $totalPatients = Patient::where('status', '!=', 'Archived')->count();
+        $maternalCases = Patient::where('registration_type', 'Maternal')->where('status', '!=', 'Archived')->count();
+        $childRecords = Patient::where('registration_type', 'Child')->where('status', '!=', 'Archived')->count();
         $highRiskMothers = Patient::where('registration_type', 'Maternal')->where('status', 'High Risk')->count();
 
         $monthly = [];
         foreach (range(1, 12) as $month) {
             $monthly[$month] = ['Maternal' => 0, 'Child' => 0];
         }
-        Patient::whereYear('created_at', $year)
+        Patient::whereYear('created_at', $year)->where('status', '!=', 'Archived')
             ->get(['created_at', 'registration_type'])
             ->each(function (Patient $patient) use (&$monthly) {
                 $monthly[$patient->created_at->month][$patient->registration_type]++;
@@ -309,6 +310,7 @@ class ExportController extends Controller
         $search = $request->query('search');
         $type = $request->query('type');
         $status = $request->query('status');
+        $showArchived = $request->boolean('archived');
 
         $query = Patient::query();
 
@@ -329,10 +331,17 @@ class ExportController extends Controller
             $query->where('status', $status);
         }
 
+        // Same rule as the Records page: archived patients stay out unless asked for, so the
+        // file matches the list the staff member was looking at.
+        if (! $showArchived) {
+            $query->where('status', '!=', 'Archived');
+        }
+
         return [$query, array_filter([
             'search' => (string) $search,
             'type' => (string) $type,
             'status' => (string) $status,
+            'archived' => $showArchived ? '1' : '',
         ], fn ($v) => $v !== '')];
     }
 }

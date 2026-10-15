@@ -23,6 +23,9 @@
 | POST | `/register` | — | Process registration |
 | GET | `/patients/{patient}/edit` | `patients.edit` | Edit patient form |
 | PUT | `/patients/{patient}` | `patients.update` | Update patient |
+| PATCH | `/patients/{patient}/archive` | `patients.archive` | Archive patient — hidden from lists, search, dashboard, exports until restored |
+| PATCH | `/patients/{patient}/restore` | `patients.restore` | Restore an archived patient as Active |
+| DELETE | `/patients/{patient}` | `patients.destroy` | Permanent delete — archived patients only, refused while linked children exist |
 
 ### Health Modules
 | Method | URI | Name | Description |

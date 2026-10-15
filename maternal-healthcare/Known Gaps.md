@@ -1,13 +1,13 @@
 # Known Gaps
 
-> Audit of what the system still lacks (as of the 252-test suite).
+> Audit of what the system still lacks (as of the 269-test suite).
 > See also [[Senior Review - Pros Cons and Roadmap]] for what was already fixed.
 
 ## Functional gaps
 
 | # | Gap | Notes |
 |---|-----|-------|
-| 1 | No patient/record deletion or archival | Policy `delete()` methods exist but no controller/route uses them |
+| ~~1~~ | ~~No patient/record deletion or archival~~ | **Resolved** — archive/restore hides patients from lists, search, dashboard counts and exports (admin, audit-logged, reversible). Permanent `DELETE` only accepts an archived patient, is refused while linked children exist, removes the linked login + chat history, and writes a final audit entry after the row is gone |
 | 2 | No email password reset | Staff reset only (Admin / Edit Patient) |
 | ~~3~~ | ~~No automated backups~~ | **Resolved** — `backup:run` writes one zip to `storage/app/backups` (dump, `storage/app`, `.env`), prunes after 30 days; scheduled 2:00 AM |
 | 4 | Queue configured but unused | `QUEUE_CONNECTION=database`, nothing ever dispatches |
@@ -19,7 +19,7 @@
 
 | # | Gap | Notes |
 |---|-----|-------|
-| 8 | No CI | 252 tests, no `.github/workflows` |
+| 8 | No CI | 269 tests, no `.github/workflows` |
 | 9 | No production deployment story | XAMPP + artisan serve only; no supervisor/nginx/HTTPS doc |
 | 10 | Only `UserFactory` | No factories for Patient/Child/Maternal models |
 | ~~11~~ | ~~Doc drift~~ | **Resolved** — vault synced with the postpartum/export/reminder/backup work: test counts (252 / 1,129), new services, routes, schema and the backup/scheduler setup |

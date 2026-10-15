@@ -41,7 +41,7 @@ maternal-health-care/
 │   ├── *.blade.php       → admin/health-worker screens
 │   ├── partials/maternal/postpartum.blade.php → postpartum UI (admin modal + patient read-only)
 │   └── patient/*.blade.php → patient portal screens
-├── tests/                → 252 unit & feature tests
+├── tests/                → 269 unit & feature tests
 └── public/               → frontend assets (built via Vite)
 ```
 

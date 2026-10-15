@@ -15,7 +15,7 @@
 | File | Purpose |
 |------|---------|
 | `dashboard.blade.php` | KPI cards, vaccination schedule, recent activity, health tips |
-| `records.blade.php` | Patient records table with search/filter, Quick Actions dropdown, **Export CSV** button (carries the current filters) |
+| `records.blade.php` | Patient records table with search/filter + **Show archived** toggle, Quick Actions dropdown (View / Edit / Archive / Restore / Delete permanently), **Export CSV** button (carries the current filters incl. archived) |
 | `register.blade.php` | 5-step registration wizard |
 | `maternal.blade.php` | Maternal record: OB history, checkup timeline, add checkup form, postpartum section (visits + DOH 48h/1w/2w/6w schedule) |
 | `growth.blade.php` | Growth tracking: chart, history table, add measurement form |

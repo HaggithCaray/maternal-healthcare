@@ -33,6 +33,7 @@ class PatientController extends Controller
         $search = $request->query('search');
         $type = $request->query('type');
         $status = $request->query('status');
+        $showArchived = $request->boolean('archived');
 
         $query = Patient::query();
 
@@ -54,18 +55,25 @@ class PatientController extends Controller
             $query->where('status', $status);
         }
 
+        // Archived patients are hidden unless explicitly asked for; the status filter above
+        // still applies on top, so they normally appear only under "All Status".
+        if (! $showArchived) {
+            $query->where('status', '!=', 'Archived');
+        }
+
         $patients = $query->latest()->get();
 
-        // Calculate KPI stats
-        $totalPatients = Patient::count();
-        $maternalCases = Patient::where('registration_type', 'Maternal')->count();
-        $childRecords = Patient::where('registration_type', 'Child')->count();
+        // KPI stats describe the active caseload, so archived records are left out.
+        $totalPatients = Patient::where('status', '!=', 'Archived')->count();
+        $maternalCases = Patient::where('registration_type', 'Maternal')->where('status', '!=', 'Archived')->count();
+        $childRecords = Patient::where('registration_type', 'Child')->where('status', '!=', 'Archived')->count();
         $dueForVisit = Patient::where('status', 'Due for Visit')->count();
 
         AuditLog::log('view_patient_records', null, [
             'search' => $search,
             'type' => $type,
             'status' => $status,
+            'archived' => $showArchived,
             'count' => $patients->count(),
         ]);
 
@@ -77,7 +85,8 @@ class PatientController extends Controller
             'dueForVisit',
             'search',
             'type',
-            'status'
+            'status',
+            'showArchived'
         ));
     }
 
@@ -155,7 +164,8 @@ class PatientController extends Controller
             // The email is also the portal login, so it must not belong to another account.
             // Children have no login (the form doesn't show the field), so theirs is left as is.
             'email' => $isChild ? 'exclude' : ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($patient->user_id)],
-            'status' => 'required|string|in:Active,Due for Visit,High Risk,Completed',
+            // Archived is set from the Records menu, but must survive an edit round-trip.
+            'status' => 'required|string|in:Active,Due for Visit,High Risk,Completed,Archived',
             'head_circumference_cm' => 'nullable|numeric|min:20|max:60',
             'has_newborn_screening' => 'nullable|boolean',
             'has_hearing_screening' => 'nullable|boolean',
@@ -401,5 +411,98 @@ class PatientController extends Controller
             : collect();
 
         return $vaccines->concat($growth)->concat($visits)->sortByDesc('at')->take(5)->values();
+    }
+
+    /**
+     * Archive a patient: hidden from lists, search, dashboard counts and exports until
+     * restored. Also the required first step before a permanent delete.
+     */
+    public function archive(Patient $patient)
+    {
+        $this->authorize('update', $patient);
+
+        $name = $patient->full_name;
+
+        if ($patient->status === 'Archived') {
+            return back()->with('success', "{$name} is already archived.");
+        }
+
+        $previous = $patient->status;
+        $patient->update(['status' => 'Archived']);
+
+        AuditLog::log('archive_patient', $patient, ['previous_status' => $previous]);
+
+        return back()->with('success', "{$name} archived — hidden from lists, the dashboard and exports until restored.");
+    }
+
+    /**
+     * Bring an archived patient back into the active caseload as Active.
+     */
+    public function restore(Patient $patient)
+    {
+        $this->authorize('update', $patient);
+
+        $name = $patient->full_name;
+
+        if ($patient->status !== 'Archived') {
+            return back()->with('error', "{$name} is not archived.");
+        }
+
+        $patient->update(['status' => 'Active']);
+
+        AuditLog::log('restore_patient', $patient, ['status' => 'Active']);
+
+        return back()->with('success', "{$name} restored (status: Active).");
+    }
+
+    /**
+     * Permanently delete a patient and everything hanging off the record.
+     *
+     * Two safety rails: the patient must already be archived (deletion is deliberately a
+     * two-step action), and a mother with linked children is refused — her children would be
+     * orphaned, so she stays archived instead. Audit entries survive: they hold no patient FK.
+     */
+    public function destroy(Patient $patient)
+    {
+        $this->authorize('delete', $patient);
+
+        $name = $patient->full_name;
+
+        if ($patient->status !== 'Archived') {
+            return back()->with('error', "Archive {$name} first — permanent deletion is a two-step action.");
+        }
+
+        $linkedChildren = ChildRecord::where('mother_id', $patient->id)->count();
+        if ($linkedChildren > 0) {
+            return back()->with('error', "{$name} still has {$linkedChildren} linked child record(s). Archive her instead — children are kept in the system.");
+        }
+
+        // Only remove the login when it belongs to this patient: a child registered with the
+        // mother's email shares her account, and she must keep it (same rule update() uses).
+        $user = $patient->user;
+        $ownsLogin = $user && $user->isUser() && $user->patient?->is($patient);
+
+        $snapshot = [
+            'patient_id' => $patient->id,
+            'name' => $name,
+            'registration_type' => $patient->registration_type,
+            'deleted_login' => $ownsLogin ? $user->email : null,
+        ];
+
+        DB::transaction(function () use ($patient, $user, $ownsLogin) {
+            // Deleting the login takes its chat history with it (FK cascade).
+            if ($ownsLogin) {
+                $user->delete();
+            }
+
+            // Cascade: maternal record → checkups + postpartum visits; child record →
+            // growth measurements + immunizations; SMS history. Children were ruled out above.
+            $patient->delete();
+        });
+
+        // Written after the row is gone, so the trail of the deletion outlives it.
+        AuditLog::log('delete_patient', null, $snapshot);
+
+        return redirect()->route('records')->with('success', "{$name} permanently deleted.");
     }
 }

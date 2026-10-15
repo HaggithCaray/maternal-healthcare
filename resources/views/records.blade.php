@@ -11,7 +11,7 @@
         <p class="text-on-surface-variant font-body-md">Centralized database for Maternal Health Hub community health tracking.</p>
     </div>
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-sm">
-        <a href="{{ route('export.patients', array_filter(['search' => $search, 'type' => $type, 'status' => $status])) }}" class="border border-outline-variant text-primary bg-surface-container-lowest px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:bg-surface-variant transition-all whitespace-nowrap">
+        <a href="{{ route('export.patients', array_filter(['search' => $search, 'type' => $type, 'status' => $status, 'archived' => $showArchived ? '1' : ''])) }}" class="border border-outline-variant text-primary bg-surface-container-lowest px-md py-sm rounded-lg font-label-md flex items-center gap-xs hover:bg-surface-variant transition-all whitespace-nowrap">
             <span class="material-symbols-outlined">download</span>
             Export CSV
         </a>
@@ -78,6 +78,10 @@
         <button type="submit" class="bg-surface-container-highest text-primary p-sm rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-all flex items-center">
             <span class="material-symbols-outlined">filter_list</span>
         </button>
+        <label class="flex items-center gap-xs font-label-md text-on-surface-variant cursor-pointer select-none whitespace-nowrap" title="Archived patients are hidden from this list, search, the dashboard and exports until shown here">
+            <input type="checkbox" name="archived" value="1" onchange="this.form.submit()" {{ $showArchived ? 'checked' : '' }} class="w-4 h-4 accent-primary cursor-pointer">
+            Show archived
+        </label>
     </div>
 </form>
 
@@ -96,7 +100,7 @@
         </thead>
         <tbody class="divide-y divide-outline-variant/20">
             @forelse($patients as $patient)
-            <tr class="hover:bg-surface-container-low transition-colors group">
+            <tr class="hover:bg-surface-container-low transition-colors group {{ $patient->status === 'Archived' ? 'opacity-60' : '' }}">
                 <td class="px-md py-md">
                     <div class="flex items-center gap-sm">
                         <div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary font-bold">
@@ -126,6 +130,7 @@
                             'Due for Visit' => 'bg-error-container/20 text-error border-error-container/30',
                             'High Risk' => 'bg-surface-variant text-on-surface-variant border-outline-variant/30',
                             'Completed' => 'bg-primary-container/20 text-primary border-primary-container/30',
+                            'Archived' => 'bg-surface-variant/60 text-on-surface-variant border-outline-variant/50 italic',
                             default => 'bg-surface-variant text-on-surface-variant'
                         };
                     @endphp
@@ -171,6 +176,30 @@
                             <a href="{{ route('patients.edit', $patient->id) }}" class="flex items-center gap-sm px-4 py-2 text-on-surface hover:bg-surface-variant/50 transition-colors text-sm">
                                 <span class="material-symbols-outlined text-[18px]">edit</span> Edit Patient
                             </a>
+                            @if($patient->status === 'Archived')
+                            <form action="{{ route('patients.restore', $patient) }}" method="POST" class="border-t border-outline-variant/20 mt-1 pt-1" onsubmit="return confirm('Restore {{ $patient->first_name }} {{ $patient->last_name }}? She will be visible in records again as Active.')">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="w-full flex items-center gap-sm px-4 py-2 text-on-surface hover:bg-surface-variant/50 transition-colors text-sm">
+                                    <span class="material-symbols-outlined text-[18px]">unarchive</span> Restore
+                                </button>
+                            </form>
+                            <form action="{{ route('patients.destroy', $patient) }}" method="POST" class="mt-1" onsubmit="return confirmPermanentDelete(event, '{{ $patient->first_name }} {{ $patient->last_name }}')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="w-full flex items-center gap-sm px-4 py-2 text-error hover:bg-error-container/20 transition-colors text-sm">
+                                    <span class="material-symbols-outlined text-[18px]">delete_forever</span> Delete permanently
+                                </button>
+                            </form>
+                            @else
+                            <form action="{{ route('patients.archive', $patient) }}" method="POST" class="border-t border-outline-variant/20 mt-1 pt-1" onsubmit="return confirm('Archive {{ $patient->first_name }} {{ $patient->last_name }}? She will be hidden from lists, the dashboard and exports until restored.')">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="w-full flex items-center gap-sm px-4 py-2 text-on-surface hover:bg-surface-variant/50 transition-colors text-sm">
+                                    <span class="material-symbols-outlined text-[18px]">archive</span> Archive
+                                </button>
+                            </form>
+                            @endif
                         </div>
                     </div>
                 </td>
@@ -186,7 +215,7 @@
     </table>
     </div>
     <div class="px-md py-sm bg-surface-container-high/20 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-sm">
-        <p class="text-xs text-on-surface-variant">Showing {{ $patients->count() }} patient record(s)</p>
+        <p class="text-xs text-on-surface-variant">Showing {{ $patients->count() }} patient record(s){{ $showArchived ? ' (including archived)' : '' }}</p>
     </div>
 </div>
 
@@ -257,6 +286,20 @@
         const fitsBelow = rect.bottom + gap + menu.offsetHeight <= window.innerHeight;
         menu.style.top = (fitsBelow ? rect.bottom + gap : rect.top - gap - menu.offsetHeight) + 'px';
         menu.style.left = Math.max(8, rect.right - menu.offsetWidth) + 'px';
+    }
+
+    /*
+     * Last guard before an irreversible delete (archive + the server's own checks come first):
+     * the admin must type DELETE exactly, so a mis-click in the menu changes nothing.
+     */
+    function confirmPermanentDelete(e, name) {
+        const typed = prompt('This permanently deletes ' + name + ' and every linked record. Type DELETE to confirm:');
+        if (typed !== 'DELETE') {
+            e.preventDefault();
+            if (typed !== null) alert('Deletion cancelled — you must type DELETE exactly.');
+            return false;
+        }
+        return true;
     }
 
     document.addEventListener('click', function(e) {

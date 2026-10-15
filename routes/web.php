@@ -31,6 +31,11 @@ Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/register', [PatientController::class, 'register'])->name('register');
     Route::get('/patients/{patient}/edit', [PatientController::class, 'edit'])->name('patients.edit');
     Route::put('/patients/{patient}', [PatientController::class, 'update'])->name('patients.update');
+    // Records lifecycle: archive/restore keep a full audit trail; a permanent delete only
+    // accepts a patient that is already archived (see PatientController::destroy).
+    Route::patch('/patients/{patient}/archive', [PatientController::class, 'archive'])->name('patients.archive');
+    Route::patch('/patients/{patient}/restore', [PatientController::class, 'restore'])->name('patients.restore');
+    Route::delete('/patients/{patient}', [PatientController::class, 'destroy'])->name('patients.destroy');
     Route::post('/patients/{patient}/portal-password', [PatientController::class, 'resetPortalPassword'])->name('patients.portal-password');
     Route::get('/portal', [PatientController::class, 'patientPortal'])->name('patient.portal');
 

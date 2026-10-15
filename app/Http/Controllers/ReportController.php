@@ -45,10 +45,11 @@ class ReportController extends Controller
             $year = $today->year;
         }
 
-        // Current totals
-        $totalPatients = Patient::count();
-        $maternalCases = Patient::where('registration_type', 'Maternal')->count();
-        $childRecords = Patient::where('registration_type', 'Child')->count();
+        // Current totals. Archived patients are not part of the active caseload, so they are
+        // left out of counts and trends; events that already happened are still reported.
+        $totalPatients = Patient::where('status', '!=', 'Archived')->count();
+        $maternalCases = Patient::where('registration_type', 'Maternal')->where('status', '!=', 'Archived')->count();
+        $childRecords = Patient::where('registration_type', 'Child')->where('status', '!=', 'Archived')->count();
         $highRiskMothers = Patient::where('registration_type', 'Maternal')->where('status', 'High Risk')->count();
 
         // Registrations per month of the selected year. whereYear() works on both MySQL and SQLite,
@@ -57,7 +58,7 @@ class ReportController extends Controller
         foreach (range(1, 12) as $month) {
             $monthlyRegistrations[$month] = ['Maternal' => 0, 'Child' => 0];
         }
-        Patient::whereYear('created_at', $year)
+        Patient::whereYear('created_at', $year)->where('status', '!=', 'Archived')
             ->get(['created_at', 'registration_type'])
             ->each(function (Patient $patient) use (&$monthlyRegistrations) {
                 $monthlyRegistrations[$patient->created_at->month][$patient->registration_type]++;
