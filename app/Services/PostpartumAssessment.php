@@ -94,7 +94,7 @@ class PostpartumAssessment
             }
         }
 
-        return ['status' => PrenatalAssessment::statusFor($flags), 'flags' => $flags];
+        return ['status' => app(PrenatalAssessment::class)->statusFor($flags), 'flags' => $flags];
     }
 
     /**

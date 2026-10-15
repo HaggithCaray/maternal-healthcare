@@ -16,11 +16,16 @@ class CsvExporter
 {
     /**
      * @param  array<int, array{0: string, 1: string}>  $columns  [row key, header label] pairs
-     * @param  iterable<array<string, mixed>>  $rows  each row keyed by the column keys
+     * @param  iterable<array<string, mixed>>|callable(): iterable<array<string, mixed>>  $rows
+     *         each row keyed by the column keys — pass a generator (or a closure returning one)
+     *         so large exports are streamed straight from the database instead of being loaded
      */
-    public function download(string $filename, array $columns, iterable $rows): StreamedResponse
+    public function download(string $filename, array $columns, iterable|callable $rows): StreamedResponse
     {
         return response()->streamDownload(function () use ($columns, $rows) {
+            // A closure keeps the query lazy: it is only run once the response starts streaming.
+            $rows = is_callable($rows) ? $rows() : $rows;
+
             $out = fopen('php://output', 'w');
 
             // UTF-8 BOM so Excel detects the encoding.

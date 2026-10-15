@@ -148,7 +148,7 @@ class PostpartumAndExportTest extends TestCase
     {
         $patient = $this->mother([], Carbon::today()->subDays(4)->toDateString());
 
-        $this->actingAs($this->adminUser)->postJson('/sync/batch', [
+        $this->actingAs($this->adminUser)->postJson('/api/sync/batch', [
             'items' => [
                 [
                     'id' => 'pp-1',

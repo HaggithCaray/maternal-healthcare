@@ -59,7 +59,7 @@ class ExportController extends Controller
                     'name' => $patient->full_name,
                     'registration_type' => $patient->registration_type,
                     'status' => $patient->status,
-                    'dob' => $patient->dob?->format('Y-m-d'),
+                    'dob' => $patient->dob ? Carbon::parse($patient->dob)->format('Y-m-d') : '',
                     'age' => $patient->dob ? Carbon::parse($patient->dob)->age : '',
                     'gender' => $patient->gender,
                     'phone' => $patient->phone,
