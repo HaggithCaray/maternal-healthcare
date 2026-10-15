@@ -44,3 +44,5 @@ Start with [[Project Overview]] for a high-level summary.
 ### Project Management & Audits
 - [[Senior Review - Pros Cons and Roadmap]] — Senior Dev & Pentest findings, pros/cons, and roadmap
 - [[Milestones]] — Completed and upcoming milestones
+- [[Progress Log]] — Dated session entries: what changed, what is verified, what to do next
+- [[Known Gaps]] — Open gaps and closed-gap history
