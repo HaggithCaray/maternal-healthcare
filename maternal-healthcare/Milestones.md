@@ -92,6 +92,7 @@ All planned phases are complete. The system serves a single site, Barangay Bicao
 ---
 
 ## Related Pages
+- [[Known Gaps]]
 - [[Project Overview]]
 - [[Senior Review - Pros Cons and Roadmap]]
 - [[Controllers]]

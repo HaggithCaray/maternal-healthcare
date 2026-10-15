@@ -105,6 +105,7 @@ graph TD
 ---
 
 ## 5. Related Vault Notes
+- [[Known Gaps]]
 - [[Project Overview]]
 - [[Architecture]]
 - [[Controllers]]
