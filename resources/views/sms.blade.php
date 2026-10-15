@@ -70,7 +70,7 @@
                 </div>
                 <div class="md:col-span-2 space-y-xs">
                     <label class="font-label-md text-label-md text-on-surface">Message Content *</label>
-                    <textarea name="message" id="smsContent" required class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-sm py-2 px-3 bg-surface-container-lowest" placeholder="Type your message here..." rows="3"></textarea>
+                    <textarea name="message" id="smsContent" required maxlength="1000" class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-sm py-2 px-3 bg-surface-container-lowest" placeholder="Type your message here..." rows="3"></textarea>
                     <div class="flex justify-between items-center text-[11px] text-outline">
                         <span id="charCounter" class="font-bold">0 characters / 0 segment</span>
                     </div>
@@ -140,8 +140,9 @@
                 @csrf
                 <div class="space-y-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant block font-bold">Gateway URL *</label>
-                    <input type="url" name="url" value="{{ $gatewaySettings['url'] }}" placeholder="http://192.168.1.100:8080" required
+                    <input type="url" name="url" value="{{ $gatewaySettings['url'] }}" placeholder="https://api.sms-gate.app/3rdparty/v1" required
                            class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary text-body-sm py-2 px-3 bg-surface-container-lowest">
+                    <p class="text-[11px] text-on-surface-variant">Use the cloud address shown above unless the phone is on the same Wi-Fi as this PC (then use its local address, e.g. http://192.168.1.100:8080).</p>
                 </div>
                 <div class="grid grid-cols-2 gap-sm">
                     <div class="space-y-xs">

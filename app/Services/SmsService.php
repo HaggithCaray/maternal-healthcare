@@ -101,6 +101,34 @@ class SmsService
     }
 
     /**
+     * Whether the configured gateway is the public cloud server rather than the phone's
+     * local server. The cloud API is versioned under /3rdparty/v1 and is reachable from any
+     * network; the local server is only reachable on the same Wi-Fi/Ethernet as the phone.
+     */
+    protected function isCloud(string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST) ?? '';
+
+        return str_ends_with(strtolower($host), 'sms-gate.app');
+    }
+
+    /**
+     * The API base for the configured gateway. For the cloud this is the versioned
+     * /3rdparty/v1 path (appended when only the host was entered); for the local server
+     * it is the saved URL as-is.
+     */
+    protected function apiBase(string $url): string
+    {
+        $url = rtrim($url, '/');
+
+        if ($this->isCloud($url) && ! str_contains($url, '/3rdparty/v1')) {
+            return $url . '/3rdparty/v1';
+        }
+
+        return $url;
+    }
+
+    /**
      * Check the status of the SMS gateway.
      *
      * @return bool
@@ -114,9 +142,21 @@ class SmsService
             return false;
         }
 
+        $base = $this->apiBase($url);
+
         try {
+            if ($this->isCloud($url)) {
+                // The cloud API has no unauthenticated /health endpoint; listing devices both
+                // proves the gateway is reachable and that the stored credentials are valid.
+                $response = Http::timeout(5)
+                    ->withBasicAuth($settings['username'], $settings['password'])
+                    ->get($base . '/devices');
+
+                return $response->successful();
+            }
+
             // Unauthenticated healthcheck endpoint in local server mode
-            $response = Http::timeout(3)->get($url . '/health');
+            $response = Http::timeout(3)->get($base . '/health');
 
             if ($response->successful()) {
                 $status = $response->json('status');
@@ -153,10 +193,17 @@ class SmsService
 
         $formattedTo = $this->formatPhoneNumber($to);
 
+        // The payload and Basic auth are the same in both modes; only the path differs:
+        // cloud is /3rdparty/v1/messages (plural), local is /message (singular).
+        $endpoint = $this->isCloud($url)
+            ? $this->apiBase($url) . '/messages'
+            : $this->apiBase($url) . '/message';
+
         try {
-            $response = Http::timeout(5)
+            // Cloud adds a network hop and a push to the device, so allow a little longer.
+            $response = Http::timeout($this->isCloud($url) ? 10 : 5)
                 ->withBasicAuth($username, $password)
-                ->post($url . '/message', [
+                ->post($endpoint, [
                     'textMessage' => [
                         'text' => $message,
                     ],
