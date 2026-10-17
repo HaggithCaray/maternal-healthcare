@@ -113,7 +113,7 @@ class PatientController extends Controller
     {
         $this->authorize('create', Patient::class);
 
-        $data = $request->validate(PatientRegistration::rules());
+        $data = $request->validate(PatientRegistration::rules(), PatientRegistration::messages());
         ['patient' => $patient, 'temporaryPassword' => $temporaryPassword] = $registration->register($data);
 
         AuditLog::log('create_patient', $patient, [
@@ -173,7 +173,7 @@ class PatientController extends Controller
             'has_vitamin_k' => 'nullable|boolean',
             // Postpartum tracking starts from the delivery date; blank means still pregnant.
             'delivery_date' => 'nullable|date|before_or_equal:today',
-        ]);
+        ], PatientRegistration::messages());
 
         // A child linked to a mother shows her current contact details, so it keeps no copy.
         $followsMother = $isChild && $request->filled('mother_id');

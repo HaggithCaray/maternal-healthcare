@@ -143,9 +143,9 @@ class SyncController extends Controller
     /**
      * Validate one queued item; failures are reported per item in the sync response.
      */
-    private function validateItem(array $data, array $rules): void
+    private function validateItem(array $data, array $rules, array $messages = []): void
     {
-        $validator = Validator::make($data, $rules, [
+        $validator = Validator::make($data, $rules, $messages + [
             // Shown to the midwife on the device, so say what happened rather than which id failed.
             'maternal_record_id.exists' => "The mother's prenatal record no longer exists.",
             'child_record_id.exists' => "The child's record no longer exists.",
@@ -177,7 +177,7 @@ class SyncController extends Controller
      */
     private function createPatient(array $data): void
     {
-        $this->validateItem($data, PatientRegistration::rules());
+        $this->validateItem($data, PatientRegistration::rules(), PatientRegistration::messages());
 
         $patient = app(PatientRegistration::class)->register($data)['patient'];
 

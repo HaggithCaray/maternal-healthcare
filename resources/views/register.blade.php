@@ -89,7 +89,7 @@
                                 <p class="font-label-md text-label-md">{{ $title }}</p>
                                 <p class="text-xs text-on-surface-variant">{{ $hint }}</p>
                             </div>
-                            <input @checked(old('registration_type', 'Maternal') === $type) class="ml-auto text-primary" name="registration_type" id="{{ $id }}" value="{{ $type }}" type="radio">
+                            <input @checked(old('registration_type', 'Maternal') === $type) class="ml-auto text-primary" name="registration_type" id="{{ $id }}" value="{{ $type }}" type="radio" required>
                         </label>
                         @endforeach
                     </div>
@@ -111,11 +111,11 @@
                             <label class="{{ $label }}"><span data-maternal-only>Gender</span><span data-child-only class="hidden">Sex</span> *</label>
                             <div class="flex gap-md mt-xs">
                                 <label class="flex items-center gap-xs cursor-pointer">
-                                    <input name="gender" value="Female" @checked(old('gender', 'Female') === 'Female') class="text-primary focus:ring-primary" type="radio">
+                                    <input name="gender" value="Female" @checked(old('gender', 'Female') === 'Female') class="text-primary focus:ring-primary" type="radio" required>
                                     <span>Female</span>
                                 </label>
                                 <label class="flex items-center gap-xs cursor-pointer">
-                                    <input name="gender" value="Male" @checked(old('gender') === 'Male') class="text-primary focus:ring-primary" type="radio">
+                                    <input name="gender" value="Male" @checked(old('gender') === 'Male') class="text-primary focus:ring-primary" type="radio" required>
                                     <span>Male</span>
                                 </label>
                             </div>
@@ -159,7 +159,7 @@
                             <label class="{{ $label }}"><span data-maternal-only>Phone Number</span><span data-child-only class="hidden">Parent / Guardian Phone</span> *</label>
                             <div class="flex">
                                 <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-outline bg-surface-container text-on-surface-variant text-sm">+63</span>
-                                <input name="phone" value="{{ old('phone') }}" required maxlength="30" class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
+                                <input name="phone" value="{{ old('phone') }}" required maxlength="30" inputmode="tel" pattern="[+(]?[0-9][0-9 \-()]{6,19}" title="Digits only, e.g. 917 123 4567" class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
                             </div>
                         </div>
                         <div class="flex flex-col gap-xs" data-maternal-only>
@@ -185,7 +185,7 @@
                         </div>
                         <div class="flex flex-col gap-xs" data-maternal-only>
                             <label class="{{ $label }}">Emergency Contact Phone *</label>
-                            <input name="emergency_contact_phone" value="{{ old('emergency_contact_phone') }}" required maxlength="30" class="{{ $input }}" placeholder="Phone of emergency contact" type="tel">
+                            <input name="emergency_contact_phone" value="{{ old('emergency_contact_phone') }}" required maxlength="30" inputmode="tel" pattern="[+(]?[0-9][0-9 \-()]{6,19}" title="Digits only, e.g. 0917 123 4567" class="{{ $input }}" placeholder="Phone of emergency contact" type="tel">
                         </div>
                     </div>
                 </div>
@@ -206,15 +206,15 @@
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="{{ $label }}">Number of Previous Pregnancies (Gravida)</label>
-                            <input name="gravida" value="{{ old('gravida') }}" class="{{ $input }}" min="0" max="30" step="1" placeholder="0" type="number">
+                            <input name="gravida" value="{{ old('gravida') }}" class="{{ $input }}" min="0" max="30" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="number">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="{{ $label }}">Number of Previous Births (Para)</label>
-                            <input name="para" value="{{ old('para') }}" class="{{ $input }}" min="0" max="30" step="1" placeholder="0" type="number">
+                            <input name="para" value="{{ old('para') }}" class="{{ $input }}" min="0" max="30" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="number">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="{{ $label }}">PhilHealth Number</label>
-                            <input name="philhealth_number" value="{{ old('philhealth_number') }}" maxlength="50" class="{{ $input }}" placeholder="XX-XXXXXXXXX-X" type="text">
+                            <input name="philhealth_number" value="{{ old('philhealth_number') }}" maxlength="50" pattern="[0-9]{2}-?[0-9]{9}-?[0-9]" title="Format: 12-345678901-2" class="{{ $input }}" placeholder="XX-XXXXXXXXX-X" type="text">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="{{ $label }}">Planned Place of Delivery</label>
@@ -229,11 +229,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-md hidden" id="childFields">
                         <div class="flex flex-col gap-xs">
                             <label class="{{ $label }}">Birth Weight (kg)</label>
-                            <input name="birth_weight_kg" value="{{ old('birth_weight_kg') }}" step="0.01" min="0.3" max="7" class="{{ $input }}" placeholder="e.g. 3.2" type="number">
+                            <input name="birth_weight_kg" value="{{ old('birth_weight_kg') }}" step="0.01" min="0.3" max="7" inputmode="decimal" class="{{ $input }}" placeholder="e.g. 3.2" type="number">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="{{ $label }}">Birth Length (cm)</label>
-                            <input name="birth_height_cm" value="{{ old('birth_height_cm') }}" step="0.1" min="20" max="70" class="{{ $input }}" placeholder="e.g. 50.0" type="number">
+                            <input name="birth_height_cm" value="{{ old('birth_height_cm') }}" step="0.1" min="20" max="70" inputmode="decimal" class="{{ $input }}" placeholder="e.g. 50.0" type="number">
                         </div>
                         <div class="flex flex-col gap-xs">
                             <label class="{{ $label }}">Birth Type</label>

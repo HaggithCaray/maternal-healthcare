@@ -248,13 +248,13 @@ class AccountManagementTest extends TestCase
             'user_id' => $this->patientUser->id,
             'first_name' => 'Maria', 'last_name' => 'Santos', 'dob' => '1995-01-01', 'gender' => 'Female',
             'phone' => '09171234567', 'email' => 'maria@example.com', 'address' => 'Purok 1', 'barangay' => 'Bicao',
-            'emergency_contact_name' => 'Juan', 'emergency_contact_phone' => '0922', 'registration_type' => 'Maternal', 'status' => 'Active',
+            'emergency_contact_name' => 'Juan', 'emergency_contact_phone' => '09221234567', 'registration_type' => 'Maternal', 'status' => 'Active',
         ]);
 
         $this->actingAs($this->adminUser)->put("/patients/{$patient->id}", [
             'first_name' => 'Maria', 'last_name' => 'Santos-Cruz', 'dob' => '1995-01-01', 'gender' => 'Female',
             'phone' => '09171234567', 'email' => 'maria.new@example.com', 'address' => 'Purok 1',
-            'emergency_contact_name' => 'Juan', 'emergency_contact_phone' => '0922', 'status' => 'Active',
+            'emergency_contact_name' => 'Juan', 'emergency_contact_phone' => '09221234567', 'status' => 'Active',
         ])->assertRedirect(route('records'));
 
         $user = $this->patientUser->fresh();
@@ -267,13 +267,13 @@ class AccountManagementTest extends TestCase
         $patient = Patient::create([
             'first_name' => 'Ana', 'last_name' => 'Cruz', 'dob' => '1995-01-01', 'gender' => 'Female',
             'phone' => '09171234567', 'address' => 'Purok 1', 'barangay' => 'Bicao',
-            'emergency_contact_name' => 'Juan', 'emergency_contact_phone' => '0922', 'registration_type' => 'Maternal', 'status' => 'Active',
+            'emergency_contact_name' => 'Juan', 'emergency_contact_phone' => '09221234567', 'registration_type' => 'Maternal', 'status' => 'Active',
         ]);
 
         $this->actingAs($this->adminUser)->put("/patients/{$patient->id}", [
             'first_name' => 'Ana', 'last_name' => 'Cruz', 'dob' => '1995-01-01', 'gender' => 'Female',
             'phone' => '09171234567', 'email' => 'maria@example.com', 'address' => 'Purok 1',
-            'emergency_contact_name' => 'Juan', 'emergency_contact_phone' => '0922', 'status' => 'Active',
+            'emergency_contact_name' => 'Juan', 'emergency_contact_phone' => '09221234567', 'status' => 'Active',
         ])->assertSessionHasErrors('email');
     }
 }

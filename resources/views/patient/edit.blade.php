@@ -199,7 +199,7 @@
                         <label class="font-label-md text-label-md text-on-surface-variant">{{ $isChild ? 'Parent / Guardian Phone' : 'Phone Number' }} *</label>
                         <div class="flex">
                             <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-outline bg-surface-container text-on-surface-variant text-sm">+63</span>
-                            <input name="phone" value="{{ old('phone', $own('phone')) }}" required maxlength="30" class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
+                            <input name="phone" value="{{ old('phone', $own('phone')) }}" required maxlength="30" inputmode="tel" pattern="[+(]?[0-9][0-9 \-()]{6,19}" title="Digits only, e.g. 917 123 4567" class="w-full rounded-r-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="917 123 4567" type="tel">
                         </div>
                     </div>
                     @if($patient->registration_type !== 'Child')
@@ -222,7 +222,7 @@
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">{{ $isChild ? 'Other Contact Phone' : 'Emergency Contact Phone *' }}</label>
-                        <input name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $own('emergency_contact_phone')) }}" @unless($isChild) required @endunless maxlength="30" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Phone of emergency contact" type="tel">
+                        <input name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $own('emergency_contact_phone')) }}" @unless($isChild) required @endunless maxlength="30" inputmode="tel" pattern="[+(]?[0-9][0-9 \-()]{6,19}" title="Digits only, e.g. 0917 123 4567" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="Phone of emergency contact" type="tel">
                     </div>
                 </div>
             </div>
@@ -246,15 +246,15 @@
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Gravida</label>
-                        <input name="gravida" value="{{ old('gravida', $patient->maternalRecord->gravida) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" placeholder="0" type="number">
+                        <input name="gravida" value="{{ old('gravida', $patient->maternalRecord->gravida) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Para</label>
-                        <input name="para" value="{{ old('para', $patient->maternalRecord->para) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" placeholder="0" type="number">
+                        <input name="para" value="{{ old('para', $patient->maternalRecord->para) }}" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" min="0" max="30" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="0" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">PhilHealth Number</label>
-                        <input name="philhealth_number" value="{{ old('philhealth_number', $patient->maternalRecord->philhealth_number) }}" maxlength="50" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="XX-XXXXXXXXX-X" type="text">
+                        <input name="philhealth_number" value="{{ old('philhealth_number', $patient->maternalRecord->philhealth_number) }}" maxlength="50" pattern="[0-9]{2}-?[0-9]{9}-?[0-9]" title="Format: 12-345678901-2" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="XX-XXXXXXXXX-X" type="text">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Planned Place of Delivery</label>
@@ -309,15 +309,15 @@
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Birth Weight (kg)</label>
-                        <input name="birth_weight_kg" value="{{ old('birth_weight_kg', $patient->childRecord->birth_weight_kg) }}" step="0.01" min="0.3" max="7" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 3.2" type="number">
+                        <input name="birth_weight_kg" value="{{ old('birth_weight_kg', $patient->childRecord->birth_weight_kg) }}" step="0.01" min="0.3" max="7" inputmode="decimal" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 3.2" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Birth Height (cm)</label>
-                        <input name="birth_height_cm" value="{{ old('birth_height_cm', $patient->childRecord->birth_height_cm) }}" step="0.1" min="20" max="70" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 50.0" type="number">
+                        <input name="birth_height_cm" value="{{ old('birth_height_cm', $patient->childRecord->birth_height_cm) }}" step="0.1" min="20" max="70" inputmode="decimal" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 50.0" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Head Circumference (cm)</label>
-                        <input name="head_circumference_cm" value="{{ old('head_circumference_cm', $patient->childRecord->head_circumference_cm) }}" step="0.1" min="20" max="60" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 34.0" type="number">
+                        <input name="head_circumference_cm" value="{{ old('head_circumference_cm', $patient->childRecord->head_circumference_cm) }}" step="0.1" min="20" max="60" inputmode="decimal" class="w-full rounded-lg border-outline focus:ring-2 focus:ring-primary focus:border-primary px-sm py-base" placeholder="e.g. 34.0" type="number">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-md text-label-md text-on-surface-variant">Birth Type</label>

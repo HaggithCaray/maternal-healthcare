@@ -140,7 +140,7 @@ class PrivacyAndFamilyTest extends TestCase
     {
         $this->actingAs($this->adminUser)->put("/patients/{$child->id}", [
             'first_name' => $child->first_name, 'last_name' => 'Bautista', 'dob' => $child->dob, 'gender' => 'Male',
-            'phone' => '09175550000', 'address' => 'Purok 4', 'emergency_contact_name' => 'Ben', 'emergency_contact_phone' => '0922',
+            'phone' => '09175550000', 'address' => 'Purok 4', 'emergency_contact_name' => 'Ben', 'emergency_contact_phone' => '09221234567',
             'status' => 'Active', 'birth_type' => 'Single', 'delivery_type' => 'Normal',
         ] + $birthDoses)->assertRedirect(route('records'));
     }

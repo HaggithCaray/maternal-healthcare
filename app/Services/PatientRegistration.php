@@ -44,6 +44,23 @@ class PatientRegistration
     public const DELIVERY_TYPES = ['Normal', 'C-Section', 'Assisted'];
 
     /**
+     * Letters (any script), spaces, hyphens, periods and apostrophes — no digits.
+     * Covers "Maria", "Maria Dela Cruz", "O'Brien", "Jean-Luc", "Ana-Marie".
+     */
+    public const NAME_PATTERN = "/^[\\p{L}][\\p{L}\\s\\-.' ]*$/u";
+
+    /**
+     * Digits with an optional +63 or 0 prefix; spaces, dashes and parentheses allowed as
+     * separators. 7 to 20 characters, which fits a local landline and every mobile format.
+     */
+    public const PHONE_PATTERN = '/^[+(]?[0-9][0-9\s\-()]{6,19}$/';
+
+    /**
+     * PhilHealth PIN: 2-9-1 digits (e.g. 12-345678901-2); separators optional.
+     */
+    public const PHILHEALTH_PATTERN = '/^[0-9]{2}-?[0-9]{9}-?[0-9]$/';
+
+    /**
      * Validation rules shared by the registration form and offline sync.
      *
      * @return array<string, mixed>
@@ -51,9 +68,9 @@ class PatientRegistration
     public static function rules(): array
     {
         return [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'dob' => 'required|date|before_or_equal:today',
+            'first_name' => ['required', 'string', 'max:255', 'regex:'.self::NAME_PATTERN],
+            'last_name' => ['required', 'string', 'max:255', 'regex:'.self::NAME_PATTERN],
+            'dob' => 'required|date|after:1900-01-01|before_or_equal:today',
             'gender' => 'required|in:Female,Male',
             ...self::contactRules(),
             'email' => ['nullable', 'email', 'max:255', function (string $attribute, mixed $value, \Closure $fail) {
@@ -68,9 +85,10 @@ class PatientRegistration
 
             // Maternal
             'lmp' => 'nullable|date|before_or_equal:today',
-            'gravida' => 'nullable|integer|min:0|max:30',
-            'para' => 'nullable|integer|min:0|max:30',
-            'philhealth_number' => 'nullable|string|max:50',
+            'gravida' => 'nullable|integer|min:0|max:30|required_with:para',
+            // A birth is one of the pregnancies, so there can never be more births than pregnancies.
+            'para' => 'nullable|integer|min:0|max:30|lte:gravida',
+            'philhealth_number' => ['nullable', 'string', 'max:50', 'regex:'.self::PHILHEALTH_PATTERN],
             'medical_history' => 'nullable|array',
             'allergies' => 'nullable|string|max:1000',
             'birth_plan_facility' => 'nullable|string|max:255',
@@ -110,10 +128,29 @@ class PatientRegistration
         };
 
         return [
-            'phone' => ['nullable', 'string', 'max:30', ...$required],
+            'phone' => ['nullable', 'string', 'max:30', 'regex:'.self::PHONE_PATTERN, ...$required],
             'address' => ['nullable', 'string', 'max:500', ...$required],
             'emergency_contact_name' => ['nullable', 'string', 'max:255', ...$required],
-            'emergency_contact_phone' => ['nullable', 'string', 'max:30', ...$requiredForMother],
+            'emergency_contact_phone' => ['nullable', 'string', 'max:30', 'regex:'.self::PHONE_PATTERN, ...$requiredForMother],
+        ];
+    }
+
+    /**
+     * Readable messages for the rules above (the defaults name raw rule parts like "regex").
+     *
+     * @return array<string, string>
+     */
+    public static function messages(): array
+    {
+        return [
+            'first_name.regex' => 'The first name may only contain letters, spaces, hyphens, periods and apostrophes.',
+            'last_name.regex' => 'The last name may only contain letters, spaces, hyphens, periods and apostrophes.',
+            'dob.after' => 'Enter a valid date of birth (after 1900).',
+            'phone.regex' => 'Enter a valid phone number: digits only, 7 to 20 characters, optionally starting with +63 or 0.',
+            'emergency_contact_phone.regex' => 'Enter a valid phone number: digits only, 7 to 20 characters, optionally starting with +63 or 0.',
+            'gravida.required_with' => 'Enter the number of previous pregnancies when previous births are given.',
+            'para.lte' => 'Previous births (Para) cannot be more than previous pregnancies (Gravida).',
+            'philhealth_number.regex' => 'Enter the PhilHealth number as 12-345678901-2.',
         ];
     }
 
