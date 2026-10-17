@@ -27,7 +27,7 @@
                     [4, 'Medical History', 'Past conditions', '', '', 'Maternal'],
                     [5, 'Review &amp; Submit', 'Confirm and register', 'Review &amp; Submit', 'Confirm and register', null],
                 ] as [$number, $maternalTitle, $maternalHint, $childTitle, $childHint, $only])
-                <div class="flex items-start gap-md group cursor-pointer" onclick="goToStep({{ $number }})" @if($only) data-maternal-only @endif>
+                <div class="flex items-start gap-md group cursor-pointer" onclick="goToStep({{ $number }}, true)" @if($only) data-maternal-only @endif>
                     <div class="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-on-primary font-bold transition-colors shrink-0" id="step-icon-{{ $number }}">{{ $number }}</div>
                     <div class="flex flex-col">
                         <span class="font-label-md text-label-md text-primary" id="step-label-{{ $number }}">
@@ -412,6 +412,28 @@
         return true;
     }
 
+    // Jump to a step. Going back is free; going forward (e.g. clicking a number in the sidebar)
+    // validates every step in between first, so a required field can't be skipped over.
+    function goToStep(step, validateSkipped = false) {
+        const steps = stepsFor(checkedType());
+        const target = steps.includes(step) ? step : steps[0];
+        const from = steps.indexOf(currentStep);
+        const to = steps.indexOf(target);
+
+        if (validateSkipped && from >= 0 && to > from) {
+            for (let i = from; i < to; i++) {
+                const skippedFields = [...document.getElementById(`form-step-${steps[i]}`).querySelectorAll('input, select, textarea')];
+                if (reportFirstInvalid(skippedFields)) {
+                    return;
+                }
+            }
+        }
+
+        currentStep = target;
+        updateProgress();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function nextStep() {
         const steps = stepsFor(checkedType());
         const position = steps.indexOf(currentStep);
@@ -435,13 +457,6 @@
         if (position > 0) {
             goToStep(steps[position - 1]);
         }
-    }
-
-    function goToStep(step) {
-        const steps = stepsFor(checkedType());
-        currentStep = steps.includes(step) ? step : steps[0];
-        updateProgress();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // Show only what applies to the chosen patient type. Fields that are hidden are also disabled,

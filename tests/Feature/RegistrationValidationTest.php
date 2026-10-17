@@ -154,6 +154,24 @@ class RegistrationValidationTest extends TestCase
             ->assertSessionDoesntHaveErrors('philhealth_number');
     }
 
+    // --- Sidebar step jumps cannot skip a step ----------------------------------------------
+
+    public function test_sidebar_step_links_validate_the_steps_they_skip(): void
+    {
+        $page = $this->actingAs($this->adminUser)->get('/register')->assertOk()->getContent();
+
+        // Every sidebar step number jumps with validation on...
+        $this->assertStringContainsString('onclick="goToStep(1, true)"', $page);
+        $this->assertStringContainsString('onclick="goToStep(5, true)"', $page);
+
+        // ...and goToStep itself checks the skipped steps before moving forward.
+        $this->assertStringContainsString('function goToStep(step, validateSkipped = false)', $page);
+        $this->assertStringContainsString('if (validateSkipped && from >= 0 && to > from)', $page);
+
+        // Going back stays free: the Previous button and reportFirstInvalid pass no flag.
+        $this->assertStringContainsString('goToStep(steps[position - 1]);', $page);
+    }
+
     // --- Edit Patient uses the same rules ---------------------------------------------------
 
     public function test_editing_a_patient_cannot_store_an_implausible_phone(): void
