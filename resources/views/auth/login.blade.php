@@ -121,11 +121,10 @@
                   <path d="M 480,260 L 485,270 L 495,272 L 487,279 L 490,289 L 480,282 L 470,289 L 473,279 L 465,272 L 475,270 Z" fill="#fbbf24" opacity="0.9" transform="scale(0.4) translate(680, 220)"/>
                 </svg>
             </div>
-            {{-- <div class="flex justify-center items-center gap-4 mb-4 select-none">
-                <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo" class="w-16 h-16 object-contain rounded-full shadow-md bg-white border border-outline-variant/30">
-                <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo" class="w-16 h-16 object-contain rounded-full shadow-md bg-white border border-outline-variant/30">
+            <div class="mb-md flex justify-center items-center gap-3 select-none">
+                <img src="{{ asset('icons/icon-192.png') }}" alt="" class="w-10 h-10 rounded-xl shadow-sm">
+                <span class="font-label-md text-label-md text-on-surface-variant">Barangay Bicao Health Station</span>
             </div>
-            --}}
             <h1 class="font-headline-lg text-headline-lg text-primary mb-sm">Maternal Health Hub</h1>
             <p class="font-body-lg text-body-lg text-on-surface-variant">Dedicated to the well-being of mothers and children in our community with professional, modern care.</p>
             <div class="mt-xl flex flex-wrap justify-center gap-sm">
@@ -142,12 +141,10 @@
     </div>
 
     <div class="flex flex-col justify-center p-md md:p-xl lg:px-xl">
-        <div class="mb-lg lg:hidden flex flex-col items-center">
-            <div class="flex items-center gap-3 mb-3 select-none">
-                <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo" class="w-12 h-12 object-contain rounded-full shadow-md bg-white border border-outline-variant/30">
-                <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo" class="w-12 h-12 object-contain rounded-full shadow-md bg-white border border-outline-variant/30">
-            </div>
+        <div class="mb-lg lg:hidden flex flex-col items-center text-center">
+            <img src="{{ asset('icons/icon-192.png') }}" alt="Maternal Health Hub" class="w-14 h-14 rounded-2xl soft-medical-shadow mb-sm select-none">
             <h2 class="font-headline-md text-headline-md text-primary">Maternal Health Hub</h2>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Barangay Bicao Health Station</p>
         </div>
         <div class="max-w-md w-full mx-auto">
             <header class="mb-xl text-left">

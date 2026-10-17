@@ -33,14 +33,6 @@
 </head>
 <body class="bg-background min-h-screen flex items-center justify-center p-margin-mobile md:p-gutter">
 
-{{-- Background Watermark Overlay --}}
-<div class="fixed inset-0 flex items-center justify-center pointer-events-none opacity-[0.06] -z-20 select-none p-6">
-    <div class="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-32">
-        <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo Watermark" class="w-[45vw] h-[45vw] md:w-[35vw] md:h-[35vw] max-w-[220px] max-h-[220px] md:max-w-[500px] md:max-h-[500px] aspect-square object-cover rounded-full grayscale">
-        <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo Watermark" class="w-[45vw] h-[45vw] md:w-[35vw] md:h-[35vw] max-w-[220px] max-h-[220px] md:max-w-[500px] md:max-h-[500px] aspect-square object-cover rounded-full grayscale">
-    </div>
-</div>
-
     @yield('content')
 
     <div class="fixed top-20 left-20 w-32 h-32 bg-primary/5 rounded-full blur-3xl -z-10 animate-float" style="animation-duration: 8s"></div>

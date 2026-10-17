@@ -46,15 +46,6 @@
 </head>
 <body class="bg-background text-on-surface {{ request()->routeIs('messaging') ? 'overflow-hidden h-screen h-dvh' : '' }}">
 
-{{-- Background Watermark Overlay --}}
-{{--
-    <div class="no-print fixed inset-0 flex items-center justify-center pointer-events-none opacity-[0.08] z-0 select-none p-6">
-        <div class="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-32">
-            <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo Watermark" class="w-[45vw] h-[45vw] md:w-[35vw] md:h-[35vw] max-w-[220px] max-h-[220px] md:max-w-[500px] md:max-h-[500px] aspect-square object-cover rounded-full grayscale">
-            <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo Watermark" class="w-[45vw] h-[45vw] md:w-[35vw] md:h-[35vw] max-w-[220px] max-h-[220px] md:max-w-[500px] md:max-h-[500px] aspect-square object-cover rounded-full grayscale">
-        </div>
-    </div>
---}}    
 @php
     $user = auth()->user();
     $allNavItems = [
@@ -80,10 +71,6 @@
 <aside class="h-screen w-64 fixed left-0 top-0 bg-surface-container-low shadow-xs flex flex-col py-md px-sm z-50 transition-transform duration-300 -translate-x-full lg:translate-x-0" id="sidebar">
     <div class="flex items-center justify-between mb-lg px-sm">
         <div>
-            {{-- <div class="flex items-center gap-3 mb-3 select-none">
-                <img src="{{ asset('images/bayan_ng_carmen.jpg') }}" alt="Bayan ng Carmen Logo" class="w-10 h-10 object-contain rounded-full shadow-xs bg-white border border-outline-variant/20">
-                <img src="{{ asset('images/DOH.jpg') }}" alt="DOH Logo" class="w-10 h-10 object-contain rounded-full shadow-xs bg-white border border-outline-variant/20">
-            </div> --}}
             <h1 class="font-headline-sm text-headline-sm font-bold text-primary leading-tight">Maternal Health Hub</h1>
             <p class="text-label-sm font-label-md text-on-surface-variant">Maternal &amp; Child Care</p>
         </div>
