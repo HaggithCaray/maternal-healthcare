@@ -26,7 +26,7 @@ This system provides maternal and child health tracking for the Barangay Bicao H
 | **Realtime Integration** | High | Native WebSockets utilizing Laravel Reverb for real-time messaging between midwives and registered patients. |
 | **SMS Gateway Integration** | Solid | Integrates directly with Capcom6 Android SMS Gateway, supporting GSM-7 character/segment calculation and live gateway health testing. |
 | **Audit Compliance** | Compliant | Comprehensive `audit_logs` tracking user actions, IP addresses, user agents, and clinical record events. |
-| **Automated Test Coverage** | 100% Pass | 269 feature and unit tests passing with 1,196 assertions, covering security hardening, clinical assessment rules, offline sync, postpartum care, CSV exports, SMS reminders, backups and patient archive/delete. |
+| **Automated Test Coverage** | 100% Pass | 274 feature and unit tests passing with 1,226 assertions, covering security hardening, clinical assessment rules, offline sync, postpartum care, CSV exports, SMS reminders, backups, scheduler catch-up and patient archive/delete. |
 
 ---
 
@@ -59,7 +59,7 @@ graph TD
     A[Phase 1: Security & Auth Remediation] --> B[Phase 2: Controller & Route Refactoring]
     B --> C[Phase 3: Robust PWA & Offline Sync Engine]
     C --> D[Phase 4: PHI Audit Logging & Hardening]
-    D --> E[Phase 5: Full Test Suite Verification - 269/269 Passing]
+    D --> E[Phase 5: Full Test Suite Verification - 274/274 Passing]
 ```
 
 ### Phase 1: Security Remediation (P0) — [COMPLETED]
@@ -100,7 +100,7 @@ graph TD
   - Integrated audit logs across patient registration, record viewing, updates, checkup creation, growth logging, vaccine updates, and SMS dispatches.
 
 ### Phase 5: Verification & Quality Assurance — [COMPLETED]
-- [x] Full automated test suite passes: **269 tests, 1,196 assertions** (47 tests, 227 assertions at the time of the refactoring).
+- [x] Full automated test suite passes: **274 tests, 1,226 assertions** (47 tests, 227 assertions at the time of the refactoring).
 
 ---
 

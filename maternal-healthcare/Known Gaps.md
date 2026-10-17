@@ -1,6 +1,6 @@
 # Known Gaps
 
-> Audit of what the system still lacks (as of the 269-test suite).
+> Audit of what the system still lacks (as of the 274-test suite).
 > See also [[Senior Review - Pros Cons and Roadmap]] for what was already fixed.
 
 ## Functional gaps
@@ -19,7 +19,7 @@
 
 | # | Gap | Notes |
 |---|-----|-------|
-| 8 | No CI | 269 tests, no `.github/workflows` |
+| 8 | No CI | 274 tests, no `.github/workflows` |
 | 9 | No production deployment story | XAMPP + artisan serve only; no supervisor/nginx/HTTPS doc |
 | 10 | Only `UserFactory` | No factories for Patient/Child/Maternal models |
 | ~~11~~ | ~~Doc drift~~ | **Resolved** — vault synced with the postpartum/export/reminder/backup work: test counts (252 / 1,129), new services, routes, schema and the backup/scheduler setup |

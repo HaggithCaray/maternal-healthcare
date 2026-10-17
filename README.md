@@ -168,8 +168,8 @@ runs it by itself on Windows. Two jobs rely on it:
 
 | Command | Runs | What it does |
 | --- | --- | --- |
-| `reminders:send` | daily, 8:00 AM | texts mothers about vaccine doses and prenatal/postpartum visits that are due. Nothing is sent until **Automated reminders** is ticked on the SMS page. |
-| `backup:run` | daily, 2:00 AM | one `backup-<date time>.zip` in `storage/app/backups` (database dump, `storage/app` with attachments and SMS settings, and `.env`). Backups older than 30 days are deleted. |
+| `reminders:send` | once a day, at the first check after 8:00 AM | texts mothers about vaccine doses and prenatal/postpartum visits that are due. Nothing is sent until **Automated reminders** is ticked on the SMS page. |
+| `backup:run` | once a day, at the first check after 2:00 AM | one `backup-<date time>.zip` in `storage/app/backups` (database dump, `storage/app` with attachments and SMS settings, and `.env`). Backups older than 30 days are deleted. |
 
 Either keep a console running:
 
@@ -192,6 +192,13 @@ or, so it also runs after a reboot, let Windows Task Scheduler wake it every min
 `schedule:run` executes whatever is due that minute and exits, so a task every minute is the
 normal way to drive Laravel's scheduler without cron.
 
+Both jobs are *checked* every 15 minutes rather than pinned to one exact minute, because a
+clinic PC is regularly asleep or switched off at 2:00 AM and 8:00 AM — and a missed minute
+would otherwise be missed for the whole day. Each job instead runs once, at the first
+opportunity after its time: reminders from 8:00 AM (a once-a-day marker stops a second run
+that day), backups from 2:00 AM (a backup already written that day stops it). When the PC is
+on all night, they run at the intended times as before.
+
 **Fast path (one command instead of the dialog)** — run in an *elevated* prompt, replacing the
 artisan path with yours:
 
@@ -201,6 +208,10 @@ schtasks /create /tn "Maternal Health Hub scheduler" /tr "C:\xampp\php\php.exe C
 
 Notes:
 - The task runs as **SYSTEM**, so it fires even when nobody is logged in.
+- The scheduler itself only needs PHP, but with the default setup Laravel keeps its
+  scheduler state in the database cache — if MySQL is not running, every run fails with
+  `Last Result: 1` and a `No connection could be made` line in `storage/logs/laravel.log`.
+  Start XAMPP's MySQL first.
 - Force a run with `schtasks /run /tn "Maternal Health Hub scheduler"`; check
   `schtasks /query /tn "Maternal Health Hub scheduler" /fo list /v` — `Last Result: 0` means
   it executed cleanly. A task created this way can only be inspected from an elevated prompt

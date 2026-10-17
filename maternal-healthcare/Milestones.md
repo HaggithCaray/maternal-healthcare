@@ -69,7 +69,7 @@ The project is now split into two repos:
   - `ReportController`
 - [x] Validation inside each controller action; registration, Edit Patient and offline sync share `PatientRegistration::rules()` (the Form Request classes created during the refactor were never wired in and have been removed)
 - [x] Refactored [routes/web.php](file:///c:/maternal-health-care/routes/web.php) to bind directly to domain controllers
-- [x] Comprehensive test suite expanded and 100% passing (47 tests at the time; 269 tests, 1,196 assertions today)
+- [x] Comprehensive test suite expanded and 100% passing (47 tests at the time; 274 tests, 1,226 assertions today)
 
 ## Milestone: Postpartum, Exports, Reminders & Backups
 - [x] Postpartum care tracking: `delivery_date` on maternal records (auto-filled from the linked child's birth date), `postpartum_visits` table, DOH schedule 48h / 1w / 2w / 6w, High Risk escalation, offline sync support

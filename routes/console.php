@@ -5,6 +5,7 @@ use App\Models\MaternalCheckup;
 use App\Services\ReminderService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
 
@@ -106,6 +107,12 @@ Artisan::command('app:go-live-check', function () {
 Artisan::command('reminders:send', function (ReminderService $reminders) {
     $result = $reminders->run();
 
+    // The day's run has happened whatever the outcome — sent, already sent earlier, an
+    // empty queue or reminders switched off. The schedule guard reads this marker, so one
+    // day texts once and the log carries one line, not one per check. A crash before this
+    // line leaves the marker unset and the next quarter-hour simply retries.
+    Cache::put('reminders-run:' . now()->toDateString(), true, now()->addDay());
+
     if (! $result['enabled']) {
         $this->info('Automated reminders are turned off in the SMS settings — nothing sent.');
 
@@ -119,8 +126,14 @@ Artisan::command('reminders:send', function (ReminderService $reminders) {
 
 // Nothing runs by itself until something calls schedule:run every minute —
 // cron on Linux, Task Scheduler on this Windows server (see README for the command).
+//
+// The clinic PC is regularly asleep or switched off at 08:00 and 02:00, and Laravel's
+// dailyAt() has no catch-up: the minute that was missed is missed for the whole day.
+// So each job is checked every quarter hour and runs once at the first opportunity
+// after its intended time, guarded so a day can never run it twice.
 Schedule::command('reminders:send')
-    ->dailyAt('08:00')
+    ->everyFifteenMinutes()
+    ->when(fn () => now()->hour >= 8 && ! Cache::has('reminders-run:' . now()->toDateString()))
     ->timezone('Asia/Manila')
     ->withoutOverlapping();
 
@@ -138,7 +151,19 @@ Artisan::command('backup:run', function (\App\Services\BackupService $backup) {
     return 0;
 })->purpose('Write one zip (database, storage, .env) to storage/app/backups and prune older ones');
 
+// The same catch-up idea as the reminders above, from 02:00 — and the day's own backup
+// zip is the "already ran" marker, so no second piece of state is needed.
 Schedule::command('backup:run')
-    ->dailyAt('02:00')
+    ->everyFifteenMinutes()
+    ->when(function () {
+        if (now()->hour < 2) {
+            return false;
+        }
+
+        $today = glob(storage_path('app/backups') . DIRECTORY_SEPARATOR
+            . 'backup-' . now()->format('Y-m-d') . '_*.zip');
+
+        return $today === [];
+    })
     ->timezone('Asia/Manila')
     ->withoutOverlapping();
