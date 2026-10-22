@@ -22,6 +22,7 @@ class GoLiveTest extends TestCase
             'broadcasting.default' => 'reverb',
             'broadcasting.connections.reverb.key' => 'a1b2c3d4e5',
             'broadcasting.connections.reverb.secret' => 'f6a7b8c9d0e1',
+            'backup.password' => 'a-long-backup-password',
         ], $overrides));
     }
 

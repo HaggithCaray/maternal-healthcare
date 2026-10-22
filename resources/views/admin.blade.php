@@ -5,6 +5,22 @@
 @section('content')
 @include('partials.flash')
 
+@unless($backupCurrent)
+<div class="p-md mb-lg bg-error/10 text-error rounded-xl border border-error/20 flex items-start gap-sm" role="alert">
+    <span class="material-symbols-outlined">backup</span>
+    <div>
+        <p class="font-label-md text-label-md">
+            @if($latestBackup)
+            No backup in {{ $latestBackup['at']->diffForHumans(null, true) }}: the last one was {{ $latestBackup['at']->format('M d, Y g:i A') }}.
+            @else
+            No backup has been made yet.
+            @endif
+        </p>
+        <p class="text-body-sm mt-xs">Backups run every day once the scheduled task is set up and MySQL is running. Check that MySQL is started in the XAMPP Control Panel, then run <code>php artisan backup:run</code>.</p>
+    </div>
+</div>
+@endunless
+
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-md mb-lg">
     <div>
         <h3 class="font-headline-lg text-headline-lg text-primary">Admin</h3>

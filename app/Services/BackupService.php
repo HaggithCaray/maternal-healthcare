@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -9,6 +10,9 @@ use Illuminate\Support\Facades\Log;
  * One dated .zip in storage/app/backups with everything needed to rebuild the system:
  * a gzipped database dump, the private storage (chat attachments and the encrypted SMS
  * gateway settings) and the .env. Backups older than 30 days are pruned after each run.
+ *
+ * With BACKUP_PASSWORD set, every file in the zip is AES-256 encrypted; with
+ * BACKUP_COPY_PATH set, each zip is also copied there (see config/backup.php).
  *
  * On MySQL the dump comes from mysqldump — set MYSQLDUMP_BINARY in .env when it is not
  * on PATH (with XAMPP: C:\xampp\mysql\bin\mysqldump.exe). SQLite databases are written
@@ -28,7 +32,7 @@ class BackupService
      */
     public function run(): string
     {
-        $dir = storage_path('app/backups');
+        $dir = $this->directory();
 
         if (! is_dir($dir) && ! @mkdir($dir, 0755, true) && ! is_dir($dir)) {
             throw new \RuntimeException("The backup folder {$dir} does not exist and could not be created.");
@@ -54,6 +58,7 @@ class BackupService
             }
 
             $this->addStorageFiles($zip);
+            $this->encrypt($zip);
 
             if (! $zip->close()) {
                 throw new \RuntimeException("Could not finish writing {$zipPath}.");
@@ -67,9 +72,103 @@ class BackupService
         $pruned = $this->prune($dir);
 
         Log::info('Backup written: ' . basename($zipPath)
-            . ($pruned > 0 ? " (pruned {$pruned} older than " . self::RETENTION_DAYS . ' days)' : ''));
+            . ($pruned > 0 ? " (pruned {$pruned} older than " . self::RETENTION_DAYS . ' days)' : '')
+            . ($this->isEncrypted() ? '' : ' WITHOUT a password: set BACKUP_PASSWORD in .env'));
+
+        $this->copyElsewhere($zipPath);
 
         return $zipPath;
+    }
+
+    /**
+     * The folder the zips are written to (config backup.path), without a trailing slash.
+     */
+    public function directory(): string
+    {
+        return rtrim(str_replace('/', DIRECTORY_SEPARATOR, (string) config('backup.path')), '\/');
+    }
+
+    public function isEncrypted(): bool
+    {
+        return filled(config('backup.password'));
+    }
+
+    /**
+     * The newest backup on this PC, or null when there is none.
+     *
+     * @return array{name: string, path: string, at: Carbon}|null
+     */
+    public function latest(): ?array
+    {
+        // Names are backup-Y-m-d_His.zip, so sorting by name sorts by time.
+        $newest = collect(glob($this->directory() . DIRECTORY_SEPARATOR . 'backup-*.zip') ?: [])
+            ->sortBy(fn (string $file) => basename($file))
+            ->last();
+
+        return $newest === null ? null : [
+            'name' => basename($newest),
+            'path' => $newest,
+            'at' => Carbon::createFromTimestamp((int) @filemtime($newest)),
+        ];
+    }
+
+    /**
+     * Whether a backup was written within the last two days (the scheduler runs daily).
+     */
+    public function isCurrent(): bool
+    {
+        $latest = $this->latest();
+
+        return $latest !== null && $latest['at']->greaterThanOrEqualTo(now()->subDays(2));
+    }
+
+    /**
+     * AES-256 every entry when a backup password is configured.
+     *
+     * @throws \RuntimeException when this PHP's zip extension cannot encrypt
+     */
+    protected function encrypt(\ZipArchive $zip): void
+    {
+        if (! $this->isEncrypted()) {
+            return;
+        }
+
+        if (! \ZipArchive::isEncryptionMethodSupported(\ZipArchive::EM_AES_256)) {
+            throw new \RuntimeException('BACKUP_PASSWORD is set but this PHP zip extension cannot encrypt with AES-256.');
+        }
+
+        $zip->setPassword((string) config('backup.password'));
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            if (! str_ends_with((string) $zip->getNameIndex($i), '/')
+                && ! $zip->setEncryptionIndex($i, \ZipArchive::EM_AES_256)) {
+                throw new \RuntimeException('Could not encrypt ' . $zip->getNameIndex($i) . ' in the backup.');
+            }
+        }
+    }
+
+    /**
+     * Copy the zip to BACKUP_COPY_PATH (a USB drive, a synced cloud folder) and prune old
+     * copies there too. A failed copy is logged, not fatal: the local backup is still good.
+     */
+    protected function copyElsewhere(string $zipPath): void
+    {
+        $target = trim((string) config('backup.copy_to'));
+        if ($target === '') {
+            return;
+        }
+
+        $target = rtrim($target, '\/');
+
+        if ((! is_dir($target) && ! @mkdir($target, 0755, true) && ! is_dir($target))
+            || ! @copy($zipPath, $target . DIRECTORY_SEPARATOR . basename($zipPath))) {
+            Log::error("Backup written, but copying it to {$target} failed. Check that the drive or folder is available.");
+
+            return;
+        }
+
+        $this->prune($target);
+        Log::info('Backup copied to ' . $target);
     }
 
     /**
@@ -240,7 +339,9 @@ class BackupService
             return;
         }
 
-        $backups = $root . DIRECTORY_SEPARATOR . 'backups';
+        // The configured folder, and the default one in case BACKUP_PATH moved it: a backup
+        // never carries other backups.
+        $excluded = array_unique([$this->directory(), $root . DIRECTORY_SEPARATOR . 'backups']);
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
@@ -249,7 +350,12 @@ class BackupService
         foreach ($iterator as $item) {
             $path = $item->getPathname();
 
-            if ($path === $backups || str_starts_with($path, $backups . DIRECTORY_SEPARATOR)) {
+            $normalised = str_replace('/', DIRECTORY_SEPARATOR, $path);
+            $skip = false;
+            foreach ($excluded as $dir) {
+                $skip = $skip || $normalised === $dir || str_starts_with($normalised, $dir . DIRECTORY_SEPARATOR);
+            }
+            if ($skip) {
                 continue;
             }
 

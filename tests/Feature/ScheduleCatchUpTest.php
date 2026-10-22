@@ -118,7 +118,7 @@ class ScheduleCatchUpTest extends TestCase
     public function test_the_backup_guard_stops_once_todays_backup_exists(): void
     {
         // Registered before writing the file, so it is cleaned up even if an assertion fails.
-        $zip = storage_path('app/backups/backup-2026-10-17_020500.zip');
+        $zip = config('backup.path') . DIRECTORY_SEPARATOR . 'backup-2026-10-17_020500.zip';
         $this->createdZips[] = $zip;
         File::ensureDirectoryExists(dirname($zip));
         File::put($zip, 'dummy');

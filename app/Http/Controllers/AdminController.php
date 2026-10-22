@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Patient;
 use App\Models\User;
+use App\Services\BackupService;
 use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class AdminController extends Controller
     /**
      * User list with search and filters, plus recent activity.
      */
-    public function index(Request $request, SmsService $smsService)
+    public function index(Request $request, SmsService $smsService, BackupService $backups)
     {
         $search = trim((string) $request->query('search', ''));
         $role = $request->query('role', 'all');
@@ -53,11 +54,15 @@ class AdminController extends Controller
             'Real-time chat' => config('broadcasting.default') === 'reverb' ? 'Reverb' : 'Off (' . config('broadcasting.default') . ')',
             'SMS gateway' => $smsService->getSettings()['url'] ? 'Configured' : 'Not configured',
             'Patients on record' => number_format(Patient::count()),
+            'Last backup' => ($latestBackup = $backups->latest()) ? $latestBackup['at']->format('M d, Y g:i A') : 'None yet',
+            'Backups protected' => $backups->isEncrypted() ? 'Yes (password)' : 'No password set',
         ];
 
         AuditLog::log('view_admin_panel');
 
-        return view('admin', compact('users', 'counts', 'recentActivity', 'system', 'search', 'role', 'status'));
+        $backupCurrent = $backups->isCurrent();
+
+        return view('admin', compact('users', 'counts', 'recentActivity', 'system', 'search', 'role', 'status', 'latestBackup', 'backupCurrent'));
     }
 
     public function create()

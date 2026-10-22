@@ -148,7 +148,7 @@ class BackupTest extends TestCase
     public function test_the_backup_command_writes_a_zip(): void
     {
         // Registered before asserting, so it is cleaned up even if the assertions fail.
-        $zip = storage_path('app/backups/backup-2026-08-20_020000.zip');
+        $zip = config('backup.path') . DIRECTORY_SEPARATOR . 'backup-2026-08-20_020000.zip';
         $this->createdZips[] = $zip;
 
         $this->artisan('backup:run')
@@ -172,6 +172,83 @@ class BackupTest extends TestCase
         } finally {
             config(['database.default' => $original]);
         }
+    }
+
+    public function test_with_a_password_every_file_in_the_backup_is_encrypted(): void
+    {
+        config(['backup.password' => 'correct horse battery']);
+        $this->mother();
+
+        $path = $this->backup();
+
+        // Nothing readable in the raw file, and nothing readable without the password.
+        $this->assertStringNotContainsString('attachment contents', file_get_contents($path));
+        $zip = $this->openZip($path);
+        $this->assertFalse($zip->getFromName('storage/app/backup-probe/marker.txt'));
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            if (! str_ends_with($zip->getNameIndex($i), '/')) {
+                $this->assertSame(\ZipArchive::EM_AES_256, $zip->statIndex($i)['encryption_method'], $zip->getNameIndex($i));
+            }
+        }
+        $zip->close();
+
+        $zip = $this->openZip($path);
+        $zip->setPassword('correct horse battery');
+        $this->assertSame('attachment contents', $zip->getFromName('storage/app/backup-probe/marker.txt'));
+        $this->assertStringContainsString('Backupme', (string) gzdecode($zip->getFromName('database.sql.gz')));
+        $zip->close();
+    }
+
+    public function test_each_backup_is_copied_to_the_second_folder(): void
+    {
+        $copyDir = storage_path('app/backup-probe/usb');
+        config(['backup.copy_to' => $copyDir]);
+
+        $path = $this->backup();
+
+        $this->assertFileExists($copyDir . DIRECTORY_SEPARATOR . basename($path));
+        $this->assertFileEquals($path, $copyDir . DIRECTORY_SEPARATOR . basename($path));
+    }
+
+    public function test_a_missing_copy_folder_does_not_fail_the_backup(): void
+    {
+        // A drive letter that is not plugged in.
+        config(['backup.copy_to' => 'Q:\\no-such-drive\\backups']);
+
+        $this->assertFileExists($this->backup());
+    }
+
+    public function test_latest_backup_and_whether_it_is_current(): void
+    {
+        $service = app(BackupService::class);
+        $this->assertNull($service->latest());
+        $this->assertFalse($service->isCurrent());
+
+        $path = $this->backup();
+        $this->assertSame(basename($path), $service->latest()['name']);
+        $this->assertTrue($service->isCurrent());
+
+        touch($path, Carbon::now()->subDays(3)->getTimestamp());
+        $this->assertFalse($service->isCurrent());
+    }
+
+    public function test_the_admin_page_warns_when_backups_have_stopped(): void
+    {
+        $admin = \App\Models\User::create(['name' => 'Rosa', 'email' => 'rosa@health.test', 'password' => \Illuminate\Support\Facades\Hash::make('secret123'), 'role' => 'admin']);
+
+        $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('No backup has been made yet.');
+
+        $path = $this->backup();
+        $this->actingAs($admin)->get('/admin')->assertOk()->assertDontSee('No backup');
+
+        touch($path, Carbon::now()->subDays(8)->getTimestamp());
+        $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('No backup in 1 week');
+    }
+
+    public function test_go_live_check_requires_a_backup_password(): void
+    {
+        config(['backup.password' => null]);
+        $this->artisan('app:go-live-check')->expectsOutputToContain('Set BACKUP_PASSWORD');
     }
 
     public function test_go_live_check_warns_when_backups_are_missing(): void

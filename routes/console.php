@@ -53,14 +53,8 @@ Artisan::command('app:go-live-check', function () {
         ->pluck('email');
 
     // Newest backup, to warn while the scheduler job is not set up yet or has stopped running.
-    // File names are backup-Y-m-d_His.zip, so sorting them by name sorts them by time.
-    $latestBackup = is_dir(storage_path('app/backups'))
-        ? collect(glob(storage_path('app/backups') . DIRECTORY_SEPARATOR . 'backup-*.zip') ?: [])
-            ->sortBy(fn (string $file) => basename($file))
-            ->last()
-        : null;
-    $backupFresh = $latestBackup !== null
-        && @filemtime($latestBackup) >= now()->subDays(2)->getTimestamp();
+    $backups = app(\App\Services\BackupService::class);
+    $latestBackup = $backups->latest();
 
     // [check, ok?, fail (blocks real use) or warn, how to fix]
     $checks = [
@@ -76,9 +70,13 @@ Artisan::command('app:go-live-check', function () {
         ['Session data encrypted', (bool) config('session.encrypt'), 'warn', 'Set SESSION_ENCRYPT=true (everyone signs in again once).'],
         ['Log level is not debug', config('logging.channels.' . config('logging.default') . '.level', config('logging.channels.single.level')) !== 'debug', 'warn', 'Set LOG_LEVEL=warning.'],
         ['Configuration is cached', app()->configurationIsCached(), 'warn', 'Run php artisan config:cache after every .env change (php artisan config:clear to undo).'],
-        ['Backups are current', $backupFresh, 'warn',
-            'Run php artisan backup:run and set up the daily schedule (README, "Scheduled jobs"). Newest found: '
-                . ($latestBackup !== null ? basename($latestBackup) : 'none yet') . '.'],
+        ['Backups are password-protected', $backups->isEncrypted(), 'fail',
+            'Set BACKUP_PASSWORD in .env: each backup holds every patient record and the app key. Keep the password safe off this PC.'],
+        ['Backups are current', $backups->isCurrent(), 'warn',
+            'Run php artisan backup:run and check the daily schedule and that MySQL is running (README, "Scheduled jobs"). Newest found: '
+                . ($latestBackup['name'] ?? 'none yet') . '.'],
+        ['Backups are copied off this PC', filled(config('backup.copy_to')), 'warn',
+            'Set BACKUP_COPY_PATH to a USB drive or synced folder, so a failed disk does not take the backups with it.'],
     ];
 
     $failures = 0;
@@ -160,7 +158,7 @@ Schedule::command('backup:run')
             return false;
         }
 
-        $today = glob(storage_path('app/backups') . DIRECTORY_SEPARATOR
+        $today = glob(app(\App\Services\BackupService::class)->directory() . DIRECTORY_SEPARATOR
             . 'backup-' . now()->format('Y-m-d') . '_*.zip');
 
         return $today === [];
