@@ -326,4 +326,92 @@ class RemindersTest extends TestCase
         $row = \App\Models\SmsMessage::first();
         $this->assertStringContainsString('postpartum checkup was due', $row->message);
     }
+
+    // --- who is never texted ---------------------------------------------------------
+
+    public function test_archived_patients_are_never_texted(): void
+    {
+        Http::fake(['*' => Http::response([], 202)]);
+        $this->setReminders(true);
+
+        [$mother, $record, $child, $childRecord] = $this->family();
+        $this->doseFor($childRecord, Carbon::tomorrow());
+        MaternalCheckup::create([
+            'maternal_record_id' => $record->id, 'visit_number' => 1, 'date' => Carbon::today()->subDays(28)->toDateString(),
+            'weight_kg' => 63, 'bp' => '118/76', 'next_visit_date' => Carbon::tomorrow()->toDateString(),
+        ]);
+        $mother->update(['status' => 'Archived']);
+        $child->update(['status' => 'Archived']);
+
+        $this->artisan('reminders:send')->assertExitCode(0);
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('sms_messages', 0);
+    }
+
+    public function test_an_archived_childs_mother_is_not_texted_about_its_vaccines(): void
+    {
+        Http::fake(['*' => Http::response([], 202)]);
+        $this->setReminders(true);
+
+        [, , $child, $childRecord] = $this->family();
+        $this->doseFor($childRecord, Carbon::tomorrow());
+        $child->update(['status' => 'Archived']);
+
+        $this->artisan('reminders:send')->assertExitCode(0);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_a_mother_who_has_delivered_gets_no_prenatal_reminder(): void
+    {
+        Http::fake(['*' => Http::response([], 202)]);
+        $this->setReminders(true);
+
+        [, $record] = $this->family();
+        MaternalCheckup::create([
+            'maternal_record_id' => $record->id, 'visit_number' => 1, 'date' => Carbon::today()->subDays(40)->toDateString(),
+            'weight_kg' => 63, 'bp' => '118/76', 'next_visit_date' => Carbon::today()->subDays(5)->toDateString(),
+        ]);
+        $record->update(['delivery_date' => Carbon::today()->subDays(3)->toDateString()]);
+
+        $this->artisan('reminders:send')->assertExitCode(0);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_a_visit_missed_long_ago_is_not_texted(): void
+    {
+        Http::fake(['*' => Http::response([], 202)]);
+        $this->setReminders(true);
+
+        [, $record] = $this->family();
+        MaternalCheckup::create([
+            'maternal_record_id' => $record->id, 'visit_number' => 1, 'date' => Carbon::today()->subDays(80)->toDateString(),
+            'weight_kg' => 63, 'bp' => '118/76',
+            'next_visit_date' => Carbon::today()->subDays(\App\Services\ReminderService::OVERDUE_WINDOW_DAYS + 1)->toDateString(),
+        ]);
+
+        $this->artisan('reminders:send')->assertExitCode(0);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_a_recently_missed_visit_is_still_texted(): void
+    {
+        Http::fake(['*' => Http::response([], 202)]);
+        $this->setReminders(true);
+
+        [, $record] = $this->family();
+        MaternalCheckup::create([
+            'maternal_record_id' => $record->id, 'visit_number' => 1, 'date' => Carbon::today()->subDays(40)->toDateString(),
+            'weight_kg' => 63, 'bp' => '118/76',
+            'next_visit_date' => Carbon::today()->subDays(\App\Services\ReminderService::OVERDUE_WINDOW_DAYS)->toDateString(),
+        ]);
+
+        $this->artisan('reminders:send')->assertExitCode(0);
+
+        Http::assertSentCount(1);
+        $this->assertStringContainsString('was due on', \App\Models\SmsMessage::sole()->message);
+    }
 }

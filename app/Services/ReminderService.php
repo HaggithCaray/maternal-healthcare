@@ -17,10 +17,15 @@ use Illuminate\Support\Facades\Log;
  * postpartum:{id}) so a run never messages twice about the same thing — a key whose message
  * already went out as "Sent" is skipped, while a failed one is retried on the next run.
  *
- * Nothing sends unless the admin turned reminders on in the SMS settings.
+ * Nothing sends unless the admin turned reminders on in the SMS settings. Archived patients
+ * are never texted, a mother who has delivered gets no prenatal reminders, and a visit missed
+ * longer ago than OVERDUE_WINDOW_DAYS is left to the staff rather than texted out of the blue.
  */
 class ReminderService
 {
+    /** A missed visit is reminded about only within this many days of its due date. */
+    public const OVERDUE_WINDOW_DAYS = 14;
+
     public function __construct(protected SmsService $sms) {}
 
     /**
@@ -105,6 +110,7 @@ class ReminderService
 
         $doses = Immunization::with(['childRecord.mother', 'childRecord.patient'])
             ->where('status', 'Scheduled')
+            ->whereHas('childRecord.patient', fn ($q) => $q->where('status', '!=', 'Archived'))
             ->whereDate('scheduled_date', '>=', $today)
             ->whereDate('scheduled_date', '<=', $today->copy()->addDays(2))
             ->orderBy('id')
@@ -143,6 +149,10 @@ class ReminderService
             ->whereIn('id', $this->latestPerRecord('maternal_checkups'))
             ->whereNotNull('next_visit_date')
             ->whereDate('next_visit_date', '<=', Carbon::tomorrow())
+            ->whereDate('next_visit_date', '>=', $this->overdueCutoff())
+            // Once she has delivered, prenatal visits are over; postpartum reminders take over.
+            ->whereHas('maternalRecord', fn ($q) => $q->whereNull('delivery_date'))
+            ->whereHas('maternalRecord.patient', fn ($q) => $q->where('status', '!=', 'Archived'))
             ->orderBy('id')
             ->lazy(500);
 
@@ -171,6 +181,8 @@ class ReminderService
             ->whereIn('id', $this->latestPerRecord('postpartum_visits'))
             ->whereNotNull('next_visit_date')
             ->whereDate('next_visit_date', '<=', Carbon::tomorrow())
+            ->whereDate('next_visit_date', '>=', $this->overdueCutoff())
+            ->whereHas('maternalRecord.patient', fn ($q) => $q->where('status', '!=', 'Archived'))
             ->orderBy('id')
             ->lazy(500);
 
@@ -188,6 +200,14 @@ class ReminderService
                 'message' => $this->visitMessage($mother->first_name, 'postpartum checkup', $visit->next_visit_date),
             ];
         }
+    }
+
+    /**
+     * The earliest missed next-visit date still worth a text (see OVERDUE_WINDOW_DAYS).
+     */
+    protected function overdueCutoff(): Carbon
+    {
+        return Carbon::today()->subDays(self::OVERDUE_WINDOW_DAYS);
     }
 
     /**
