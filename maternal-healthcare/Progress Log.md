@@ -2,6 +2,36 @@
 
 Dated entries of what changed in the project, what is verified, and what to do next. Newest first.
 
+## 2026-10-23 — Audit: reminders, backups, dependencies, uploads
+
+**Suite:** 309 tests / 1,361 assertions, all passing (was 288 / 1,271).
+
+### Found and fixed
+- **Backups had stopped Oct 16–23.** The scheduler task fired, but XAMPP's MySQL was down, so
+  every `schedule:run` failed. Confirmed when MySQL came back: a backup was written at 07:30.
+  The Admin page now shows the last backup and warns after two days.
+- **Reminders would have texted the wrong people** (switched off, none sent): archived patients,
+  mothers who had already delivered, and visits missed long ago (e.g. 2024). Now skipped; missed
+  visits are texted only within 14 days.
+- **Backups were plain zips** holding every record and `.env`. `BACKUP_PASSWORD` (AES-256) and
+  `BACKUP_COPY_PATH` (second copy) added; the go-live check requires the password.
+- **Dependencies:** Laravel 13.16 → 13.38, Symfony HTTP Foundation (unauthenticated ReDoS),
+  Guzzle; axios removed. `composer audit` and `npm audit` both clean.
+- **SMS gateway password** was in the SMS page source; now never sent to the page.
+- **Permanent delete** left the patient's chat attachment files on disk; now removed.
+- **Chat uploads over 2 MB failed**: PHP here allows only 2 MB (`upload_max_filesize`). The chat
+  now uses the real limit and says so; README and go-live check say how to raise it.
+- Smaller: chat pop-ups set as plain text, checkup notes capped at 5,000 characters, a growth
+  entry on a non-child record is refused, unused `/storage/{path}` routes turned off.
+
+### Still open
+- **Archived patients can still sign in** (decided deliberately 2026-10-15). A fix that blocks
+  sign-in and hides them from the staff chat list is parked in `git stash`, pending a decision.
+- **On the machine:** install MySQL as a Windows service; set `BACKUP_PASSWORD` and
+  `BACKUP_COPY_PATH`; raise PHP's upload limits (`upload_max_filesize=26M`,
+  `post_max_size=28M`) and restart; before real use, `APP_DEBUG=false` and real passwords
+  for the demo accounts.
+
 ## 2026-10-17 — Scheduled jobs catch up after sleep; scheduler fully diagnosed
 
 **Suite:** 274 tests / 1,226 assertions, all passing (was 269 / 1,196).

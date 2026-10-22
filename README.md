@@ -229,12 +229,20 @@ php artisan backup:run
   `C:\xampp\mysql\bin\mysqldump.exe`. For any other install, set it in `.env`
   (`MYSQLDUMP_BINARY=C:\path\to\mysqldump.exe`) and run `php artisan config:cache`.
 - The zip holds `database.sql.gz`, `.env` and everything under `storage/app` **except** the
-  backups folder itself. Copy the zips off this machine now and then — a backup on the same
-  disk only protects against mistakes, not a dead disk.
-- To restore: unzip, `gunzip database.sql.gz`, `mysql -u root healthcare_db < database.sql`,
-  then put `.env` and `storage/app` back.
+  backups folder itself: every patient record and the app key. Protect it:
+  - `BACKUP_PASSWORD=<long password>` in `.env` encrypts every file in the zip (AES-256). Open
+    the zips with **7-Zip**: Windows' built-in zip cannot read AES. Keep the password somewhere
+    safe away from this PC; without it the backups cannot be restored.
+  - `BACKUP_COPY_PATH=E:\backups` (a USB drive or a synced cloud folder) copies each zip there
+    too, so a dead disk does not take the backups with it. Copies are pruned after 30 days.
+- To restore: unzip (with the password), `gunzip database.sql.gz`,
+  `mysql -u root healthcare_db < database.sql`, then put `.env` and `storage/app` back.
+- **MySQL must be running** for the scheduler, so backups and reminders stop whenever XAMPP's
+  MySQL is down. Install it as a Windows service so it starts with Windows: XAMPP Control Panel
+  (as Administrator) → the ✖ next to MySQL → *Yes*.
 
-`php artisan app:go-live-check` warns when the newest backup is older than two days.
+The **Admin** page shows the last backup and turns red when none is less than two days old;
+`php artisan app:go-live-check` checks the same, and that backups have a password.
 
 ## Before using it with real patients
 
@@ -255,6 +263,8 @@ SESSION_ENCRYPT=true
 SESSION_SECURE_COOKIE=true   # only once the app is served over HTTPS
 REVERB_APP_KEY=<random>      # new key and secret, then npm run build
 REVERB_APP_SECRET=<random>
+BACKUP_PASSWORD=<long password, kept safe off this PC>
+BACKUP_COPY_PATH=<USB drive or synced folder>
 ```
 
 - Give the demo accounts (`health@example.com`, `patient@example.com`) real passwords from

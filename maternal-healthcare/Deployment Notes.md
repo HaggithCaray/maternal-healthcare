@@ -38,9 +38,13 @@ encrypted session cookies, log level, config cache). See the README section "Bef
   `php artisan schedule:list` shows what is due; `schedule:work` runs it in a console.
 - `backup:run` writes one dated zip to `storage/app/backups` holding the database dump,
   `storage/app` (encrypted SMS settings + chat attachments) and `.env`; backups older than
-  30 days are pruned. Copy the zips off the machine regularly — same-disk backups only
-  protect against mistakes. `php artisan app:go-live-check` warns when the newest is over
-  two days old.
+  30 days are pruned. `BACKUP_PASSWORD` AES-256 encrypts every file in the zip (open with
+  7-Zip; the go-live check requires it), and `BACKUP_COPY_PATH` copies each zip to a USB drive
+  or synced folder. The Admin page and `php artisan app:go-live-check` warn when the newest
+  backup is over two days old.
+- **MySQL must be running for the scheduler**: with XAMPP's MySQL down, every `schedule:run`
+  fails and neither job runs (no backups Oct 16–23, 2026 for this reason). Install MySQL as a
+  Windows service from the XAMPP Control Panel so it starts with Windows.
 - The MySQL dump uses `mysqldump`, autodetected from PATH and then the XAMPP location; set
   `MYSQLDUMP_BINARY` in .env for any other install.
 
