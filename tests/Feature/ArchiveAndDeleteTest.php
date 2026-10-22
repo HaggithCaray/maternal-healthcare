@@ -304,6 +304,34 @@ class ArchiveAndDeleteTest extends TestCase
         $this->assertDatabaseMissing('chat_messages', ['receiver_id' => $login->id]);
     }
 
+    public function test_delete_removes_the_patients_chat_attachment_files(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $login = User::create(['name' => 'Archibald Santos', 'email' => 'archibald@maternal.com', 'password' => Hash::make('secret123'), 'role' => 'user']);
+        $other = User::create(['name' => 'Bea Cruz', 'email' => 'bea@maternal.com', 'password' => Hash::make('secret123'), 'role' => 'user']);
+        $patient = $this->archivedPatient(['user_id' => $login->id]);
+
+        foreach ([
+            ['attachments/sent.pdf', $login->id, $this->admin->id, 'local'],
+            ['attachments/reply.jpg', $this->admin->id, $login->id, 'local'],
+            ['attachments/old-public.pdf', $login->id, $this->admin->id, 'public'],
+            ['attachments/someone-else.pdf', $other->id, $this->admin->id, 'local'],
+        ] as [$path, $from, $to, $disk]) {
+            \Illuminate\Support\Facades\Storage::disk($disk)->put($path, 'file contents');
+            ChatMessage::create(['sender_id' => $from, 'receiver_id' => $to, 'message' => null, 'is_read' => false,
+                'attachment_path' => $path, 'attachment_name' => basename($path), 'attachment_type' => 'application/pdf']);
+        }
+
+        $this->actingAs($this->admin)->delete("/patients/{$patient->id}");
+
+        \Illuminate\Support\Facades\Storage::disk('local')->assertMissing(['attachments/sent.pdf', 'attachments/reply.jpg']);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertMissing('attachments/old-public.pdf');
+        // Another patient's file stays.
+        \Illuminate\Support\Facades\Storage::disk('local')->assertExists('attachments/someone-else.pdf');
+        $this->assertSame(3, AuditLog::where('action', 'delete_patient')->sole()->details['deleted_attachments']);
+    }
+
     public function test_delete_writes_final_audit_entry(): void
     {
         $patient = $this->archivedPatient(['first_name' => 'Archibald', 'last_name' => 'Santos']);

@@ -18,6 +18,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -489,6 +490,11 @@ class PatientController extends Controller
             'deleted_login' => $ownsLogin ? $user->email : null,
         ];
 
+        // Attachment files are not rows: collect them now, delete them once the rows are gone.
+        $attachments = $ownsLogin
+            ? ChatMessage::thread($user->id)->whereNotNull('attachment_path')->pluck('attachment_path')->all()
+            : [];
+
         DB::transaction(function () use ($patient, $user, $ownsLogin) {
             // Deleting the login takes its chat history with it (FK cascade).
             if ($ownsLogin) {
@@ -500,8 +506,13 @@ class PatientController extends Controller
             $patient->delete();
         });
 
+        // Uploads made before attachments went private may still be on the public disk.
+        foreach (['local', 'public'] as $disk) {
+            Storage::disk($disk)->delete($attachments);
+        }
+
         // Written after the row is gone, so the trail of the deletion outlives it.
-        AuditLog::log('delete_patient', null, $snapshot);
+        AuditLog::log('delete_patient', null, $snapshot + ['deleted_attachments' => count($attachments)]);
 
         return redirect()->route('records')->with('success', "{$name} permanently deleted.");
     }
