@@ -41,7 +41,9 @@ message patients. Mothers get their own portal to follow their pregnancy and the
 
 - **XAMPP** — for MySQL (and phpMyAdmin)
 - **PHP 8.3 or newer** — check with `php -v`. In `php.ini`, make sure `extension=fileinfo`,
-  `extension=zip`, `extension=pdo_mysql` and `extension=mbstring` are enabled.
+  `extension=zip`, `extension=pdo_mysql` and `extension=mbstring` are enabled, and raise the upload
+  limits so chat attachments up to 25 MB arrive: `upload_max_filesize=26M`, `post_max_size=28M`
+  (XAMPP ships 2M / 8M, which turns away most phone photos).
 - **Composer**
 - **Node.js 20+** and npm
 - **Git**

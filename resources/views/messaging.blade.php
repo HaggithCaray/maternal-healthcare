@@ -356,12 +356,14 @@
         toast.className = `toast toast-${type}`;
         toast.innerHTML = `
             <span class="material-symbols-outlined toast-icon">${icons[type] || 'info'}</span>
-            <span>${message}</span>
+            <span data-toast-text></span>
             <button class="toast-close" onclick="this.closest('.toast').classList.replace('show','hide'); setTimeout(() => this.closest('.toast')?.remove(), 350);">
                 <span class="material-symbols-outlined" style="font-size: 0.875rem;">close</span>
             </button>
             <div class="toast-progress"><div class="toast-progress-bar"></div></div>
         `;
+        // Plain text: the message can come from the server.
+        toast.querySelector('[data-toast-text]').textContent = message;
         container.appendChild(toast);
         requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('show')));
         setTimeout(() => {
@@ -495,14 +497,16 @@
         clipBtn.addEventListener('click', () => fileInput.click());
     }
 
-    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+    // The smaller of the app's 25 MB cap and what PHP on this server accepts.
+    const MAX_FILE_SIZE = {{ $maxUploadBytes }};
+    const MAX_FILE_LABEL = '{{ round($maxUploadBytes / 1048576, 1) + 0 }} MB';
 
     if (fileInput && filePreviewContainer && filePreviewName) {
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 if (file.size > MAX_FILE_SIZE) {
-                    showToast('File is too large. Maximum allowed size is 20MB.', 'error');
+                    showToast(`File is too large. Maximum allowed size is ${MAX_FILE_LABEL}.`, 'error');
                     fileInput.value = '';
                     filePreviewContainer.classList.add('hidden');
                     return;
@@ -531,7 +535,7 @@
             if (!message && !hasFile) return;
 
             if (hasFile && fileInput.files[0].size > MAX_FILE_SIZE) {
-                showToast('File is too large. Maximum allowed size is 20MB.', 'error');
+                showToast(`File is too large. Maximum allowed size is ${MAX_FILE_LABEL}.`, 'error');
                 return;
             }
 

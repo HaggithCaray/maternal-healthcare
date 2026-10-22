@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\ChatMessage;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -49,7 +50,7 @@ class ChatController extends Controller
                 'message' => 'required_without:file|nullable|string|max:2000',
                 // Staff write to patients only.
                 'receiver_id' => ['required', Rule::exists('users', 'id')->where('role', 'user')],
-                'file' => self::ATTACHMENT_RULES,
+                'file' => self::attachmentRules(),
             ]);
 
             $patientId = (int) $request->receiver_id;
@@ -74,7 +75,9 @@ class ChatController extends Controller
             $this->markReadByStaff($activeChatUser->id, $user);
         }
 
-        return view('messaging', compact('patients', 'activeChatUser', 'messages'));
+        $maxUploadBytes = self::maxUploadBytes();
+
+        return view('messaging', compact('patients', 'activeChatUser', 'messages', 'maxUploadBytes'));
     }
 
     /**
@@ -88,7 +91,7 @@ class ChatController extends Controller
         if ($request->isMethod('post')) {
             $request->validate([
                 'message' => 'required_without:file|nullable|string|max:2000',
-                'file' => self::ATTACHMENT_RULES,
+                'file' => self::attachmentRules(),
             ]);
 
             if (! $station) {
@@ -112,7 +115,9 @@ class ChatController extends Controller
 
         $this->markReadByPatient($user);
 
-        return view('patient.messaging', compact('station', 'messages'));
+        $maxUploadBytes = self::maxUploadBytes();
+
+        return view('patient.messaging', compact('station', 'messages', 'maxUploadBytes'));
     }
 
     /**
@@ -168,7 +173,30 @@ class ChatController extends Controller
         )));
     }
 
-    private const ATTACHMENT_RULES = 'nullable|file|max:25600|mimes:jpeg,jpg,png,webp,gif,pdf,doc,docx,xls,xlsx,mp4,mov';
+    /** The app's own cap on a chat attachment. */
+    public const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+    /**
+     * The largest attachment that can actually arrive: the app's cap, or PHP's
+     * upload_max_filesize / post_max_size when those are lower (XAMPP ships 2 MB / 8 MB).
+     */
+    public static function maxUploadBytes(): int
+    {
+        return (int) min(self::MAX_ATTACHMENT_BYTES, UploadedFile::getMaxFilesize());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function attachmentRules(): array
+    {
+        return [
+            'nullable',
+            'file',
+            'max:' . intdiv(self::maxUploadBytes(), 1024),
+            'mimes:jpeg,jpg,png,webp,gif,pdf,doc,docx,xls,xlsx,mp4,mov',
+        ];
+    }
 
     /**
      * Save a message (and its attachment) in the patient's conversation and announce it live.

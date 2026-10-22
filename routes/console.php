@@ -75,6 +75,9 @@ Artisan::command('app:go-live-check', function () {
         ['Backups are current', $backups->isCurrent(), 'warn',
             'Run php artisan backup:run and check the daily schedule and that MySQL is running (README, "Scheduled jobs"). Newest found: '
                 . ($latestBackup['name'] ?? 'none yet') . '.'],
+        ['PHP accepts 25 MB chat attachments', \App\Http\Controllers\ChatController::maxUploadBytes() >= \App\Http\Controllers\ChatController::MAX_ATTACHMENT_BYTES, 'warn',
+            'In php.ini set upload_max_filesize=26M and post_max_size=28M, then restart PHP/Apache. Now: upload_max_filesize='
+                . ini_get('upload_max_filesize') . ', post_max_size=' . ini_get('post_max_size') . ' (phone photos are often over 2 MB).'],
         ['Backups are copied off this PC', filled(config('backup.copy_to')), 'warn',
             'Set BACKUP_COPY_PATH to a USB drive or synced folder, so a failed disk does not take the backups with it.'],
     ];

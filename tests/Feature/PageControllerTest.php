@@ -1041,13 +1041,15 @@ class PageControllerTest extends TestCase
     }
 
     /**
-     * Test chat messaging with a 15MB video attachment.
+     * Test chat messaging with a large video attachment: 15 MB, or the most PHP on this
+     * machine accepts if that is less (XAMPP's default is 2 MB).
      */
     public function test_message_with_large_video_upload(): void
     {
         \Illuminate\Support\Facades\Storage::fake('local');
 
-        $file = \Illuminate\Http\UploadedFile::fake()->create('test_video.mp4', 15 * 1024, 'video/mp4');
+        $kilobytes = min(15 * 1024, intdiv(\App\Http\Controllers\ChatController::maxUploadBytes(), 1024));
+        $file = \Illuminate\Http\UploadedFile::fake()->create('test_video.mp4', $kilobytes, 'video/mp4');
 
         $response = $this->actingAs($this->adminUser)
             ->postJson('/messaging', [

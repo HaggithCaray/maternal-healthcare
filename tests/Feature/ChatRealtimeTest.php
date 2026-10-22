@@ -72,6 +72,32 @@ class ChatRealtimeTest extends TestCase
             ->assertDontSee('Online Support');
     }
 
+    public function test_the_upload_limit_is_what_php_actually_accepts(): void
+    {
+        $limit = \App\Http\Controllers\ChatController::maxUploadBytes();
+        $this->assertLessThanOrEqual(\App\Http\Controllers\ChatController::MAX_ATTACHMENT_BYTES, $limit);
+        $this->assertLessThanOrEqual(\Symfony\Component\HttpFoundation\File\UploadedFile::getMaxFilesize(), $limit);
+
+        // Both chat pages check the same limit before uploading, and show it in plain text.
+        foreach ([[$this->midwife, '/messaging?chat_user_id=' . $this->patient->id], [$this->patient, '/messaging']] as [$user, $url]) {
+            $this->actingAs($user)->get($url)
+                ->assertOk()
+                ->assertSee("const MAX_FILE_SIZE = {$limit};", false)
+                ->assertSee("toast.querySelector('[data-toast-text]').textContent = message;", false)
+                ->assertDontSee('<span>${message}</span>', false);
+        }
+    }
+
+    public function test_an_attachment_over_the_limit_is_refused(): void
+    {
+        $tooBig = intdiv(\App\Http\Controllers\ChatController::maxUploadBytes(), 1024) + 1;
+
+        $this->actingAs($this->patient)
+            ->postJson('/messaging', ['file' => \Illuminate\Http\UploadedFile::fake()->create('scan.pdf', $tooBig, 'application/pdf')])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('file');
+    }
+
     public function test_chat_still_works_when_the_realtime_server_is_down(): void
     {
         $this->reverbIsDown();
