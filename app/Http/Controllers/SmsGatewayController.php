@@ -92,10 +92,25 @@ class SmsGatewayController extends Controller
             'reminders_enabled' => 'boolean',
         ]);
 
+        // The saved password is never shown on the page, so a blank field keeps it, but only for
+        // the same gateway host: it must never be sent to an address it wasn't entered for.
+        $password = (string) $request->password;
+        if ($password === '') {
+            $saved = $smsService->getSettings();
+            $sameHost = strcasecmp((string) parse_url($saved['url'], PHP_URL_HOST), (string) parse_url($request->url, PHP_URL_HOST)) === 0;
+
+            if (filled($saved['password']) && ! $sameHost) {
+                return back()->withInput($request->except('password'))
+                    ->withErrors(['password' => 'Enter the password again for the new gateway address.']);
+            }
+
+            $password = $sameHost ? (string) $saved['password'] : '';
+        }
+
         $success = $smsService->saveSettings(
             $request->url,
             $request->username ?? '',
-            $request->password ?? '',
+            $password,
             $request->boolean('reminders_enabled')
         );
 
