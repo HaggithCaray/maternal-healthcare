@@ -84,7 +84,8 @@ class MaternalRecordController extends Controller
             'bp' => ['required', 'string', 'regex:/^\s*\d{2,3}\s*\/\s*\d{2,3}\s*$/'],
             // Doppler usually picks up the fetal heart from about 12 weeks, so it may be blank early on.
             'fetal_heart_rate' => 'nullable|integer|min:50|max:250',
-            'notes' => 'nullable|string',
+            // Same cap as postpartum notes and offline sync; MySQL's TEXT column ends at 64 KB.
+            'notes' => 'nullable|string|max:5000',
         ], [
             'bp.regex' => 'Enter blood pressure as systolic/diastolic, e.g. 120/80.',
         ]);

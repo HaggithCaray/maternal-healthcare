@@ -33,7 +33,9 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Private files (chat attachments) are only served by ChatController::attachment,
+            // which checks who may see them; no /storage/{path} routes for this disk.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

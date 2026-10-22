@@ -92,6 +92,11 @@ class ChildHealthController extends Controller
             $childRecord = $patient->childRecord;
         }
 
+        // Growth is only tracked for children (e.g. not for a mother's record opened by id).
+        if (! $childRecord) {
+            return back()->with('error', 'Growth can only be recorded for a registered child.');
+        }
+
         // Age in months, WHO z-scores and nutritional status are derived by GrowthMeasurement on save.
         $measurement = GrowthMeasurement::create([
             'child_record_id' => $childRecord->id,

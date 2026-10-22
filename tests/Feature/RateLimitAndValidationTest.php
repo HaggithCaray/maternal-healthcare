@@ -213,6 +213,40 @@ class RateLimitAndValidationTest extends TestCase
         $this->assertTrue((bool) $child->childRecord->has_vitamin_k);
     }
 
+    // --- Checkups and growth -----------------------------------------------------------------
+
+    public function test_checkup_notes_are_capped(): void
+    {
+        $mother = $this->patient(['first_name' => 'Ana', 'registration_type' => 'Maternal', 'dob' => '1998-04-12', 'gender' => 'Female']);
+        \App\Models\MaternalRecord::create(['patient_id' => $mother->id]);
+
+        $this->actingAs($this->adminUser)->post("/maternal?id={$mother->id}", [
+            'weight_kg' => 60, 'bp' => '110/70', 'notes' => str_repeat('x', 5001),
+        ])->assertSessionHasErrors('notes');
+
+        $this->assertSame(0, \App\Models\MaternalCheckup::count());
+    }
+
+    public function test_growth_on_a_record_without_a_child_record_is_refused_not_a_crash(): void
+    {
+        $mother = $this->patient(['first_name' => 'Ana', 'registration_type' => 'Maternal', 'dob' => '1998-04-12', 'gender' => 'Female']);
+
+        $this->actingAs($this->adminUser)->from("/growth?id={$mother->id}")
+            ->post("/growth?id={$mother->id}", ['weight_kg' => 5, 'height_cm' => 60, 'patient_id' => $mother->id])
+            ->assertRedirect("/growth?id={$mother->id}")
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, \App\Models\GrowthMeasurement::count());
+    }
+
+    public function test_private_files_have_no_public_file_route(): void
+    {
+        \Illuminate\Support\Facades\Storage::disk('local')->put('attachments/lab.pdf', 'contents');
+
+        $this->get('/storage/attachments/lab.pdf')->assertNotFound();
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('storage.local'));
+    }
+
     // --- Mark Given -------------------------------------------------------------------------
 
     public function test_mark_given_does_not_overwrite_a_dose_already_recorded(): void
