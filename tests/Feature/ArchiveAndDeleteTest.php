@@ -205,7 +205,7 @@ class ArchiveAndDeleteTest extends TestCase
         $this->assertTrue(AuditLog::where('action', 'restore_patient')->where('model_id', $patient->id)->exists());
     }
 
-    public function test_archived_patient_can_still_log_in(): void
+    public function test_archived_patient_cannot_sign_in_until_restored(): void
     {
         $login = User::create([
             'name' => 'Archibald Santos',
@@ -213,15 +213,53 @@ class ArchiveAndDeleteTest extends TestCase
             'password' => Hash::make('secret123'),
             'role' => 'user',
         ]);
-        $this->archivedPatient(['user_id' => $login->id, 'first_name' => 'Archibald']);
+        $patient = $this->archivedPatient(['user_id' => $login->id, 'first_name' => 'Archibald']);
+        $credentials = ['email' => 'archibald@maternal.com', 'password' => 'secret123', 'role' => 'user'];
 
-        $response = $this->from('/')->post('/', [
-            'email' => 'archibald@maternal.com',
-            'password' => 'secret123',
-            'role' => 'user',
-        ]);
+        // Same message as a wrong password, so it reveals nothing about the record.
+        $this->from('/')->post('/', $credentials)
+            ->assertRedirect('/')
+            ->assertSessionHasErrors('email');
+        $this->assertGuest();
 
-        $response->assertRedirect('/portal');
+        $this->actingAs($this->admin)->patch("/patients/{$patient->id}/restore");
+        $this->post('/logout');
+
+        $this->from('/')->post('/', $credentials)->assertRedirect('/portal');
+    }
+
+    public function test_archiving_ends_a_patients_open_session(): void
+    {
+        $login = User::create(['name' => 'Archibald Santos', 'email' => 'archibald@maternal.com', 'password' => Hash::make('secret123'), 'role' => 'user']);
+        $patient = $this->patient(['user_id' => $login->id, 'first_name' => 'Archibald']);
+
+        $this->actingAs($login)->get('/portal')->assertOk();
+
+        $patient->update(['status' => 'Archived']);
+
+        $this->actingAs($login)->get('/portal')->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_archived_patients_leave_the_staff_chat_list(): void
+    {
+        $login = User::create(['name' => 'Archibald Santos', 'email' => 'archibald@maternal.com', 'password' => Hash::make('secret123'), 'role' => 'user']);
+        $patient = $this->patient(['user_id' => $login->id, 'first_name' => 'Archibald']);
+
+        $this->actingAs($this->admin)->get('/messaging')->assertSee('archibald@maternal.com');
+
+        $patient->update(['status' => 'Archived']);
+
+        $this->actingAs($this->admin)->get('/messaging')->assertDontSee('archibald@maternal.com');
+    }
+
+    public function test_a_deactivated_staff_account_still_cannot_sign_in(): void
+    {
+        $this->admin->update(['is_active' => false]);
+
+        $this->from('/')->post('/', ['email' => 'admin@maternal.com', 'password' => 'secret123', 'role' => 'admin'])
+            ->assertSessionHasErrors('email');
+        $this->assertGuest();
     }
 
     // ---------- Permanent delete ----------

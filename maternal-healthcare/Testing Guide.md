@@ -22,7 +22,7 @@
 | `tests/Feature/PostpartumAndExportTest.php` | 14 | Postpartum visits, DOH schedule, risk escalation + all CSV exports |
 | `tests/Feature/RemindersTest.php` | 8 | Automated SMS reminders: off switch, dedupe, retry, visit windows |
 | `tests/Feature/BackupTest.php` | 6 | Backup zip contents, replayable dump, pruning, command, go-live warning |
-| `tests/Feature/ArchiveAndDeleteTest.php` | 17 | Archive/restore lifecycle, hidden-from-everywhere behavior, two-step permanent delete |
+| `tests/Feature/ArchiveAndDeleteTest.php` | 21 | Archive/restore lifecycle, hidden-from-everywhere behavior (incl. sign-in and chat list), two-step permanent delete |
 | `tests/Feature/ScheduleCatchUpTest.php` | 5 | The every-15-minute catch-up guards: both scheduled jobs run once after 08:00/02:00, never twice a day |
 | `tests/Feature/AccessHardeningTest.php` | 15 | Staff-only SMS center, role gates, 403s |
 | `tests/Feature/RateLimitAndValidationTest.php` | 11 | Rate limits and server-side validation |
@@ -42,7 +42,7 @@
 | File | Tests | What they prove |
 |------|-------|-----------------|
 | `ScheduleCatchUpTest.php` | 5 | Both scheduled jobs are checked every quarter hour with a guard: reminders run from 08:00 once a day (a date-keyed cache marker set even when reminders are switched off; yesterday's marker never blocks today), backups from 02:00 once a day (a zip dated today is the marker) — so a PC that was asleep at the intended time still gets its run at first wake |
-| `ArchiveAndDeleteTest.php` | 17 | Archived patients are hidden from lists, search, dashboard counts, reports and the masterlist CSV (and back with `?archived=1`); deletion needs archive first, is refused while a mother has linked children, cascades clinical records + SMS + the linked login's chat history, writes a final audit entry, and the portal login keeps working while archived |
+| `ArchiveAndDeleteTest.php` | 21 | Archived patients are hidden from lists, search, dashboard counts, reports and the masterlist CSV (and back with `?archived=1`); deletion needs archive first, is refused while a mother has linked children, cascades clinical records + SMS + the linked login's chat history, writes a final audit entry, chat attachment files go too, and an archived patient cannot sign in (open sessions end) and leaves the staff chat list until restored |
 | `PostpartumAndExportTest.php` | 14 | 48h/1w/2w/6w schedule derivation from the delivery date, High Risk escalation, offline `postpartum_visit` sync, and every CSV export (filters honoured, UTF-8 BOM, formula-injection escaping, audit-log entry per export) |
 | `RemindersTest.php` | 8 | Nothing is sent until the switch is ticked; a `Sent` reminder is never repeated; a `Failed` one retries without duplicating the row; today/tomorrow/overdue windows for prenatal and postpartum |
 | `BackupTest.php` | 6 | The zip holds database + `.env` + `storage/app` but never nests itself; the SQLite dump replays into a working database (including `ALTER`-added columns); backups older than 30 days are pruned; command success **and** failure paths |

@@ -55,6 +55,20 @@ class User extends Authenticatable
         return $this->hasOne(Patient::class);
     }
 
+    /**
+     * Whether this account may be signed in: active, and for a patient, a record that is not
+     * archived (an archived patient is no longer in the station's care).
+     */
+    public function canSignIn(): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        // Asked of the database, never a loaded relation, so an archive takes effect at once.
+        return ! ($this->isUser() && $this->patient()->where('status', 'Archived')->exists());
+    }
+
     public function scopeActive(Builder $query): void
     {
         $query->where('is_active', true);

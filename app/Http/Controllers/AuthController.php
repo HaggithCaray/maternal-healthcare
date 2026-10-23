@@ -27,7 +27,8 @@ class AuthController extends Controller
             'is_active' => true,
         ];
 
-        if (Auth::attempt($attempt, $request->boolean('remember'))) {
+        // canSignIn also turns away a patient whose record was archived.
+        if (Auth::attemptWhen($attempt, fn ($user) => $user->canSignIn(), $request->boolean('remember'))) {
             $request->session()->regenerate();
             Auth::user()->forceFill(['last_login_at' => now()])->save();
 

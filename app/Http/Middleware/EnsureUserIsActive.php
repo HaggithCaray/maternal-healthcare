@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Signs out an account that was deactivated while it still had an open session.
+ * Signs out an account that was deactivated, or a patient whose record was archived, while it
+ * still had an open session.
  */
 class EnsureUserIsActive
 {
@@ -16,7 +17,7 @@ class EnsureUserIsActive
     {
         $user = $request->user();
 
-        if ($user && $user->is_active === false) {
+        if ($user && ! $user->canSignIn()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

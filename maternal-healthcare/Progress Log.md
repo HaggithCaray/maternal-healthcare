@@ -4,7 +4,7 @@ Dated entries of what changed in the project, what is verified, and what to do n
 
 ## 2026-10-23 — Audit: reminders, backups, dependencies, uploads
 
-**Suite:** 309 tests / 1,361 assertions, all passing (was 288 / 1,271).
+**Suite:** 312 tests / 1,375 assertions, all passing (was 288 / 1,271).
 
 ### Found and fixed
 - **Backups had stopped Oct 16–23.** The scheduler task fired, but XAMPP's MySQL was down, so
@@ -24,9 +24,13 @@ Dated entries of what changed in the project, what is verified, and what to do n
 - Smaller: chat pop-ups set as plain text, checkup notes capped at 5,000 characters, a growth
   entry on a non-child record is refused, unused `/storage/{path}` routes turned off.
 
+### Decision changed
+- **Archived patients can no longer sign in** (reverses the 2026-10-15 decision). Archived means
+  no longer under the station's care: sign-in is refused with the usual "credentials" message,
+  an open session ends on the next page, and they leave the staff chat list. Restoring the
+  patient gives the login back (`User::canSignIn`).
+
 ### Still open
-- **Archived patients can still sign in** (decided deliberately 2026-10-15). A fix that blocks
-  sign-in and hides them from the staff chat list is parked in `git stash`, pending a decision.
 - **On the machine:** install MySQL as a Windows service; set `BACKUP_PASSWORD` and
   `BACKUP_COPY_PATH`; raise PHP's upload limits (`upload_max_filesize=26M`,
   `post_max_size=28M`) and restart; before real use, `APP_DEBUG=false` and real passwords

@@ -35,10 +35,11 @@ class ChatController extends Controller
      */
     protected function adminMessaging(Request $request, User $user)
     {
-        // Patient logins that belong to a patient record (e.g. not a login left over from a child),
+        // Patient logins that belong to a patient record that is not archived (and not a login
+        // left over from a child),
         // waiting conversations first, then the most recently active.
         $patients = User::where('role', 'user')
-            ->whereHas('patient')
+            ->whereHas('patient', fn ($q) => $q->where('status', '!=', 'Archived'))
             ->withCount(['sentMessages as unread_count' => fn ($q) => $q->where('is_read', false)])
             ->withMax('sentMessages as last_message_at', 'created_at')
             ->get()
