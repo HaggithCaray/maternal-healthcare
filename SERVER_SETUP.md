@@ -416,23 +416,31 @@ backup cannot be restored. Each backup contains every patient record and the `.e
 `BACKUP_COPY_PATH=/mnt/backup-drive` points at a folder that does not exist, so the second copy
 fails on every run (logged as `copying it to /mnt/backup-drive failed`). Pick one:
 
-**A. Pull the backups to your Windows PC (no extra hardware).** Run in local PowerShell:
+**A. Pull the backups to your Windows PC (INSTALLED — no extra hardware).** The script
+`C:\MaternalBackups\pull-backups.ps1` lists the zips on the server over SSH and copies only the
+new ones to `C:\MaternalBackups`, keeps the newest 60 and logs to `C:\MaternalBackups\pull.log`.
+The Task Scheduler job `Pull Maternal Hub backups` runs it daily at 06:00 and at every logon, and
+catches up if the PC was off (`StartWhenAvailable`). It needs the SSH key login from section 7.3
+(no password prompts) and the PC connected to Tailscale.
 
 ```powershell
-mkdir C:\MaternalBackups
-scp rusel@100.110.30.36:/var/www/maternal-health-hub/storage/app/backups/backup-*.zip C:\MaternalBackups\
+# run it by hand / check it (local PowerShell)
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\MaternalBackups\pull-backups.ps1
+Get-Content C:\MaternalBackups\pull.log -Tail 5          # "OK: n new backup(s) copied"
+Get-ScheduledTaskInfo -TaskName "Pull Maternal Hub backups"   # LastRunTime / LastTaskResult 0
 ```
 
-Make it daily with Task Scheduler:
+Recreate the scheduled job on a new PC (after copying the script there):
 
 ```powershell
-$action  = New-ScheduledTaskAction -Execute "scp.exe" -Argument "rusel@100.110.30.36:/var/www/maternal-health-hub/storage/app/backups/backup-*.zip C:\MaternalBackups\"
-$trigger = New-ScheduledTaskTrigger -Daily -At 6:00AM
-Register-ScheduledTask -TaskName "Pull Maternal Hub backups" -Action $action -Trigger $trigger
+$action   = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\MaternalBackups\pull-backups.ps1'
+$triggers = @((New-ScheduledTaskTrigger -Daily -At 6:00AM), (New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME))
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RunOnlyIfNetworkAvailable
+Register-ScheduledTask -TaskName 'Pull Maternal Hub backups' -Action $action -Trigger $triggers -Settings $settings -Force
 ```
 
-(This needs the SSH key login from section 7.3 so no password is requested; the PC must be on and
-on Tailscale at that time.)
+Remove it: `Unregister-ScheduledTask -TaskName "Pull Maternal Hub backups" -Confirm:$false`.
+Copy the zips from the PC to a second place (USB, cloud) too if the PC itself is not safe.
 
 **B. External drive on the server:**
 
@@ -459,6 +467,127 @@ zcat database.sql.gz | sudo mysql restore_test
 sudo mysql restore_test -e "SELECT COUNT(*) FROM users;"
 sudo mysql -e "DROP DATABASE restore_test;"
 cd / && rm -rf /tmp/restore-test
+```
+
+### 9.3 Disk failure — rebuild on a new drive
+
+Why this section exists: the server's disk (`/dev/sda`, Seagate ST250DM000) reports pending and
+uncorrectable sectors. Check it weekly; replace it at once if the counts climb quickly:
+
+```bash
+sudo smartctl -A /dev/sda | grep -E 'Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect'
+sudo smartctl -H /dev/sda            # "PASSED" does not mean healthy; read the attributes
+```
+
+You need on your PC: a recent `backup-*.zip` (the daily pull, `C:\MaternalBackups`), the
+`BACKUP_PASSWORD` (kept off the server), and this file. The zip contains `database.sql.gz`,
+`storage/app/...` and `.env`.
+
+**1. Install Ubuntu Server on the new drive**, create user `rusel`, then from your PC set up the SSH
+key (section 7.3, "ssh-keygen ... | ssh" run in local PowerShell).
+
+**2. Join Tailscale** (the machine name must stay `server1` to keep the same address):
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --hostname=server1
+```
+
+Approve it in the admin console. If the old `server1` machine still appears there, remove it
+first (Machines → `...` → Delete), otherwise the new one is named `server1-1` and the address
+changes.
+
+**3. Install the stack:**
+
+```bash
+sudo apt update && sudo apt install -y nginx mysql-server supervisor git unzip curl \
+  php8.5-fpm php8.5-cli php8.5-mysql php8.5-mbstring php8.5-xml php8.5-curl php8.5-zip \
+  php8.5-bcmath php8.5-intl php8.5-gd composer nodejs npm
+```
+
+(Use the PHP version `php -v` showed before; adjust package names if Ubuntu names them
+differently.) Then apply sections 2 and 3 (permissions, CLI upload limits) and the FPM limits
+(`upload_max_filesize=26M`, `post_max_size=28M` in `/etc/php/8.5/fpm/php.ini`, then
+`sudo systemctl restart php8.5-fpm`).
+
+**4. Get the code and the saved files:**
+
+```bash
+sudo mkdir -p /var/www && sudo chown rusel:www-data /var/www
+cd /var/www && git clone <your-repo-url> maternal-health-hub
+cd maternal-health-hub
+```
+
+From your PC, send a backup zip up and unpack it:
+
+```powershell
+scp C:\MaternalBackups\backup-<latest>.zip rusel@100.110.30.36:/tmp/
+```
+
+```bash
+mkdir /tmp/restore && cd /tmp/restore
+unzip -P '<BACKUP_PASSWORD>' /tmp/backup-<latest>.zip
+ls                                  # database.sql.gz  .env  storage/
+```
+
+**5. Restore `.env`, uploads and the database:**
+
+```bash
+cd /var/www/maternal-health-hub
+cp /tmp/restore/.env .env
+sudo chgrp www-data .env && sudo chmod 640 .env
+cp -a /tmp/restore/storage/app/. storage/app/
+
+# Database: create it and a user matching DB_DATABASE / DB_USERNAME / DB_PASSWORD in .env
+sudo mysql -e "CREATE DATABASE IF NOT EXISTS healthcare_db CHARACTER SET utf8mb4;"
+sudo mysql -e "CREATE USER IF NOT EXISTS 'maternal_user'@'localhost' IDENTIFIED BY '<DB_PASSWORD from .env>';"
+sudo mysql -e "GRANT ALL ON healthcare_db.* TO 'maternal_user'@'localhost'; FLUSH PRIVILEGES;"
+zcat /tmp/restore/database.sql.gz | sudo mysql healthcare_db
+```
+
+Check the real database and user names in `.env` first (`DB_DATABASE`, `DB_USERNAME`). If the
+dump includes a different database name, restore into the one `.env` expects.
+
+**6. Build and configure the app:**
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo find storage bootstrap/cache -type d -exec chmod 2775 {} + 
+php artisan storage:link
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+```
+
+**7. Recreate nginx and Supervisor** from the files saved in `/etc` backups, or from the
+repo's deployment notes: the vhost `/etc/nginx/sites-available/maternal-health-hub` (root
+`/var/www/maternal-health-hub/public`, PHP socket `/run/php/php8.5-fpm.sock`, `location /app`
+proxy to `127.0.0.1:8080`), and `/etc/supervisor/conf.d/maternal-health-hub.conf` with four
+programs: `reverb:start --host=127.0.0.1 --port=8080`, two `queue:work --sleep=3 --tries=3
+--max-time=3600`, and `schedule:work`, all as `www-data`.
+
+```bash
+sudo ln -s /etc/nginx/sites-available/maternal-health-hub /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl status
+```
+
+**8. Turn the public/private address back on** (section 8): `sudo tailscale serve --bg 80`, and
+`sudo tailscale funnel --bg 80` if it was public (the Funnel ACL setting is kept in your account).
+
+**9. Verify** (section 11) and run `php artisan app:go-live-check`. Then remove the restore files:
+
+```bash
+rm -rf /tmp/restore /tmp/backup-*.zip
+```
+
+Expect 1–2 hours the first time. Save copies of the nginx vhost and the Supervisor config next to
+the backups on your PC so step 7 is a copy, not a rewrite:
+
+```powershell
+scp rusel@100.110.30.36:/etc/nginx/sites-available/maternal-health-hub C:\MaternalBackups\nginx-maternal-health-hub.conf
+scp rusel@100.110.30.36:/etc/supervisor/conf.d/maternal-health-hub.conf C:\MaternalBackups\supervisor-maternal-health-hub.conf
 ```
 
 ---
