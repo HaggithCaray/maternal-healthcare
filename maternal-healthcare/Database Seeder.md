@@ -1,7 +1,14 @@
 # Database Seeder
 
 ## Overview
-`database/seeders/DatabaseSeeder.php` creates realistic sample data for development.
+There are two seeders:
+
+- `database/seeders/DatabaseSeeder.php` (the default `db:seed`) is **production-safe**: it creates
+  only the first admin from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (optional `ADMIN_NAME`, password at
+  least 12 characters) and does nothing if an admin already exists.
+- `database/seeders/DemoSeeder.php` creates the realistic sample data described below, for
+  development only: `php artisan db:seed --class=DemoSeeder`. Its accounts use the password
+  `password`, so never run it on a server.
 
 ## Seeded Data
 
@@ -47,10 +54,14 @@
 
 ## Running the Seeder
 ```bash
-php artisan db:seed
+# Production / first install: only the first admin
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-long-random-password' php artisan db:seed
 
-# Fresh start
-php artisan migrate:fresh --seed
+# Development: sample data
+php artisan db:seed --class=DemoSeeder
+
+# Development fresh start with sample data
+php artisan migrate:fresh && php artisan db:seed --class=DemoSeeder
 ```
 
 ## Related Pages

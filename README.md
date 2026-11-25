@@ -84,11 +84,21 @@ Start **MySQL** in the XAMPP Control Panel, open phpMyAdmin (`http://localhost/p
 CREATE DATABASE healthcare_db;
 ```
 
-Then create the tables and demo data:
+Then create the tables and the first admin account. `db:seed` creates **only** that admin (no demo
+patients, no default password); it reads the email and password from the environment:
 
 ```bash
-php artisan migrate --seed
+php artisan migrate
 ```
+
+```powershell
+$env:ADMIN_EMAIL="you@example.com"; $env:ADMIN_PASSWORD="a-long-random-password"; php artisan db:seed
+```
+
+(Bash: `ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='...' php artisan db:seed`. The password needs at
+least 12 characters.) For sample patients, records and the demo logins on a **development machine
+only**, run `php artisan db:seed --class=DemoSeeder` instead. The demo accounts use the password
+`password`, so never run that on a server.
 
 ### 5. Set up real-time chat (Reverb)
 

@@ -102,8 +102,11 @@ php -r 'echo ini_get("upload_max_filesize"), " / ", ini_get("post_max_size"), PH
 
 ## 4. Demo accounts and seeded data (DONE 2026-11-25)
 
-`migrate --seed` creates `health@example.com` / `patient@example.com`, **both with the password
-`password`**, plus demo patients, records, SMS and chat. All of it was removed:
+On `development`, `migrate --seed` (the old seeder, now `DemoSeeder` on `main`) creates
+`health@example.com` / `patient@example.com`, **both with the password `password`**, plus demo
+patients, records, SMS and chat. On `main`, `db:seed` creates only the first admin from
+`ADMIN_EMAIL` / `ADMIN_PASSWORD`. This server was seeded with the old seeder, and all of it was
+removed:
 
 - `patient@example.com` and every demo patient, maternal/child record, checkup, immunization,
   growth measurement, SMS and chat message were deleted.
